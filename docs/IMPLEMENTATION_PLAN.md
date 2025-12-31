@@ -39,15 +39,15 @@
 ### 1.2 디자인 시스템 구축
 
 #### 1.2.1 shadcn/ui 컴포넌트 설치
-- [ ] Button
-- [ ] Input
-- [ ] Card
-- [ ] Avatar
-- [ ] Dialog/Modal
-- [ ] Toast (Sonner)
-- [ ] Select/Dropdown
-- [ ] ScrollArea
-- [ ] 기타 필요한 컴포넌트
+- [x] Button
+- [x] Input
+- [x] Card
+- [x] Avatar
+- [x] Dialog/Modal
+- [x] Toast (Sonner)
+- [x] Select/Dropdown
+- [x] ScrollArea
+- [x] 기타 필요한 컴포넌트
 
 #### 1.2.2 커스텀 디자인 토큰 정의
 - [x] 색상 팔레트 (춘심 캐릭터에 맞는 따뜻한 톤)
@@ -183,7 +183,7 @@
 
 #### 1.9.2 페이지 전환
 - [x] 라우트 전환 애니메이션 (React Router v7 기본 지원)
-- [ ] 모달 열기/닫기 애니메이션 (shadcn/ui Dialog 사용 시 자동 지원)
+- [x] 모달 열기/닫기 애니메이션 (shadcn/ui Dialog 사용, 설정 화면에 로그아웃/계정 삭제 모달 적용)
 
 ---
 
