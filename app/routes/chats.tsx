@@ -103,7 +103,7 @@ export default function ChatListScreen() {
   ];
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen relative overflow-x-hidden selection:bg-primary selection:text-white pb-24">
+    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen relative overflow-x-hidden selection:bg-primary selection:text-white pb-24 max-w-md mx-auto md:max-w-lg lg:max-w-xl">
       <header className="sticky top-0 z-40 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-white/5 px-4 pt-12 pb-3 flex items-center justify-between transition-colors duration-300">
         <div className="flex items-center gap-3">
           <div className="relative">

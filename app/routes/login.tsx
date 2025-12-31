@@ -52,7 +52,7 @@ export default function LoginScreen() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display min-h-screen flex items-center justify-center overflow-hidden selection:bg-primary selection:text-white">
-      <div className="relative w-full max-w-[480px] h-screen max-h-[900px] flex flex-col bg-background-dark shadow-2xl overflow-hidden sm:rounded-[32px] sm:h-[850px] sm:border-8 sm:border-[#1a0c13]">
+      <div className="relative w-full max-w-[480px] h-screen max-h-[900px] flex flex-col bg-background-dark shadow-2xl overflow-hidden md:rounded-[32px] md:h-[850px] md:border-8 md:border-[#1a0c13] md:max-w-md">
         {/* Header Image Area */}
         <div className="absolute top-0 w-full h-[55%] z-0">
           <div

@@ -33,9 +33,13 @@ export function MessageInput({
   return (
     <footer
       className={cn(
-        "flex-none bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 pb-8 pt-2 px-3",
+        "flex-none bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 pb-safe pt-2 px-3",
+        "pb-8 md:pb-8",
         className
       )}
+      style={{
+        paddingBottom: "max(env(safe-area-inset-bottom), 2rem)",
+      }}
     >
       <div className="flex items-end gap-2 p-2">
         <button

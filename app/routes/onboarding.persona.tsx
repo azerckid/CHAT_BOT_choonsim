@@ -70,7 +70,7 @@ export default function PersonaSelectionScreen() {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col overflow-hidden">
+    <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col overflow-hidden max-w-md mx-auto md:max-w-lg lg:max-w-xl">
       <header className="sticky top-0 z-50 flex items-center bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md p-4 justify-between border-b border-gray-200 dark:border-white/5">
         <button
           onClick={() => navigate(-1)}

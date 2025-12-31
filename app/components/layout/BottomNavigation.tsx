@@ -19,8 +19,13 @@ export function BottomNavigation() {
   const currentPath = location.pathname;
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-background-dark/95 backdrop-blur-lg border-t border-gray-200 dark:border-white/5 pb-5 pt-3 px-6 z-40">
-      <div className="flex justify-between items-center max-w-md mx-auto">
+    <nav
+      className="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-background-dark/95 backdrop-blur-lg border-t border-gray-200 dark:border-white/5 pt-3 px-6 z-40"
+      style={{
+        paddingBottom: "max(env(safe-area-inset-bottom), 1.25rem)",
+      }}
+    >
+      <div className="flex justify-between items-center max-w-md mx-auto md:max-w-lg lg:max-w-xl">
         {navItems.map((item) => {
           const isActive = currentPath === item.path;
           return (

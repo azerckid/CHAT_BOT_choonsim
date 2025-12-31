@@ -150,9 +150,33 @@ body {
   }
   body {
     @apply font-sans bg-background text-foreground;
+    /* 모바일 터치 최적화 */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
   }
   html {
     @apply font-sans;
+    /* iOS Safari bounce 스크롤 방지 */
+    overscroll-behavior: none;
+    /* 스크롤 부드럽게 */
+    scroll-behavior: smooth;
+  }
+  
+  /* 터치 타겟 최소 크기 (44x44px) */
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 모바일에서 텍스트 선택 방지 (필요한 경우만) */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
 
@@ -209,4 +233,70 @@ body {
 
 .animate-pulse-slow {
   animation: pulse-slow 2s ease-in-out infinite;
+}
+
+/* iOS Safe Area 지원 */
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  }
+  .pt-safe {
+    padding-top: max(env(safe-area-inset-top), 1rem);
+  }
+  .pl-safe {
+    padding-left: max(env(safe-area-inset-left), 1rem);
+  }
+  .pr-safe {
+    padding-right: max(env(safe-area-inset-right), 1rem);
+  }
+}
+
+/* 모바일 키보드 대응 */
+@media (max-width: 768px) {
+  /* 키보드가 올라올 때 뷰포트 높이 조정 */
+  html {
+    height: -webkit-fill-available;
+  }
+  
+  body {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* 태블릿 이상에서 데스크톱 UX 개선 */
+@media (min-width: 768px) {
+  /* 데스크톱에서 호버 효과 강화 */
+  button:hover,
+  a:hover,
+  [role="button"]:hover {
+    transition: all 0.2s ease;
+  }
+  
+  /* 데스크톱에서 스크롤바 스타일 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+  }
+  
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
 }

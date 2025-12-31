@@ -42,7 +42,7 @@ export default function CharacterProfileScreen() {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-display selection:bg-primary selection:text-white antialiased overflow-x-hidden pb-24">
+    <div className="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-display selection:bg-primary selection:text-white antialiased overflow-x-hidden pb-24 max-w-md mx-auto md:max-w-lg lg:max-w-xl">
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
         <button
           onClick={() => navigate(-1)}

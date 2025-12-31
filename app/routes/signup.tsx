@@ -28,7 +28,7 @@ export default function SignUpScreen() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-white">
-      <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto overflow-x-hidden shadow-2xl">
+      <div className="relative flex h-full min-h-screen w-full flex-col max-w-md mx-auto overflow-x-hidden shadow-2xl md:max-w-lg lg:max-w-xl">
         <header className="sticky top-0 z-10 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md p-4 pb-2 justify-between">
           <button
             onClick={() => navigate(-1)}

@@ -26,7 +26,7 @@ export default function OnboardingScreen() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex items-center justify-center overflow-hidden">
-      <div className="relative w-full max-w-md mx-auto px-6">
+      <div className="relative w-full max-w-md mx-auto px-6 md:max-w-lg lg:max-w-xl">
         {/* 춘심 아바타 */}
         <div className="flex justify-center mb-8">
           <div className="relative">
