@@ -58,7 +58,7 @@ export function SignUpForm({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
-            className="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-[#67324d] bg-white dark:bg-surface-dark focus:border-primary h-14 placeholder:text-slate-400 dark:placeholder:text-text-muted px-[15px] text-base font-normal leading-normal transition-all"
+            className="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-border-pink bg-white dark:bg-surface-dark focus:border-primary h-14 placeholder:text-slate-400 dark:placeholder:text-text-muted px-[15px] text-base font-normal leading-normal transition-all"
             disabled={isLoading}
             required
           />
@@ -78,7 +78,7 @@ export function SignUpForm({
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder="What should she call you?"
-            className="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-[#67324d] bg-white dark:bg-surface-dark focus:border-primary h-14 placeholder:text-slate-400 dark:placeholder:text-text-muted px-[15px] text-base font-normal leading-normal transition-all"
+            className="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-border-pink bg-white dark:bg-surface-dark focus:border-primary h-14 placeholder:text-slate-400 dark:placeholder:text-text-muted px-[15px] text-base font-normal leading-normal transition-all"
             disabled={isLoading}
             required
           />
@@ -103,7 +103,7 @@ export function SignUpForm({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Create a password"
-            className="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-[#67324d] bg-white dark:bg-surface-dark focus:border-primary h-14 placeholder:text-slate-400 dark:placeholder:text-text-muted px-[15px] text-base font-normal leading-normal transition-all"
+            className="form-input flex w-full min-w-0 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-slate-200 dark:border-border-pink bg-white dark:bg-surface-dark focus:border-primary h-14 placeholder:text-slate-400 dark:placeholder:text-text-muted px-[15px] text-base font-normal leading-normal transition-all"
             disabled={isLoading}
             required
           />
@@ -135,7 +135,7 @@ export function SignUpForm({
                 ? isPasswordMatch
                   ? "border-green-500 dark:border-green-500"
                   : "border-red-500 dark:border-red-500"
-                : "border-slate-200 dark:border-[#67324d]"
+                : "border-slate-200 dark:border-border-pink"
             )}
             disabled={isLoading}
             required
@@ -163,7 +163,7 @@ export function SignUpForm({
             id="terms"
             checked={agreeToTerms}
             onChange={(e) => setAgreeToTerms(e.target.checked)}
-            className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 dark:border-[#67324d] bg-white dark:bg-surface-dark checked:border-primary checked:bg-primary transition-all"
+            className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-slate-300 dark:border-border-pink bg-white dark:bg-surface-dark checked:border-primary checked:bg-primary transition-all"
             disabled={isLoading}
             required
           />

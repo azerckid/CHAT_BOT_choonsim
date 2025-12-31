@@ -42,6 +42,12 @@ The core target audience consists of the 32,000 X (Twitter) users who currently 
   - Error: Failed actions, validation errors, etc.
   - Info: General information messages
   - Warning: Cautionary messages
+- **Error Handling**: Always implement comprehensive error handling:
+  - Check for `error` field in all fetcher responses (`fetcher.data?.error`)
+  - Display errors using `toast.error()` instead of showing raw error messages on the UI
+  - Remove optimistic updates when errors occur (e.g., remove optimistic messages on send failure)
+  - Handle API errors gracefully in all `useEffect` hooks that process fetcher data
+  - Never leave error handling as an afterthought - it must be included from the initial implementation
 - Git commit messages must follow Conventional Commits in Korean (e.g., `feat(ui): 로그인 기능 추가`).
 
 ## Workflow & Safety

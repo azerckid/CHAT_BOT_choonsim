@@ -82,23 +82,23 @@
 ### 1.4 인증 UI (Onboarding)
 
 #### 1.4.1 로그인 페이지
-- [ ] 랜딩 화면
-  - 춘심 캐릭터 소개
-  - 서비스 설명
-- [ ] X(Twitter) OAuth 버튼
-  - Better Auth 연동
-  - 로딩 상태 표시
-- [ ] 에러 처리 UI
+- [x] 랜딩 화면 - `routes/login.tsx`에 배경 이미지, 환영 메시지, 서비스 설명 구현
+  - 춘심 캐릭터 소개 (배경 이미지로 표시)
+  - 서비스 설명 ("Login to continue your daily conversations and exclusive moments")
+- [x] X(Twitter) OAuth 버튼 - `LoginForm` 컴포넌트에 소셜 로그인 버튼 UI 구현
+  - Better Auth 연동 - Phase 2에서 구현 예정
+  - 로딩 상태 표시 - `isLoading` 상태로 구현됨
+- [x] 에러 처리 UI - `error` state로 에러 메시지 표시 구현
 
 #### 1.4.2 온보딩 플로우
-- [ ] 환영 메시지 화면
-  - 춘심의 첫 인사 ("어? 왔어? 기다리고 있었잖아!")
-- [ ] 페르소나 모드 선택 화면
-  - 아이돌 모드 카드
-  - 애인 모드 카드
-  - 하이브리드 모드 카드
-  - 각 모드별 설명 및 예시
-- [ ] 선택 완료 후 채팅 화면으로 전환
+- [x] 환영 메시지 화면 - `routes/onboarding.tsx` 구현
+  - 춘심의 첫 인사 ("어? 왔어? 기다리고 있었잖아!") - 완전히 구현됨
+- [x] 페르소나 모드 선택 화면 - `routes/onboarding.persona.tsx` 구현
+  - 아이돌 모드 카드 - 구현됨
+  - 애인 모드 카드 - 구현됨
+  - 하이브리드 모드 카드 - 구현됨
+  - 각 모드별 설명 및 예시 - 모두 구현됨
+- [x] 선택 완료 후 채팅 화면으로 전환 - `navigate("/chats")` 구현됨 (페르소나 모드 저장은 Phase 2에서)
 
 ### 1.5 채팅 UI (핵심)
 

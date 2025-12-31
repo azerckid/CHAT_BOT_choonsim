@@ -43,7 +43,7 @@ export function LoginForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email or ID"
-          className="w-full h-14 bg-surface-dark border border-[#67324d]/30 text-white placeholder:text-white/30 text-base font-medium rounded-2xl pl-12 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:font-normal"
+          className="w-full h-14 bg-surface-dark border border-border-pink/30 text-white placeholder:text-white/30 text-base font-medium rounded-2xl pl-12 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:font-normal"
           disabled={isLoading}
           required
         />
@@ -58,7 +58,7 @@ export function LoginForm({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
-          className="w-full h-14 bg-surface-dark border border-[#67324d]/30 text-white placeholder:text-white/30 text-base font-medium rounded-2xl pl-12 pr-12 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:font-normal"
+          className="w-full h-14 bg-surface-dark border border-border-pink/30 text-white placeholder:text-white/30 text-base font-medium rounded-2xl pl-12 pr-12 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:font-normal"
           disabled={isLoading}
           required
         />
