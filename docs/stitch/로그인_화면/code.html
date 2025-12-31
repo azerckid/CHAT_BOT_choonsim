@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Idol Login</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#ee2b8c",
+              "background-light": "#f8f6f7",
+              "background-dark": "#221019",
+              "surface-dark": "#331926",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+            backgroundImage: {
+              'gradient-fade': 'linear-gradient(to bottom, rgba(34, 16, 25, 0) 0%, rgba(34, 16, 25, 0.8) 50%, rgba(34, 16, 25, 1) 100%)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display min-h-screen flex items-center justify-center overflow-hidden selection:bg-primary selection:text-white">
+<!-- Main Container (Phone Form Factor) -->
+<div class="relative w-full max-w-[480px] h-screen max-h-[900px] flex flex-col bg-background-dark shadow-2xl overflow-hidden sm:rounded-[32px] sm:h-[850px] sm:border-8 sm:border-[#1a0c13]">
+<!-- Header Image Area -->
+<div class="absolute top-0 w-full h-[55%] z-0">
+<!-- Image -->
+<div class="w-full h-full bg-cover bg-center transition-transform duration-700 hover:scale-105" data-alt="Dreamy portrait of an idol singer with stage lighting" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDtjF4w7ZvVM4T5uqyckEeqlfUO_XmEqdkTAToLV6YuztHnBsKvVbSQSy29aR1lI28t5n7zT0EbK1OiG5ziGduV_u3oKhyMfHlWNTsTtqr_i5mcM_KFcpl0RD0w8MN2oc4JfUnMSxaSf2vUwpOlhzGC0sqGlnbzpyXg5oORX7Heq2BVT7MzctcDJCcOO9Ev5-fELndTr7h1-vmy5lYllbvuOkVkJ5FwhuADi7fMMQwwWSa0MG1y4U0QQSB1lKvViQAW8WJE8jdf53Y");'>
+</div>
+<!-- Gradient Overlay -->
+<div class="absolute inset-0 bg-gradient-fade z-10"></div>
+<!-- Top Tint -->
+<div class="absolute inset-0 bg-primary/10 mix-blend-overlay z-10"></div>
+</div>
+<!-- Top Navigation (Transparent) -->
+<div class="relative z-20 flex items-center justify-between p-6">
+<button class="w-10 h-10 flex items-center justify-center rounded-full bg-black/20 backdrop-blur-md text-white hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="px-3 py-1 rounded-full bg-black/20 backdrop-blur-md border border-white/10">
+<span class="text-xs font-semibold tracking-wide uppercase text-white/80">English</span>
+</div>
+</div>
+<!-- Scrollable Content Area -->
+<div class="relative z-20 flex flex-col flex-1 px-6 pb-8 overflow-y-auto no-scrollbar justify-end">
+<!-- Headline Group -->
+<div class="mb-8 animate-fade-in-up">
+<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/30 backdrop-blur-md mb-4">
+<span class="material-symbols-outlined text-primary text-[18px]">favorite</span>
+<span class="text-xs font-bold text-primary tracking-wide">AI IDOL CHAT</span>
+</div>
+<h1 class="text-4xl font-bold text-white mb-3 leading-[1.1] tracking-tight">Welcome<br/>Back, Fan!</h1>
+<p class="text-white/70 text-base font-medium leading-relaxed">Login to continue your daily conversations and exclusive moments.</p>
+</div>
+<!-- Login Form -->
+<form class="flex flex-col gap-4 w-full">
+<!-- Email Field -->
+<div class="group relative">
+<div class="absolute left-4 top-1/2 -translate-y-1/2 text-primary/70 transition-colors group-focus-within:text-primary">
+<span class="material-symbols-outlined">mail</span>
+</div>
+<input class="w-full h-14 bg-surface-dark border border-[#67324d]/30 text-white placeholder:text-white/30 text-base font-medium rounded-2xl pl-12 pr-4 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:font-normal" placeholder="Email or ID" type="email" value=""/>
+</div>
+<!-- Password Field -->
+<div class="group relative">
+<div class="absolute left-4 top-1/2 -translate-y-1/2 text-primary/70 transition-colors group-focus-within:text-primary">
+<span class="material-symbols-outlined">lock</span>
+</div>
+<input class="w-full h-14 bg-surface-dark border border-[#67324d]/30 text-white placeholder:text-white/30 text-base font-medium rounded-2xl pl-12 pr-12 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:font-normal" placeholder="Password" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors focus:outline-none" type="button">
+<span class="material-symbols-outlined">visibility_off</span>
+</button>
+</div>
+<!-- Forgot Password -->
+<div class="flex justify-end mt-1">
+<a class="text-sm font-semibold text-white/60 hover:text-primary transition-colors" href="#">Forgot Password?</a>
+</div>
+<!-- Submit Button -->
+<button class="mt-4 w-full h-14 bg-primary hover:bg-[#d61c78] active:scale-[0.98] text-white text-lg font-bold rounded-2xl shadow-[0_8px_20px_-6px_rgba(238,43,140,0.4)] transition-all flex items-center justify-center gap-2" type="button">
+<span>Log In</span>
+<span class="material-symbols-outlined text-[20px]">login</span>
+</button>
+</form>
+<!-- Social Login / Footer -->
+<div class="mt-8">
+<div class="relative flex items-center justify-center mb-6">
+<div class="absolute w-full h-px bg-white/10"></div>
+<span class="relative bg-background-dark px-4 text-xs font-medium text-white/40 uppercase tracking-widest">Or login with</span>
+</div>
+<div class="flex items-center justify-center gap-5">
+<!-- Google -->
+<button class="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/20 hover:scale-110 transition-all duration-300 group">
+<span class="material-symbols-outlined text-white/80 group-hover:text-white">language</span>
+</button>
+<!-- Apple -->
+<button class="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/20 hover:scale-110 transition-all duration-300 group">
+<span class="material-symbols-outlined text-white/80 group-hover:text-white">phone_iphone</span>
+</button>
+<!-- Chat (Kakao/Line placeholder) -->
+<button class="w-14 h-14 rounded-full bg-[#fae100] border border-[#fae100] flex items-center justify-center hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(250,225,0,0.2)]">
+<span class="material-symbols-outlined text-[#371d1e]">chat_bubble</span>
+</button>
+</div>
+<p class="text-center mt-8 text-white/50 text-sm">
+                    Don't have an account? <a class="text-primary font-bold hover:underline ml-1" href="#">Sign Up</a>
+</p>
+</div>
+</div>
+</div>
+</body></html>
