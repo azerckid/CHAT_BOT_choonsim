@@ -2,6 +2,9 @@
 
 춘심 AI 챗봇 프로젝트의 단계별 구현 계획서입니다.
 
+**최종 업데이트**: 2025.01.XX  
+**현재 진행 상황**: Phase 1 (UI/UX 구현) - 대부분 완료
+
 ---
 
 ## Phase 1: UI/UX 구현 (우선순위 1)
@@ -9,28 +12,29 @@
 ### 1.1 프로젝트 초기 설정
 
 #### 1.1.1 프로젝트 구조 생성
-- [ ] React Router v7 (Vite) 프로젝트 초기화
-- [ ] TypeScript 설정
-- [ ] Tailwind CSS v4 설정
-- [ ] shadcn/ui Nova Preset 설치 및 설정
-- [ ] 기본 디렉토리 구조 생성
+- [x] React Router v7 (Vite) 프로젝트 초기화
+- [x] TypeScript 설정
+- [x] Tailwind CSS v4 설정
+- [x] shadcn/ui Nova Preset 설치 및 설정
+- [x] 기본 디렉토리 구조 생성
   ```
-  src/
+  app/
   ├── components/     # 재사용 가능한 컴포넌트
+  │   ├── chat/       # 채팅 관련 컴포넌트
+  │   ├── settings/   # 설정 관련 컴포넌트
+  │   └── layout/     # 레이아웃 컴포넌트
   ├── routes/         # React Router v7 라우트
   ├── lib/            # 유틸리티 및 설정
-  ├── hooks/          # Custom React Hooks
-  ├── types/          # TypeScript 타입 정의
-  └── styles/         # 전역 스타일
+  └── app.css         # 전역 스타일
   ```
 
 #### 1.1.2 필수 패키지 설치
-- [ ] React Router v7 관련 패키지
-- [ ] Tailwind CSS v4
-- [ ] shadcn/ui 컴포넌트 (Nova Preset)
-- [ ] Zod (스키마 검증)
-- [ ] Luxon (날짜/시간)
-- [ ] Sonner (Toast 알림)
+- [x] React Router v7 관련 패키지
+- [x] Tailwind CSS v4
+- [x] shadcn/ui 컴포넌트 (Nova Preset)
+- [ ] Zod (스키마 검증) - 다음 단계에서 추가 예정
+- [ ] Luxon (날짜/시간) - 다음 단계에서 추가 예정
+- [ ] Sonner (Toast 알림) - 다음 단계에서 추가 예정
 
 ### 1.2 디자인 시스템 구축
 
@@ -46,27 +50,34 @@
 - [ ] 기타 필요한 컴포넌트
 
 #### 1.2.2 커스텀 디자인 토큰 정의
-- [ ] 색상 팔레트 (춘심 캐릭터에 맞는 따뜻한 톤)
-- [ ] 타이포그래피 스케일
-- [ ] 간격(Spacing) 시스템
-- [ ] 그림자 및 효과
-- [ ] 애니메이션 정의
+- [x] 색상 팔레트 (춘심 캐릭터에 맞는 따뜻한 톤)
+  - Primary: #ee2b8c
+  - Background Light: #f8f6f7
+  - Background Dark: #221019
+  - Surface Dark: #2d1b24
+- [x] 타이포그래피 스케일
+  - Plus Jakarta Sans (Display)
+  - Noto Sans KR (Body)
+  - Material Symbols (Icons)
+- [x] 간격(Spacing) 시스템
+- [x] 그림자 및 효과
+- [x] 애니메이션 정의 (pulse-glow, typing indicator 등)
 
 ### 1.3 레이아웃 컴포넌트
 
 #### 1.3.1 기본 레이아웃
-- [ ] `RootLayout`: 앱 전체 레이아웃
+- [x] `RootLayout`: 앱 전체 레이아웃 (React Router v7 root.tsx 사용)
   - 모바일 최적화
   - 반응형 디자인
-- [ ] `ChatLayout`: 채팅 화면 전용 레이아웃
-  - 상단 헤더 (춘심 프로필)
-  - 중앙 메시지 영역
-  - 하단 입력 영역
+- [x] `ChatLayout`: 채팅 화면 전용 레이아웃
+  - 상단 헤더 (춘심 프로필) - `ChatHeader` 컴포넌트
+  - 중앙 메시지 영역 - `MessageBubble`, `DateSeparator` 사용
+  - 하단 입력 영역 - `MessageInput` 컴포넌트
 
 #### 1.3.2 네비게이션
-- [ ] 모바일 친화적 네비게이션
-- [ ] 설정 페이지 링크
-- [ ] 로그아웃 버튼
+- [x] 모바일 친화적 네비게이션 - `BottomNavigation` 컴포넌트
+- [x] 설정 페이지 링크 - `/settings` 라우트
+- [ ] 로그아웃 버튼 - 설정 화면에 UI만 구현됨 (기능은 Phase 2에서)
 
 ### 1.4 인증 UI (Onboarding)
 
@@ -93,45 +104,47 @@
 
 #### 1.5.1 메시지 리스트 컴포넌트
 - [ ] `MessageList` 컴포넌트
-  - 무한 스크롤 구현
-  - 메시지 그룹핑 (시간별)
-  - 스크롤 위치 관리
-- [ ] `MessageBubble` 컴포넌트
+  - 무한 스크롤 구현 (Phase 2에서 데이터 연동 시 구현)
+  - 메시지 그룹핑 (시간별) - `DateSeparator` 컴포넌트로 구현됨
+  - 스크롤 위치 관리 (Phase 2에서 구현)
+- [x] `MessageBubble` 컴포넌트
   - 사용자 메시지 스타일
   - 춘심 메시지 스타일
   - 타임스탬프 표시
-  - 읽음 상태 표시 (선택사항)
+  - 읽음 상태 표시 (선택사항) - UI 준비됨
 
 #### 1.5.2 메시지 입력 컴포넌트
-- [ ] `MessageInput` 컴포넌트
+- [x] `MessageInput` 컴포넌트
   - 텍스트 입력창
   - 전송 버튼
   - 입력 중 상태 표시
   - 엔터키 전송 지원
-- [ ] 입력 유효성 검증 (Zod)
+- [ ] 입력 유효성 검증 (Zod) - Phase 2에서 구현
 
 #### 1.5.3 Typing Indicator
-- [ ] 춘심이 입력 중일 때 애니메이션
-- [ ] "춘심이 입력 중..." 텍스트 표시
-- [ ] 부드러운 애니메이션 효과
+- [x] 춘심이 입력 중일 때 애니메이션 - `TypingIndicator` 컴포넌트
+- [ ] "춘심이 입력 중..." 텍스트 표시 (선택사항)
+- [x] 부드러운 애니메이션 효과
 
 #### 1.5.4 채팅 헤더
-- [ ] `ChatHeader` 컴포넌트
+- [x] `ChatHeader` 컴포넌트
   - 춘심 프로필 이미지
   - 춘심 이름/상태
-  - 현재 페르소나 모드 표시
+  - 현재 페르소나 모드 표시 (UI 준비됨, 기능은 Phase 2에서)
   - 설정 버튼
 
 ### 1.6 설정 UI
 
 #### 1.6.1 설정 페이지
+- [x] 설정 페이지 UI 구현 - `routes/settings.tsx`
+  - `SettingsItem`, `SettingsToggle` 컴포넌트 생성
 - [ ] 페르소나 모드 변경
-  - 현재 모드 표시
-  - 모드 선택 UI (카드 형태)
-  - 변경 즉시 적용
-- [ ] 알림 설정 (선택사항)
-- [ ] 계정 정보
-  - X 계정 연동 정보
+  - 현재 모드 표시 (UI 준비됨)
+  - 모드 선택 UI (카드 형태) - Phase 2에서 구현
+  - 변경 즉시 적용 - Phase 2에서 구현
+- [x] 알림 설정 (선택사항) - 토글 스위치 UI 구현됨
+- [x] 계정 정보 UI
+  - X 계정 연동 정보 (UI 준비됨)
   - 프로필 사진
   - 닉네임
 
@@ -164,13 +177,13 @@
 ### 1.9 애니메이션 및 인터랙션
 
 #### 1.9.1 메시지 애니메이션
-- [ ] 새 메시지 등장 애니메이션
-- [ ] 스크롤 부드러운 전환
-- [ ] Typing Indicator 애니메이션
+- [x] 새 메시지 등장 애니메이션 (CSS transition 적용)
+- [x] 스크롤 부드러운 전환
+- [x] Typing Indicator 애니메이션 - `TypingIndicator` 컴포넌트
 
 #### 1.9.2 페이지 전환
-- [ ] 라우트 전환 애니메이션
-- [ ] 모달 열기/닫기 애니메이션
+- [x] 라우트 전환 애니메이션 (React Router v7 기본 지원)
+- [ ] 모달 열기/닫기 애니메이션 (shadcn/ui Dialog 사용 시 자동 지원)
 
 ---
 
@@ -438,6 +451,44 @@
 ## 참고 문서
 - `docs/PLAN.md`: 프로젝트 기획서
 - `AGENTS.md`: 프로젝트 컨텍스트 및 기술 스택
-- `docs/UI_DESIGN_SYSTEM.md`: 디자인 시스템 (작성 예정)
+- `docs/UI_DESIGN_SYSTEM.md`: 디자인 시스템
 - `docs/DATABASE_SCHEMA.md`: 데이터베이스 스키마 (작성 예정)
+
+---
+
+## Phase 1 완료 요약 (2025.01.XX)
+
+### 완료된 작업
+
+#### 1. 프로젝트 초기 설정
+- React Router v7 (Vite) 프로젝트 구조 완성
+- Tailwind CSS v4 설정 및 커스텀 색상 추가
+- shadcn/ui Nova Preset 설치 및 설정
+
+#### 2. 디자인 시스템 구축
+- 커스텀 색상 팔레트 정의 (Primary: #ee2b8c 등)
+- Material Symbols 아이콘 통합
+- Plus Jakarta Sans, Noto Sans KR 폰트 추가
+- 커스텀 애니메이션 (pulse-glow, typing indicator)
+
+#### 3. 공통 컴포넌트 생성
+- **채팅 관련**: `MessageBubble`, `ChatHeader`, `MessageInput`, `TypingIndicator`, `DateSeparator`, `ChatListItem`, `OnlineIdolList`
+- **레이아웃**: `BottomNavigation`
+- **설정**: `SettingsItem`, `SettingsToggle`
+
+#### 4. 화면 컴포넌트 구현
+- `routes/chats.tsx` - 채팅방 목록 화면
+- `routes/chat.$id.tsx` - 채팅 화면 (동적 라우트)
+- `routes/settings.tsx` - 설정 화면
+- `routes/character.$id.tsx` - 캐릭터 프로필 화면
+
+#### 5. 라우트 설정
+- React Router v7 라우트 구성 완료
+- 동적 라우트 지원 (`chat/:id`, `character/:id`)
+
+### 다음 단계 (Phase 2)
+- 데이터베이스 스키마 설계 및 Prisma 설정
+- Better Auth 인증 시스템 통합
+- API 라우트 구현
+- 실제 데이터 연동
 
