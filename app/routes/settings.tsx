@@ -2,20 +2,38 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { SettingsItem } from "~/components/settings/SettingsItem";
 import { SettingsToggle } from "~/components/settings/SettingsToggle";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "~/components/ui/dialog";
+import { Button } from "~/components/ui/button";
+import { toast } from "sonner";
 
 export default function SettingsScreen() {
   const navigate = useNavigate();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
 
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+
   const handleLogout = () => {
-    // TODO: 로그아웃 로직 구현
-    console.log("Logout");
+    // TODO: 로그아웃 로직 구현 (Phase 2)
+    toast.success("로그아웃되었습니다");
+    setLogoutDialogOpen(false);
+    // navigate("/login");
   };
 
   const handleDeleteAccount = () => {
-    // TODO: 계정 탈퇴 로직 구현
-    console.log("Delete account");
+    // TODO: 계정 탈퇴 로직 구현 (Phase 2)
+    toast.error("계정이 삭제되었습니다");
+    setDeleteAccountDialogOpen(false);
+    // navigate("/login");
   };
 
   return (
@@ -143,32 +161,73 @@ export default function SettingsScreen() {
 
         <div className="px-4 pt-4 pb-8">
           <div className="flex flex-col overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark shadow-sm dark:shadow-none border border-black/5 dark:border-white/5">
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-4 p-4 min-h-14 justify-between border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors w-full text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="text-primary flex items-center justify-center rounded-full bg-primary/10 shrink-0 size-8">
-                  <span className="material-symbols-outlined text-[18px]">logout</span>
-                </div>
-                <p className="text-primary text-base font-medium flex-1 truncate">
-                  로그아웃
-                </p>
-              </div>
-            </button>
-            <button
-              onClick={handleDeleteAccount}
-              className="flex items-center gap-4 p-4 min-h-14 justify-between border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors w-full text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="text-slate-400 dark:text-slate-500 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 shrink-0 size-8">
-                  <span className="material-symbols-outlined text-[18px]">person_off</span>
-                </div>
-                <p className="text-slate-500 dark:text-slate-400 text-base font-medium flex-1 truncate">
-                  계정 탈퇴
-                </p>
-              </div>
-            </button>
+            <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="flex items-center gap-4 p-4 min-h-14 justify-between border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors w-full text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="text-primary flex items-center justify-center rounded-full bg-primary/10 shrink-0 size-8">
+                      <span className="material-symbols-outlined text-[18px]">logout</span>
+                    </div>
+                    <p className="text-primary text-base font-medium flex-1 truncate">
+                      로그아웃
+                    </p>
+                  </div>
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>로그아웃</DialogTitle>
+                  <DialogDescription>
+                    정말 로그아웃하시겠습니까?
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setLogoutDialogOpen(false)}
+                  >
+                    취소
+                  </Button>
+                  <Button onClick={handleLogout} variant="destructive">
+                    로그아웃
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={deleteAccountDialogOpen} onOpenChange={setDeleteAccountDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="flex items-center gap-4 p-4 min-h-14 justify-between border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors w-full text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="text-slate-400 dark:text-slate-500 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 shrink-0 size-8">
+                      <span className="material-symbols-outlined text-[18px]">person_off</span>
+                    </div>
+                    <p className="text-red-500 dark:text-red-400 text-base font-medium flex-1 truncate">
+                      계정 탈퇴
+                    </p>
+                  </div>
+                </button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>계정 삭제</DialogTitle>
+                  <DialogDescription>
+                    계정을 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+                    정말 계정을 삭제하시겠습니까?
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteAccountDialogOpen(false)}
+                  >
+                    취소
+                  </Button>
+                  <Button onClick={handleDeleteAccount} variant="destructive">
+                    계정 삭제
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           <p className="text-center text-slate-400 dark:text-slate-600 text-xs mt-6">
             버전 1.2.0 (Build 302)
