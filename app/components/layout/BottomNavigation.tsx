@@ -38,8 +38,8 @@ export function BottomNavigation() {
                 className={cn(
                   "material-symbols-outlined text-[28px] transition-colors",
                   isActive
-                    ? "text-primary"
-                    : "text-gray-400 dark:text-gray-500 group-hover:text-primary"
+                    ? "text-slate-900 dark:text-primary"
+                    : "text-gray-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-primary"
                 )}
                 style={isActive ? { fontVariationSettings: "'FILL' 1" } : undefined}
               >
@@ -49,8 +49,8 @@ export function BottomNavigation() {
                 className={cn(
                   "text-[10px] font-medium transition-colors",
                   isActive
-                    ? "text-primary"
-                    : "text-gray-400 dark:text-gray-500 group-hover:text-primary"
+                    ? "text-slate-900 dark:text-primary"
+                    : "text-gray-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-primary"
                 )}
               >
                 {item.label}

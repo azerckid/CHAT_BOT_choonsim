@@ -44,8 +44,8 @@ export function ChatListItem({
     messageType === "voice"
       ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300"
       : messageType === "music"
-      ? "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300"
-      : "";
+        ? "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300"
+        : "";
 
   return (
     <Link
@@ -94,7 +94,7 @@ export function ChatListItem({
               "text-xs font-medium",
               isRead
                 ? "text-gray-400 dark:text-gray-500"
-                : "text-primary"
+                : "text-slate-900 dark:text-primary"
             )}
           >
             {timestamp}
@@ -113,7 +113,7 @@ export function ChatListItem({
       </div>
       <div className="shrink-0 flex flex-col items-end gap-1">
         {unreadCount && unreadCount > 0 ? (
-          <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+          <div className="w-5 h-5 bg-slate-900 dark:bg-primary rounded-full flex items-center justify-center">
             <span className="text-[10px] font-bold text-white">{unreadCount}</span>
           </div>
         ) : isRead ? (

@@ -69,7 +69,7 @@ export function MessageInput({
           type="button"
           onClick={handleSend}
           disabled={!message.trim() || disabled}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px]"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-900 dark:bg-primary text-white shadow-lg dark:shadow-primary-glow hover:opacity-90 hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px]"
         >
           {disabled ? (
             <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

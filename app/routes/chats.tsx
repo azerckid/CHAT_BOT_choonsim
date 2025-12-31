@@ -182,7 +182,7 @@ export default function ChatListScreen() {
         )}
       </main>
 
-      <button className="fixed bottom-24 right-4 z-30 w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
+      <button className="fixed bottom-24 right-4 z-30 w-14 h-14 bg-slate-900 dark:bg-primary text-white rounded-full shadow-lg dark:shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
         <span className="material-symbols-outlined text-2xl">add_comment</span>
       </button>
 

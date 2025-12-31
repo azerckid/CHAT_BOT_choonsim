@@ -85,7 +85,7 @@ export function LoginForm({
       <button
         type="submit"
         disabled={isLoading || !email || !password}
-        className="mt-4 w-full h-14 bg-primary hover:bg-[#d61c78] active:scale-[0.98] text-white text-lg font-bold rounded-2xl shadow-primary-glow transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="mt-4 w-full h-14 bg-slate-900 dark:bg-primary hover:opacity-90 active:scale-[0.98] text-white text-lg font-bold rounded-2xl shadow-lg dark:shadow-primary-glow transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
           <>

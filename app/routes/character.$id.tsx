@@ -73,7 +73,7 @@ export default function CharacterProfileScreen() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url('${character.heroImage}')` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background-light dark:from-background-dark via-transparent to-transparent" />
         </div>
       </div>
 
@@ -85,18 +85,18 @@ export default function CharacterProfileScreen() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
               {character.name}
             </h1>
-            <p className="text-primary font-medium text-sm tracking-wide uppercase">
+            <p className="text-gray-500 dark:text-primary font-medium text-sm tracking-wide uppercase">
               {character.role}
             </p>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-primary/20 border border-gray-200 dark:border-primary/30">
             <span
-              className="material-symbols-outlined text-primary text-[16px]"
+              className="material-symbols-outlined text-gray-500 dark:text-primary text-[16px]"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               favorite
             </span>
-            <span className="text-xs font-bold text-primary">{character.relationship}</span>
+            <span className="text-xs font-bold text-gray-700 dark:text-primary">{character.relationship}</span>
           </div>
         </div>
 
@@ -121,8 +121,8 @@ export default function CharacterProfileScreen() {
               Fandom
             </span>
           </div>
-          <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition">
-            <span className="material-symbols-outlined text-primary mb-0.5">
+          <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition group/item">
+            <span className="material-symbols-outlined text-slate-900 dark:text-primary mb-0.5 group-hover/item:scale-110 transition-transform">
               settings_heart
             </span>
             <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">
@@ -159,7 +159,7 @@ export default function CharacterProfileScreen() {
                 className={cn(
                   "pb-3 text-sm font-medium transition capitalize",
                   activeTab === tab
-                    ? "font-bold text-primary border-b-2 border-primary"
+                    ? "font-bold text-slate-900 dark:text-primary border-b-2 border-slate-900 dark:border-primary"
                     : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 )}
               >
@@ -237,7 +237,7 @@ export default function CharacterProfileScreen() {
         <div className="max-w-md mx-auto flex gap-3">
           <button
             onClick={handleMessage}
-            className="flex-1 flex items-center justify-center gap-2 h-14 bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-2xl shadow-primary-glow animate-glow transition transform active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 h-14 bg-slate-900 dark:bg-primary hover:opacity-90 text-white font-bold text-lg rounded-2xl shadow-lg dark:shadow-primary-glow animate-glow transition transform active:scale-95"
           >
             <span className="material-symbols-outlined">chat_bubble</span>
             Message {character.name}

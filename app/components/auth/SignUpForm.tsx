@@ -190,7 +190,7 @@ export function SignUpForm({
       <button
         type="submit"
         disabled={isLoading || !isFormValid}
-        className="mt-4 flex w-full items-center justify-center rounded-xl bg-primary py-4 px-6 text-base font-bold text-white shadow-primary-glow hover:bg-primary/90 hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+        className="mt-4 flex w-full items-center justify-center rounded-xl bg-slate-900 dark:bg-primary py-4 px-6 text-base font-bold text-white shadow-lg dark:shadow-primary-glow hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
       >
         {isLoading ? (
           <>

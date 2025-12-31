@@ -24,6 +24,15 @@
 ### 2.1 기본 색상 팔레트
 춘심 캐릭터의 따뜻하고 친근한 느낌을 반영한 색상 팔레트입니다.
 
+#### 2.1.1 Color Palette Overview
+
+| Category | Light Mode (Monochrome) | Dark Mode (Neon Pink) | HEX |
+| :--- | :--- | :--- | :--- |
+| **Primary (Accent)** | **Slate-900 (Black)** | **Primary Pink** | `#0f172a` / `#ee2b8c` |
+| **Secondary Accent**| Slate-500 (Gray) | Pink-400 | - |
+| **Background** | Background Light | Background Dark | `#f8f6f7` / `#221019` |
+| **Surface** | White | Surface Dark | `#ffffff` / `#2d1b24` |
+
 #### Primary Colors (주요 색상)
 - **Primary**: `#ee2b8c` (따뜻한 핑크 - 춘심 캐릭터 컬러)
 - **Primary Dark**: `#d61f7a` (어두운 핑크)

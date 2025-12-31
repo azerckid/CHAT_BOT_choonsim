@@ -31,7 +31,7 @@ export function ChatHeader({
               <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
             )}
           </div>
-          <span className="text-xs text-primary font-medium tracking-wide">
+          <span className="text-xs text-slate-500 dark:text-primary font-medium tracking-wide">
             {statusText}
           </span>
         </div>
