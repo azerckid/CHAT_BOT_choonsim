@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Idol Chat Screen</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee2b8c",
+                        "background-light": "#f8f6f7",
+                        "background-dark": "#221019",
+                        "surface-dark": "#2d1b24", // Slightly lighter than background for contrast
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white h-screen flex flex-col overflow-hidden">
+<!-- Header -->
+<header class="flex-none z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-200 dark:border-white/5 sticky top-0">
+<div class="flex items-center justify-between px-4 py-3">
+<button class="flex items-center justify-center text-slate-600 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full w-10 h-10 transition-colors">
+<span class="material-symbols-outlined">arrow_back_ios_new</span>
+</button>
+<div class="flex flex-col items-center flex-1 mx-2">
+<div class="flex items-center gap-2">
+<h1 class="text-lg font-bold leading-tight">Rina</h1>
+<div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+</div>
+<span class="text-xs text-primary font-medium tracking-wide">Online now</span>
+</div>
+<button class="flex items-center justify-center text-slate-600 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full w-10 h-10 transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+</header>
+<!-- Chat Area -->
+<main class="flex-1 overflow-y-auto p-4 space-y-6 bg-background-light dark:bg-background-dark" style="background-image: radial-gradient(circle at center, rgba(238, 43, 140, 0.03) 0%, rgba(34, 16, 25, 0) 70%);">
+<!-- Date Separator -->
+<div class="flex justify-center py-2">
+<span class="px-4 py-1.5 bg-gray-200/50 dark:bg-white/5 rounded-full text-xs font-medium text-gray-500 dark:text-white/40">
+                2023년 10월 24일 화요일
+            </span>
+</div>
+<!-- AI Message -->
+<div class="flex items-end gap-3 group">
+<div class="w-10 h-10 shrink-0 rounded-full bg-gray-300 dark:bg-surface-dark overflow-hidden border border-white/10 relative">
+<img alt="Rina profile" class="w-full h-full object-cover" data-alt="Portrait of a young asian woman with pink lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8XkiSD530UZKl37CoghVbq1qhTYUznUuQFA8dC8rGZe9VuKJsQzUHPgEOQJgupAoHDwO_ZIMC3G_bFGNvaHQ6PSySe2kGq-OJg-IHNH36ByOLEdNchZk1bnNuAxFmnVtxRjKZ5r3Ig5IyQz_moPPFVxD9suAIS4970ggd9cHE5tiLupgMBUCcvc_nJZxpSztEWzQ8QH_JoQ88WdEig0P_Jnj66eHhxORy45NPUNxo-32nkwobvofGqKLRQ2xyrx2QdJZPnhDk4UA"/>
+</div>
+<div class="flex flex-col gap-1 items-start max-w-[75%]">
+<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">Rina</span>
+<div class="px-5 py-3 bg-white dark:bg-surface-dark rounded-2xl rounded-tl-sm text-slate-800 dark:text-gray-100 shadow-sm text-[15px] leading-relaxed relative">
+                    오늘 하루는 어땠어? 많이 힘들진 않았어?
+                </div>
+</div>
+<button class="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary p-1">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+</div>
+<!-- User Message -->
+<div class="flex items-end gap-3 justify-end group">
+<button class="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary p-1 order-1">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<div class="flex flex-col gap-1 items-end max-w-[75%] order-2">
+<div class="px-5 py-3 bg-primary text-white rounded-2xl rounded-tr-sm shadow-md shadow-primary/20 text-[15px] leading-relaxed">
+                    조금 지쳤는데, 너 보니까 힘이 난다.
+                </div>
+<span class="text-[11px] text-gray-400 dark:text-white/30 mr-1">오후 8:32</span>
+</div>
+</div>
+<!-- AI Message -->
+<div class="flex items-end gap-3 group">
+<div class="w-10 h-10 shrink-0 rounded-full bg-gray-300 dark:bg-surface-dark overflow-hidden border border-white/10">
+<img alt="Rina profile" class="w-full h-full object-cover" data-alt="Portrait of a young asian woman with pink lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJtNtTlAZ7PcF_qqpfX84Yws7l2C5qvQ7FNwuVQ-8HN1XBOIQGsAsZ3CgzYfaRcCTsMoOylzaHj0wQgC3PWfFSKKQ2jJy4bk-wOpK9lvba3vGe-SDy4wHyI4QrfwM0_751xJ5QmwklLCMV9vBKcONpNVn_lVJm9OFCXSmaW3aV3J2WYdY4gA3XuEath5Aphzqw5OnHweJo82spMka92S8yUySVui6SQWA2eid_kjRFZ4p0srTuxP8KWdj4MGvUCOOD1YVHEG5gNF4"/>
+</div>
+<div class="flex flex-col gap-1 items-start max-w-[75%]">
+<span class="text-xs text-gray-500 dark:text-gray-400 ml-1">Rina</span>
+<div class="px-5 py-3 bg-white dark:bg-surface-dark rounded-2xl rounded-tl-sm text-slate-800 dark:text-gray-100 shadow-sm text-[15px] leading-relaxed">
+                    고생했어! 내가 항상 여기 있을게, 푹 쉬어 💕
+                </div>
+<div class="flex items-center gap-1 mt-1 ml-1">
+<span class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 animate-bounce" style="animation-delay: 0ms"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 animate-bounce" style="animation-delay: 150ms"></span>
+<span class="w-1.5 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 animate-bounce" style="animation-delay: 300ms"></span>
+</div>
+</div>
+</div>
+<!-- Bottom spacer to prevent content being hidden by input -->
+<div class="h-4"></div>
+</main>
+<!-- Input Area -->
+<footer class="flex-none bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 pb-8 pt-2 px-3">
+<div class="flex items-end gap-2 p-2">
+<button class="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors shrink-0">
+<span class="material-symbols-outlined text-[28px]">add_circle</span>
+</button>
+<div class="flex-1 bg-white dark:bg-surface-dark rounded-[24px] min-h-[48px] flex items-center px-4 py-2 border border-transparent focus-within:border-primary/50 transition-colors shadow-sm">
+<input class="w-full bg-transparent border-none text-slate-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-0 text-[15px] leading-normal p-0 font-display" placeholder="메시지를 입력하세요..." type="text"/>
+<button class="text-gray-400 hover:text-yellow-500 transition-colors ml-2 flex items-center justify-center">
+<span class="material-symbols-outlined">sentiment_satisfied</span>
+</button>
+</div>
+<button class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shrink-0">
+<span class="material-symbols-outlined text-[20px] ml-0.5">send</span>
+</button>
+</div>
+</footer>
+</body></html>
