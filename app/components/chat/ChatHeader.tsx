@@ -28,10 +28,10 @@ export function ChatHeader({
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold leading-tight">{characterName}</h1>
             {isOnline && (
-              <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
             )}
           </div>
-          <span className="text-xs text-slate-500 dark:text-primary font-medium tracking-wide">
+          <span className="text-[11px] text-primary font-bold uppercase tracking-widest mt-0.5">
             {statusText}
           </span>
         </div>

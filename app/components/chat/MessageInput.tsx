@@ -33,18 +33,14 @@ export function MessageInput({
   return (
     <footer
       className={cn(
-        "flex-none bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 pb-safe pt-2 px-3",
-        "pb-8 md:pb-8",
+        "flex-none bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 pb-8 pt-2 px-3",
         className
       )}
-      style={{
-        paddingBottom: "max(env(safe-area-inset-bottom), 2rem)",
-      }}
     >
       <div className="flex items-end gap-2 p-2">
         <button
           type="button"
-          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors shrink-0 min-w-[44px] min-h-[44px]"
+          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary transition-colors shrink-0"
         >
           <span className="material-symbols-outlined text-[28px]">add_circle</span>
         </button>
@@ -56,11 +52,11 @@ export function MessageInput({
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full bg-transparent border-none text-slate-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-0 text-[15px] leading-normal p-0 font-display"
+            className="w-full bg-transparent border-none text-slate-800 dark:text-white placeholder-gray-400 focus:ring-0 text-[15px] leading-normal p-0 font-display"
           />
           <button
             type="button"
-            className="text-gray-400 hover:text-yellow-500 transition-colors ml-2 flex items-center justify-center min-w-[44px] min-h-[44px]"
+            className="text-gray-400 hover:text-yellow-500 transition-colors ml-2 flex items-center justify-center"
           >
             <span className="material-symbols-outlined">sentiment_satisfied</span>
           </button>
@@ -69,7 +65,7 @@ export function MessageInput({
           type="button"
           onClick={handleSend}
           disabled={!message.trim() || disabled}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-900 dark:bg-primary text-white shadow-lg dark:shadow-primary-glow hover:opacity-90 hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px]"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {disabled ? (
             <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

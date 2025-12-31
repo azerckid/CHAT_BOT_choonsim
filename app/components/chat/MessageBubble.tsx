@@ -28,7 +28,7 @@ export function MessageBubble({
           <span className="material-symbols-outlined text-[18px]">favorite</span>
         </button>
         <div className="flex flex-col gap-1 items-end max-w-[75%] order-2">
-          <div className="px-5 py-3 bg-slate-900 dark:bg-primary text-white rounded-2xl rounded-tr-sm shadow-md dark:shadow-primary-glow text-[15px] leading-relaxed">
+          <div className="px-5 py-3 bg-primary text-white rounded-2xl rounded-tr-sm shadow-md shadow-primary/20 text-[15px] leading-relaxed">
             {content}
           </div>
           {timestamp && (
@@ -62,7 +62,7 @@ export function MessageBubble({
             {senderName}
           </span>
         )}
-        <div className="px-5 py-3 bg-gray-100 dark:bg-surface-dark rounded-2xl rounded-tl-sm text-slate-800 dark:text-gray-100 shadow-sm text-[15px] leading-relaxed relative">
+        <div className="px-5 py-3 bg-white dark:bg-surface-dark rounded-2xl rounded-tl-sm text-slate-800 dark:text-gray-100 shadow-sm text-[15px] leading-relaxed relative">
           {content}
         </div>
       </div>

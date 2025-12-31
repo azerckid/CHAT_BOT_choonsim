@@ -67,10 +67,9 @@ export default function ChatScreen() {
       />
 
       <main
-        className="flex-1 overflow-y-auto p-4 space-y-6 bg-background-light dark:bg-background-dark"
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-6 relative no-scrollbar"
         style={{
-          backgroundImage:
-            "radial-gradient(circle at center, rgba(238, 43, 140, 0.03) 0%, rgba(34, 16, 25, 0) 70%)",
+          background: "radial-gradient(circle at 50% 50%, rgba(238, 43, 140, 0.05) 0%, transparent 100%)",
         }}
       >
         {loadingState === "loading" ? (

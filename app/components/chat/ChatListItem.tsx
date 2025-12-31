@@ -40,12 +40,12 @@ export function ChatListItem({
   };
 
   const icon = getMessageTypeIcon();
-  const iconColorClass =
-    messageType === "voice"
-      ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300"
-      : messageType === "music"
-        ? "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300"
-        : "";
+
+  const iconSettings = messageType === "voice"
+    ? { icon: "mic", colors: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300" }
+    : messageType === "music"
+      ? { icon: "music_note", colors: "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300" }
+      : null;
 
   return (
     <Link
@@ -59,20 +59,20 @@ export function ChatListItem({
         <div
           className={cn(
             "w-14 h-14 rounded-xl bg-cover bg-center",
-            !isOnline && "grayscale-[20%]"
+            isRead && "grayscale-[20%]"
           )}
           style={{ backgroundImage: `url("${avatarUrl}")` }}
         />
-        {icon && (
+        {iconSettings && (
           <div className="absolute -bottom-1 -right-1 bg-white dark:bg-surface-dark p-[2px] rounded-full">
             <span
               className={cn(
                 "material-symbols-outlined text-sm rounded-full p-0.5",
-                iconColorClass
+                iconSettings.colors
               )}
               style={{ fontSize: "14px" }}
             >
-              {icon}
+              {iconSettings.icon}
             </span>
           </div>
         )}
@@ -94,7 +94,7 @@ export function ChatListItem({
               "text-xs font-medium",
               isRead
                 ? "text-gray-400 dark:text-gray-500"
-                : "text-slate-900 dark:text-primary"
+                : (unreadCount ? "text-primary" : "text-gray-500 dark:text-text-muted")
             )}
           >
             {timestamp}
@@ -102,10 +102,10 @@ export function ChatListItem({
         </div>
         <p
           className={cn(
-            "text-sm font-medium truncate",
+            "text-sm truncate",
             isRead
               ? "text-slate-400 dark:text-gray-500"
-              : "text-slate-600 dark:text-gray-300"
+              : "text-slate-600 dark:text-gray-300 font-medium"
           )}
         >
           {lastMessage}
@@ -113,7 +113,7 @@ export function ChatListItem({
       </div>
       <div className="shrink-0 flex flex-col items-end gap-1">
         {unreadCount && unreadCount > 0 ? (
-          <div className="w-5 h-5 bg-slate-900 dark:bg-primary rounded-full flex items-center justify-center">
+          <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
             <span className="text-[10px] font-bold text-white">{unreadCount}</span>
           </div>
         ) : isRead ? (

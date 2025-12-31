@@ -42,21 +42,22 @@ export default function CharacterProfileScreen() {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-display selection:bg-primary selection:text-white antialiased overflow-x-hidden pb-24 max-w-md mx-auto md:max-w-lg lg:max-w-xl">
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+    <div className="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-display selection:bg-primary selection:text-white antialiased overflow-x-hidden min-h-screen max-w-md mx-auto relative pb-24">
+      {/* Top Navigation (Absolute Overlay) */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent max-w-md mx-auto">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white transition hover:bg-black/40"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white transition hover:bg-black/40 active:scale-95"
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
         <div className="flex gap-3">
-          <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white transition hover:bg-black/40">
+          <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white transition hover:bg-black/40 active:scale-95">
             <span className="material-symbols-outlined">share</span>
           </button>
           <button
             onClick={() => setIsFavorite(!isFavorite)}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-primary transition hover:bg-black/40"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-primary transition hover:bg-black/40 active:scale-95"
           >
             <span
               className="material-symbols-outlined"
@@ -68,118 +69,98 @@ export default function CharacterProfileScreen() {
         </div>
       </nav>
 
+      {/* Hero Image Section */}
       <div className="relative w-full h-[55vh] min-h-[400px]">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url('${character.heroImage}')` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-background-light dark:from-background-dark via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent" />
         </div>
       </div>
 
+      {/* Main Content Sheet (Overlaps Hero) */}
       <div className="relative -mt-16 z-10 w-full bg-background-light dark:bg-background-dark rounded-t-2xl px-5 pt-8 pb-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        {/* Drag Handle Indicator */}
         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
 
+        {/* Header Info */}
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-              {character.name}
-            </h1>
-            <p className="text-gray-500 dark:text-primary font-medium text-sm tracking-wide uppercase">
-              {character.role}
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{character.name}</h1>
+            <p className="text-primary font-medium text-sm tracking-wide uppercase">{character.role}</p>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-primary/20 border border-gray-200 dark:border-primary/30">
-            <span
-              className="material-symbols-outlined text-gray-500 dark:text-primary text-[16px]"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              favorite
-            </span>
-            <span className="text-xs font-bold text-gray-700 dark:text-primary">{character.relationship}</span>
+          {/* Relationship Badge */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
+            <span className="material-symbols-outlined text-primary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+            <span className="text-xs font-bold text-primary">{character.relationship}</span>
           </div>
         </div>
 
-        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6 font-body italic">
+        {/* Intro Text */}
+        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6 font-body">
           "{character.intro}"
         </p>
 
+        {/* Stats / Quick Info */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5">
-            <span className="text-xl font-bold text-gray-900 dark:text-white">
-              {character.affinity}
-            </span>
-            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">
-              Affinity
-            </span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">{character.affinity}</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Affinity</span>
           </div>
           <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5">
-            <span className="text-xl font-bold text-gray-900 dark:text-white">
-              {character.fandomLevel}
-            </span>
-            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">
-              Fandom
-            </span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">{character.fandomLevel}</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Fandom</span>
           </div>
-          <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition group/item">
-            <span className="material-symbols-outlined text-slate-900 dark:text-primary mb-0.5 group-hover/item:scale-110 transition-transform">
-              settings_heart
-            </span>
-            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">
-              Relation
-            </span>
+          <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition">
+            <span className="material-symbols-outlined text-primary mb-0.5">settings_heart</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Relation</span>
           </div>
         </div>
 
+        {/* Personality Chips */}
         <div className="mb-8">
-          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-            Personality Traits
-          </h3>
+          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Personality Traits</h3>
           <div className="flex flex-wrap gap-2">
             {character.personalityTraits.map((trait, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 shadow-sm"
-              >
-                <span className={cn("material-symbols-outlined text-[18px]", trait.color)}>
-                  {trait.icon}
-                </span>
+              <div key={index} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 shadow-sm">
+                <span className={cn("material-symbols-outlined text-[18px]", trait.color)}>{trait.icon}</span>
                 <span className="text-xs font-medium dark:text-gray-200">{trait.label}</span>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Tab Navigation */}
         <div className="border-b border-gray-200 dark:border-white/10 mb-6">
           <div className="flex gap-6">
-            {(["about", "voice", "gallery"] as Tab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "pb-3 text-sm font-medium transition capitalize",
-                  activeTab === tab
-                    ? "font-bold text-slate-900 dark:text-primary border-b-2 border-slate-900 dark:border-primary"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-                )}
-              >
-                {tab === "about" ? "About" : tab === "voice" ? "Voice" : "Gallery"}
-              </button>
-            ))}
+            <button
+              onClick={() => setActiveTab("about")}
+              className={cn("pb-3 text-sm transition", activeTab === "about" ? "font-bold text-primary border-b-2 border-primary" : "font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200")}
+            >About</button>
+            <button
+              onClick={() => setActiveTab("voice")}
+              className={cn("pb-3 text-sm transition", activeTab === "voice" ? "font-bold text-primary border-b-2 border-primary" : "font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200")}
+            >Voice</button>
+            <button
+              onClick={() => setActiveTab("gallery")}
+              className={cn("pb-3 text-sm transition", activeTab === "gallery" ? "font-bold text-primary border-b-2 border-primary" : "font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200")}
+            >Gallery</button>
           </div>
         </div>
 
+        {/* Tab Content: About */}
         {activeTab === "about" && (
           <div className="space-y-6">
+            {/* Background Story */}
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                Backstory
-              </h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Backstory</h3>
               <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300 font-body whitespace-pre-line">
                 {character.backstory}
               </p>
             </div>
 
+            {/* Voice Sample Preview */}
             <div className="p-4 rounded-xl bg-gradient-to-r from-surface-dark to-background-dark border border-white/5 relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition">
                 <span className="material-symbols-outlined text-white text-6xl">graphic_eq</span>
@@ -191,20 +172,18 @@ export default function CharacterProfileScreen() {
                   <span className="material-symbols-outlined text-[20px] ml-0.5">play_arrow</span>
                 </button>
                 <div className="h-1 flex-1 bg-gray-700 rounded-full overflow-hidden">
-                  <div className="h-full w-1/3 bg-primary rounded-full" />
+                  <div className="h-full w-1/3 bg-primary rounded-full"></div>
                 </div>
               </div>
             </div>
 
+            {/* Interests Grid */}
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Interests</h3>
               <div className="grid grid-cols-2 gap-3">
                 {character.interests.map((interest, index) => (
-                  <div
-                    key={index}
-                    className="p-3 rounded-lg bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 flex items-center gap-3"
-                  >
-                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", interest.color)}>
+                  <div key={index} className="p-3 rounded-lg bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 flex items-center gap-3">
+                    <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", interest.color.replace(' text-', ' '))}>
                       <span className="material-symbols-outlined">{interest.icon}</span>
                     </div>
                     <div>
@@ -215,29 +194,21 @@ export default function CharacterProfileScreen() {
                 ))}
               </div>
             </div>
+            <div className="h-12"></div>
           </div>
         )}
 
-        {activeTab === "voice" && (
-          <div className="space-y-6">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Voice samples coming soon...</p>
-          </div>
-        )}
-
-        {activeTab === "gallery" && (
-          <div className="space-y-6">
-            <p className="text-sm text-gray-600 dark:text-gray-400">Gallery coming soon...</p>
-          </div>
-        )}
-
-        <div className="h-12" />
+        {/* Tab Content: Voice/Gallery Placeholders */}
+        {activeTab === "voice" && <div className="text-gray-400 text-sm italic py-10">Voice samples coming soon...</div>}
+        {activeTab === "gallery" && <div className="text-gray-400 text-sm italic py-10">Gallery coming soon...</div>}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-gray-200 dark:border-white/5 z-40">
+      {/* Sticky Footer CTA */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-lg border-t border-gray-200 dark:border-white/5 z-40 max-w-md mx-auto">
         <div className="max-w-md mx-auto flex gap-3">
           <button
             onClick={handleMessage}
-            className="flex-1 flex items-center justify-center gap-2 h-14 bg-slate-900 dark:bg-primary hover:opacity-90 text-white font-bold text-lg rounded-2xl shadow-lg dark:shadow-primary-glow animate-glow transition transform active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 h-14 bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-2xl shadow-lg shadow-primary/30 animate-glow transition transform active:scale-95"
           >
             <span className="material-symbols-outlined">chat_bubble</span>
             Message {character.name}
@@ -246,9 +217,10 @@ export default function CharacterProfileScreen() {
             <span className="material-symbols-outlined">videocam</span>
           </button>
         </div>
-        <div className="h-2 w-full" />
       </div>
     </div>
+
+
   );
 }
 

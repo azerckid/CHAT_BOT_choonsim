@@ -8,27 +8,35 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is(.dark, .dark *));
 
 @theme {
   --font-display: "Plus Jakarta Sans", "sans-serif";
   --font-body: "Noto Sans KR", "sans-serif";
 
-  /* 춘심 캐릭터 컬러 팔레트 */
+  /* Stitch 가이드 code.html 기반 정확한 컬러 */
   --color-primary: #ee2b8c;
   --color-primary-dark: #d61f7a;
+
+  /* 라이트 모드 (Stitch Light) */
   --color-background-light: #f8f6f7;
+  --color-surface-light: #ffffff;
+
+  /* 다크 모드 (Stitch Dark) */
   --color-background-dark: #221019;
-  --color-surface-dark: #2d1b24;
-  /* 가이드에 맞춰 약간 조정 */
-  --color-surface-dark-alt: #361b2a;
+  --color-surface-dark: #2d1b24; /* 캐릭터 프로필 카드용 (HTML: #2d1b24) */
+  --color-surface-dark-input: #331926; /* 로그인/회원가입 입력 필드용 (HTML: #331926) */
   --color-border-pink: #67324d;
   --color-text-muted: #c992ad;
 
-  /* Stitch 기반 그라데이션 및 효과 */
-  --background-image-gradient-fade: linear-gradient(to bottom, rgba(34, 16, 25, 0) 0%, rgba(34, 16, 25, 0.8) 50%, rgba(34, 16, 25, 1) 100%);
-  --shadow-primary-glow: 0 10px 30px -5px rgba(238, 43, 140, 0.5), 0 4px 12px -2px rgba(238, 43, 140, 0.3);
-  --shadow-kakao-glow: 0 0 20px rgba(250, 225, 0, 0.3);
+  --color-text-dark-main: #ffffff;
+
+  /* 그라데이션 및 특수 효과 */
+  --background-image-hero-fade: linear-gradient(to bottom, transparent 0%, rgba(34, 16, 25, 0) 50%, rgba(34, 16, 25, 0.8) 85%, #221019 100%);
+  --background-image-hero-fade-light: linear-gradient(to bottom, transparent 0%, rgba(248, 246, 247, 0) 50%, rgba(248, 246, 247, 0.8) 85%, #f8f6f7 100%);
+
+  --shadow-primary-glow: 0 0 20px rgba(238, 43, 140, 0.4);
+  --shadow-card-subtle: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 @keyframes fade-in-up {
@@ -151,7 +159,7 @@ body {
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
+  --color-primary: #ee2b8c;
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -232,6 +240,20 @@ body {
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* 로그인 화면 전용 하단 페이드 */
+  .bg-gradient-fade {
+    background: linear-gradient(to top, #221019 0%, rgba(34, 16, 25, 0.5) 50%, rgba(34, 16, 25, 0) 100%);
+  }
+
+  /* 캐릭터 이미지 하단 페이드 아우트 효과 (to top) */
+  .bg-hero-fade {
+    background: linear-gradient(to top, #221019 0%, #221019 10%, rgba(34, 16, 25, 0.5) 50%, transparent 100%);
+  }
+
+  .bg-hero-fade-light {
+    background: linear-gradient(to top, #f8f6f7 0%, #f8f6f7 10%, rgba(248, 246, 247, 0.5) 50%, transparent 100%);
   }
 }
 

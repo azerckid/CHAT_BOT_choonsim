@@ -52,21 +52,21 @@ export default function LoginScreen() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white font-display min-h-screen flex items-center justify-center overflow-hidden selection:bg-primary selection:text-white">
-      <div className="relative w-full max-w-[480px] h-screen max-h-[900px] flex flex-col bg-background-dark shadow-2xl overflow-hidden md:rounded-[32px] md:h-[850px] md:border-8 md:border-[#1a0c13] md:max-w-md">
+      {/* Main Container (Phone Form Factor) */}
+      <div className="relative w-full max-w-[480px] h-screen max-h-[900px] flex flex-col bg-background-dark shadow-2xl overflow-hidden sm:rounded-[32px] sm:h-[850px] sm:border-8 sm:border-[#1a0c13]">
         {/* Header Image Area */}
         <div className="absolute top-0 w-full h-[55%] z-0">
           <div
             className="w-full h-full bg-cover bg-center transition-transform duration-700 hover:scale-105"
             style={{
-              backgroundImage:
-                'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDtjF4w7ZvVM4T5uqyckEeqlfUO_XmEqdkTAToLV6YuztHnBsKvVbSQSy29aR1lI28t5n7zT0EbK1OiG5ziGduV_u3oKhyMfHlWNTsTtqr_i5mcM_KFcpl0RD0w8MN2oc4JfUnMSxaSf2vUwpOlhzGC0sqGlnbzpyXg5oORX7Heq2BVT7MzctcDJCcOO9Ev5-fELndTr7h1-vmy5lYllbvuOkVkJ5FwhuADi7fMMQwwWSa0MG1y4U0QQSB1lKvViQAW8WJE8jdf53Y")',
+              backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDtjF4w7ZvVM4T5uqyckEeqlfUO_XmEqdkTAToLV6YuztHnBsKvVbSQSy29aR1lI28t5n7zT0EbK1OiG5ziGduV_u3oKhyMfHlWNTsTtqr_i5mcM_KFcpl0RD0w8MN2oc4JfUnMSxaSf2vUwpOlhzGC0sqGlnbzpyXg5oORX7Heq2BVT7MzctcDJCcOO9Ev5-fELndTr7h1-vmy5lYllbvuOkVkJ5FwhuADi7fMMQwwWSa0MG1y4U0QQSB1lKvViQAW8WJE8jdf53Y")',
             }}
           />
           <div className="absolute inset-0 bg-gradient-fade z-10" />
           <div className="absolute inset-0 bg-primary/10 mix-blend-overlay z-10" />
         </div>
 
-        {/* Top Navigation */}
+        {/* Top Navigation (Transparent) */}
         <div className="relative z-20 flex items-center justify-between p-6">
           <button
             onClick={() => navigate(-1)}
@@ -75,9 +75,7 @@ export default function LoginScreen() {
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="px-3 py-1 rounded-full bg-black/20 backdrop-blur-md border border-white/10">
-            <span className="text-xs font-semibold tracking-wide uppercase text-white/80">
-              English
-            </span>
+            <span className="text-xs font-semibold tracking-wide uppercase text-white/80">English</span>
           </div>
         </div>
 
@@ -89,17 +87,10 @@ export default function LoginScreen() {
               <span className="material-symbols-outlined text-primary text-[18px]">favorite</span>
               <span className="text-xs font-bold text-primary tracking-wide">AI IDOL CHAT</span>
             </div>
-            <h1 className="text-4xl font-bold text-white mb-3 leading-[1.1] tracking-tight">
-              Welcome
-              <br />
-              Back, Fan!
-            </h1>
-            <p className="text-white/70 text-base font-medium leading-relaxed">
-              Login to continue your daily conversations and exclusive moments.
-            </p>
+            <h1 className="text-4xl font-bold text-white mb-3 leading-[1.1] tracking-tight">Welcome<br />Back, Fan!</h1>
+            <p className="text-white/70 text-base font-medium leading-relaxed">Login to continue your daily conversations and exclusive moments.</p>
           </div>
 
-          {/* Login Form */}
           <LoginForm
             onSubmit={handleLogin}
             onSocialLogin={handleSocialLogin}

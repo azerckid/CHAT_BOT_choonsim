@@ -33,7 +33,7 @@ export function OnlineIdolList({
           className="flex flex-col items-center gap-2 shrink-0 snap-start cursor-pointer"
         >
           <div className="w-[72px] h-[72px] rounded-full border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-            <span className="material-symbols-outlined text-3xl text-slate-900 dark:text-primary">add</span>
+            <span className="material-symbols-outlined text-3xl text-primary">add</span>
           </div>
           <span className="text-xs font-medium text-center w-16 truncate opacity-60">
             Add
@@ -47,9 +47,9 @@ export function OnlineIdolList({
           >
             <div
               className={cn(
-                "relative p-[3px] rounded-full transition-transform duration-300",
+                "relative p-[3px] rounded-full transition-all duration-300",
                 idol.isOnline
-                  ? "bg-slate-900 dark:bg-gradient-to-tr dark:from-primary dark:to-purple-400 group-hover:scale-105"
+                  ? "bg-gradient-to-tr from-primary to-purple-400 group-hover:scale-105"
                   : "border-2 border-gray-200 dark:border-white/10 group-hover:border-primary/50"
               )}
             >
