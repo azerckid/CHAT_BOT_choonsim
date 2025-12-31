@@ -11,9 +11,9 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  
+  --font-display: "Plus Jakarta Sans", "sans-serif";
+  --font-body: "Noto Sans KR", "sans-serif";
+
   /* 춘심 캐릭터 컬러 팔레트 */
   --color-primary: #ee2b8c;
   --color-primary-dark: #d61f7a;
@@ -23,6 +23,27 @@
   --color-surface-dark-alt: #361b2a;
   --color-border-pink: #67324d;
   --color-text-muted: #c992ad;
+
+  /* Stitch 기반 그라데이션 및 효과 */
+  --background-image-gradient-fade: linear-gradient(to bottom, rgba(34, 16, 25, 0) 0%, rgba(34, 16, 25, 0.8) 50%, rgba(34, 16, 25, 1) 100%);
+  --shadow-primary-glow: 0 8px 20px -6px rgba(238, 43, 140, 0.4);
+  --shadow-kakao-glow: 0 0 15px rgba(250, 225, 0, 0.2);
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
 }
 
 html,
@@ -149,6 +170,7 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply font-sans bg-background text-foreground;
     /* 모바일 터치 최적화 */
@@ -156,6 +178,7 @@ body {
     -webkit-touch-callout: none;
     touch-action: manipulation;
   }
+
   html {
     @apply font-sans;
     /* iOS Safari bounce 스크롤 방지 */
@@ -163,7 +186,7 @@ body {
     /* 스크롤 부드럽게 */
     scroll-behavior: smooth;
   }
-  
+
   /* 터치 타겟 최소 크기 (44x44px) */
   button,
   a,
@@ -173,7 +196,7 @@ body {
     min-height: 44px;
     min-width: 44px;
   }
-  
+
   /* 모바일에서 텍스트 선택 방지 (필요한 경우만) */
   .no-select {
     -webkit-user-select: none;
@@ -195,14 +218,16 @@ body {
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -211,11 +236,14 @@ body {
 
 /* 펄스 글로우 애니메이션 */
 @keyframes pulse-glow {
-  0%, 100% { 
-    box-shadow: 0 0 15px -3px rgba(238, 43, 140, 0.3); 
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px -3px rgba(238, 43, 140, 0.3);
   }
-  50% { 
-    box-shadow: 0 0 25px -3px rgba(238, 43, 140, 0.6); 
+
+  50% {
+    box-shadow: 0 0 25px -3px rgba(238, 43, 140, 0.6);
   }
 }
 
@@ -224,9 +252,12 @@ body {
 }
 
 @keyframes pulse-slow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.8;
   }
@@ -241,12 +272,15 @@ body {
   .pb-safe {
     padding-bottom: max(env(safe-area-inset-bottom), 1rem);
   }
+
   .pt-safe {
     padding-top: max(env(safe-area-inset-top), 1rem);
   }
+
   .pl-safe {
     padding-left: max(env(safe-area-inset-left), 1rem);
   }
+
   .pr-safe {
     padding-right: max(env(safe-area-inset-right), 1rem);
   }
@@ -254,11 +288,12 @@ body {
 
 /* 모바일 키보드 대응 */
 @media (max-width: 768px) {
+
   /* 키보드가 올라올 때 뷰포트 높이 조정 */
   html {
     height: -webkit-fill-available;
   }
-  
+
   body {
     min-height: 100vh;
     min-height: -webkit-fill-available;
@@ -267,36 +302,37 @@ body {
 
 /* 태블릿 이상에서 데스크톱 UX 개선 */
 @media (min-width: 768px) {
+
   /* 데스크톱에서 호버 효과 강화 */
   button:hover,
   a:hover,
   [role="button"]:hover {
     transition: all 0.2s ease;
   }
-  
+
   /* 데스크톱에서 스크롤바 스타일 */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 4px;
   }
-  
+
   .dark ::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.3);
   }
-  
+
   .dark ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
   }

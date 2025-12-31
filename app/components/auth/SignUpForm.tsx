@@ -23,15 +23,15 @@ export function SignUpForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (password !== confirmPassword) {
       return;
     }
-    
+
     if (!agreeToTerms) {
       return;
     }
-    
+
     if (onSubmit && email && nickname && password) {
       onSubmit(email, nickname, password);
     }
@@ -190,7 +190,7 @@ export function SignUpForm({
       <button
         type="submit"
         disabled={isLoading || !isFormValid}
-        className="mt-4 flex w-full items-center justify-center rounded-xl bg-primary py-4 px-6 text-base font-bold text-white shadow-[0_4px_14px_0_rgba(238,43,140,0.39)] hover:bg-primary/90 hover:shadow-[0_6px_20px_rgba(238,43,140,0.23)] hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+        className="mt-4 flex w-full items-center justify-center rounded-xl bg-primary py-4 px-6 text-base font-bold text-white shadow-primary-glow hover:bg-primary/90 hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
       >
         {isLoading ? (
           <>

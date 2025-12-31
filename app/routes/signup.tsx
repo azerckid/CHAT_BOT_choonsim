@@ -10,11 +10,11 @@ export default function SignUpScreen() {
   const handleSignUp = async (email: string, nickname: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // TODO: Better Auth 연동 (Phase 2)
       console.log("Sign up attempt:", { email, nickname });
-      
+
       // 임시: 성공 시 온보딩 화면으로 이동
       setTimeout(() => {
         setIsLoading(false);
@@ -41,14 +41,14 @@ export default function SignUpScreen() {
           </h2>
         </header>
 
-        <div className="flex-1 flex flex-col px-6 pt-2 pb-10">
+        <div className="flex-1 flex flex-col px-6 pt-2 pb-10 animate-fade-in-up">
           {/* Hero / Visual Hint */}
           <div className="relative w-full h-32 mb-6 rounded-2xl overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/40 rounded-full blur-3xl" />
             <div className="absolute top-10 left-10 w-20 h-20 bg-purple-500/30 rounded-full blur-2xl" />
             <div className="relative h-full flex items-center px-6">
-              <div className="size-16 rounded-full border-2 border-primary/50 overflow-hidden shadow-[0_0_15px_rgba(238,43,140,0.4)]">
+              <div className="size-16 rounded-full border-2 border-primary/50 overflow-hidden shadow-primary-glow hover:scale-110 transition-transform duration-300">
                 <img
                   alt="AI Idol Avatar Abstract"
                   className="w-full h-full object-cover"

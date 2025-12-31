@@ -10,11 +10,11 @@ export default function LoginScreen() {
   const handleLogin = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // TODO: Better Auth 연동 (Phase 2)
       console.log("Login attempt:", email);
-      
+
       // 임시: 성공 시 온보딩 또는 채팅 화면으로 이동
       setTimeout(() => {
         setIsLoading(false);
@@ -29,16 +29,16 @@ export default function LoginScreen() {
   const handleSocialLogin = async (provider: "x" | "google" | "apple" | "kakao") => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // TODO: Better Auth OAuth 연동 (Phase 2)
       console.log("Social login:", provider);
-      
+
       if (provider === "x") {
         // X(Twitter) OAuth는 Phase 2에서 구현
         // navigate("/auth/x/callback");
       }
-      
+
       // 임시: 성공 시 온보딩 또는 채팅 화면으로 이동
       setTimeout(() => {
         setIsLoading(false);
@@ -62,7 +62,7 @@ export default function LoginScreen() {
                 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDtjF4w7ZvVM4T5uqyckEeqlfUO_XmEqdkTAToLV6YuztHnBsKvVbSQSy29aR1lI28t5n7zT0EbK1OiG5ziGduV_u3oKhyMfHlWNTsTtqr_i5mcM_KFcpl0RD0w8MN2oc4JfUnMSxaSf2vUwpOlhzGC0sqGlnbzpyXg5oORX7Heq2BVT7MzctcDJCcOO9Ev5-fELndTr7h1-vmy5lYllbvuOkVkJ5FwhuADi7fMMQwwWSa0MG1y4U0QQSB1lKvViQAW8WJE8jdf53Y")',
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background-dark/80 to-background-dark z-10" />
+          <div className="absolute inset-0 bg-gradient-fade z-10" />
           <div className="absolute inset-0 bg-primary/10 mix-blend-overlay z-10" />
         </div>
 

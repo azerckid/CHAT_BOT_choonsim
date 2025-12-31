@@ -23,7 +23,7 @@ export default function ChatScreen() {
     try {
       // TODO: 메시지 전송 로직 구현 (Phase 2)
       console.log("Sending message to", id, ":", message);
-      
+
       // 임시: 성공 시 로딩 해제
       setTimeout(() => {
         setIsSending(false);
@@ -96,23 +96,14 @@ export default function ChatScreen() {
               timestamp="오후 8:32"
             />
 
-            <div className="flex items-end gap-3 group">
-              <div className="w-10 h-10 shrink-0 rounded-full bg-gray-300 dark:bg-surface-dark overflow-hidden border border-white/10">
-                <img
-                  alt={`${characterName} profile`}
-                  className="w-full h-full object-cover"
-                  src={avatarUrl}
-                />
-              </div>
-              <div className="flex flex-col gap-1 items-start max-w-[75%]">
-                <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                  {characterName}
-                </span>
-                <div className="px-5 py-3 bg-white dark:bg-surface-dark rounded-2xl rounded-tl-sm text-slate-800 dark:text-gray-100 shadow-sm text-[15px] leading-relaxed">
-                  고생했어! 내가 항상 여기 있을게, 푹 쉬어 💕
-                </div>
-                <TypingIndicator />
-              </div>
+            <MessageBubble
+              sender="ai"
+              senderName={characterName}
+              content="고생했어! 내가 항상 여기 있을게, 푹 쉬어 💕"
+              avatarUrl={avatarUrl}
+            />
+            <div className="flex justify-start ml-14 -mt-4">
+              <TypingIndicator />
             </div>
 
             <div className="h-4" />

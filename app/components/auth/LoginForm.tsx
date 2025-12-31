@@ -85,7 +85,7 @@ export function LoginForm({
       <button
         type="submit"
         disabled={isLoading || !email || !password}
-        className="mt-4 w-full h-14 bg-primary hover:bg-[#d61c78] active:scale-[0.98] text-white text-lg font-bold rounded-2xl shadow-[0_8px_20px_-6px_rgba(238,43,140,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="mt-4 w-full h-14 bg-primary hover:bg-[#d61c78] active:scale-[0.98] text-white text-lg font-bold rounded-2xl shadow-primary-glow transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
           <>
@@ -145,7 +145,7 @@ export function LoginForm({
             type="button"
             onClick={() => onSocialLogin?.("kakao")}
             disabled={isLoading}
-            className="w-14 h-14 rounded-full bg-[#fae100] border border-[#fae100] flex items-center justify-center hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(250,225,0,0.2)] disabled:opacity-50"
+            className="w-14 h-14 rounded-full bg-[#fae100] border border-[#fae100] flex items-center justify-center hover:scale-110 transition-all duration-300 shadow-kakao-glow disabled:opacity-50"
             title="Login with Kakao"
           >
             <span className="material-symbols-outlined text-[#371d1e]">chat_bubble</span>

@@ -100,7 +100,7 @@ export default function CharacterProfileScreen() {
           </div>
         </div>
 
-        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6 font-body">
+        <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6 font-body italic">
           "{character.intro}"
         </p>
 
@@ -237,7 +237,7 @@ export default function CharacterProfileScreen() {
         <div className="max-w-md mx-auto flex gap-3">
           <button
             onClick={handleMessage}
-            className="flex-1 flex items-center justify-center gap-2 h-14 bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-2xl shadow-lg shadow-primary/30 animate-glow transition transform active:scale-95"
+            className="flex-1 flex items-center justify-center gap-2 h-14 bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-2xl shadow-primary-glow animate-glow transition transform active:scale-95"
           >
             <span className="material-symbols-outlined">chat_bubble</span>
             Message {character.name}
