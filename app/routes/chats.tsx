@@ -1,10 +1,25 @@
+import { useState } from "react";
 import { Link } from "react-router";
 import { ChatListItem } from "~/components/chat/ChatListItem";
 import { OnlineIdolList } from "~/components/chat/OnlineIdolList";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
+import { ChatListSkeleton } from "~/components/chat/ChatListSkeleton";
+import { NetworkError } from "~/components/ui/NetworkError";
+import { ApiError } from "~/components/ui/ApiError";
 import { cn } from "~/lib/utils";
 
+type LoadingState = "idle" | "loading" | "error" | "network-error";
+
 export default function ChatListScreen() {
+  const [loadingState, setLoadingState] = useState<LoadingState>("idle");
+
+  const handleRetry = () => {
+    setLoadingState("loading");
+    // TODO: 재시도 로직 (Phase 2)
+    setTimeout(() => {
+      setLoadingState("idle");
+    }, 1000);
+  };
   // TODO: 실제 데이터로 교체
   const onlineIdols = [
     {
@@ -156,9 +171,15 @@ export default function ChatListScreen() {
             Recent Chats
           </h2>
         </div>
-        {chats.map((chat) => (
-          <ChatListItem key={chat.id} {...chat} />
-        ))}
+        {loadingState === "loading" ? (
+          <ChatListSkeleton />
+        ) : loadingState === "network-error" ? (
+          <NetworkError onRetry={handleRetry} />
+        ) : loadingState === "error" ? (
+          <ApiError onRetry={handleRetry} />
+        ) : (
+          chats.map((chat) => <ChatListItem key={chat.id} {...chat} />)
+        )}
       </main>
 
       <button className="fixed bottom-24 right-4 z-30 w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all">

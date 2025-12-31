@@ -44,7 +44,7 @@ export function MessageInput({
       <div className="flex items-end gap-2 p-2">
         <button
           type="button"
-          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors shrink-0"
+          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors shrink-0 min-w-[44px] min-h-[44px]"
         >
           <span className="material-symbols-outlined text-[28px]">add_circle</span>
         </button>
@@ -60,7 +60,7 @@ export function MessageInput({
           />
           <button
             type="button"
-            className="text-gray-400 hover:text-yellow-500 transition-colors ml-2 flex items-center justify-center"
+            className="text-gray-400 hover:text-yellow-500 transition-colors ml-2 flex items-center justify-center min-w-[44px] min-h-[44px]"
           >
             <span className="material-symbols-outlined">sentiment_satisfied</span>
           </button>
@@ -69,9 +69,13 @@ export function MessageInput({
           type="button"
           onClick={handleSend}
           disabled={!message.trim() || disabled}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] min-h-[44px]"
         >
-          <span className="material-symbols-outlined text-[20px] ml-0.5">send</span>
+          {disabled ? (
+            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            <span className="material-symbols-outlined text-[20px] ml-0.5">send</span>
+          )}
         </button>
       </div>
     </footer>
