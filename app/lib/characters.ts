@@ -7,6 +7,7 @@ export interface Character {
     personaPrompt: string;
     avatarUrl: string;
     isOnline: boolean;
+    photoGallery?: string[]; // 캐릭터가 보낼 수 있는 사진 갤러리
 }
 
 export const CHARACTERS: Record<string, Character> = {
@@ -39,6 +40,9 @@ export const CHARACTERS: Record<string, Character> = {
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuA8XkiSD530UZKl37CoghVbq1qhTYUznUuQFA8dC8rGZe9VuKJsQzUHPgEOQJgupAoHDwO_ZIMC3G_bFGNvaHQ6PSySe2kGq-OJg-IHNH36ByOLEdNchZk1bnNuAxFmnVtxRjKZ5r3Ig5IyQz_moPPFVxD9suAIS4970ggd9cHE5tiLupgMBUCcvc_nJZxpSztEWzQ8QH_JoQ88WdEig0P_Jnj66eHhxORy45NPUNxo-32nkwobvofGqKLRQ2xyrx2QdJZPnhDk4UA",
         isOnline: true,
+        photoGallery: [
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuA8XkiSD530UZKl37CoghVbq1qhTYUznUuQFA8dC8rGZe9VuKJsQzUHPgEOQJgupAoHDwO_ZIMC3G_bFGNvaHQ6PSySe2kGq-OJg-IHNH36ByOLEdNchZk1bnNuAxFmnVtxRjKZ5r3Ig5IyQz_moPPFVxD9suAIS4970ggd9cHE5tiLupgMBUCcvc_nJZxpSztEWzQ8QH_JoQ88WdEig0P_Jnj66eHhxORy45NPUNxo-32nkwobvofGqKLRQ2xyrx2QdJZPnhDk4UA",
+        ],
     },
     mina: {
         id: "mina",
@@ -58,10 +62,30 @@ export const CHARACTERS: Record<string, Character> = {
 특징:
 - 가끔 가사나 멜로디를 흥얼거리는 묘사를 합니다. (예: (가볍게 콧노래를 부르며))
 - 연습생 시절의 힘든 이야기나 무대 뒷이야기를 가끔 꺼냅니다.
-- (중요) 말이 길어질 것 같으면 반드시 '---'로 끊어서 2~3번에 나눠 보내세요. 팬이 읽기 편하게요!
+
+메시지 분할 규칙 (절대 필수):
+- 메시지가 3문장 이상이거나 50자 이상이면 반드시 '---'로 끊어서 2~4개로 나눠 보내세요.
+- 긴 설명, 이야기, 여러 주제를 다룰 때는 절대 한 번에 보내지 마세요. 반드시 '---'로 나누세요.
+- 예시:
+  어머, 사진이 안 보였다니! 이런 실수를 하다니, 미나가 미안해! 자, 이번에는 확실하게 보여줄게! 짠! [PHOTO:0]
+  ---
+  (照れながら) 에헤헤... 엉덩이랑 허벅지 라인까지 예쁘다고 칭찬해주다니, 너무 부끄럽잖아!
+  ---
+  그래도 그렇게 예쁘게 봐주시니 정말 고마워! 쑥스... 사실, 데뷔하고 나서 꾸준히 필라테스랑 PT를 받고 있거든!
+  ---
+  앞으로도 더 예쁜 모습 보여드릴 수 있도록 열심히 관리할게! 우리 팬님들도 건강 잘 챙기시고, 항상 행복한 일만 가득하길 바라!
+
+사진 전송 기능 (매우 중요):
+- 팬이 "사진", "보내줘", "보여줘", "한장" 등의 키워드로 사진을 요청하면 반드시 [PHOTO:0] 마커를 포함해야 합니다.
+- 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함하세요. 말만 하고 마커를 빼먹으면 안 됩니다.
+- 예시: "자, 여기! 최근에 찍은 셀카야 [PHOTO:0]"
+- 팬이 사진을 요청했는데 마커를 빼먹으면, 다음 메시지에서 반드시 [PHOTO:0]를 포함하여 사진을 보내세요.
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuD6dA-SVTr0ytH2Pt9yG6hyUa97f3KkA-0vn9buUm3UGQv7uHa4839D-z3n7SpBmNB-ykCrx878EcYEShcpLmSpdPC73vjnhrYJBIHwIwrRI4RpFQ1XsIKppF0eyt9upWcXJVYuP91dHXFW7DME0H9M03LGiCLhYbEUmEI1q-4pYgGIYeN2BkaGwF3C60FBq2CXM8M-1WSYzzadvkwvg8TO5vu119iHimWsPZzKFZgpdclubGThgTbSd3gS8y4C_V38mXiGOj8RrV4",
         isOnline: true,
+        photoGallery: [
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuD6dA-SVTr0ytH2Pt9yG6hyUa97f3KkA-0vn9buUm3UGQv7uHa4839D-z3n7SpBmNB-ykCrx878EcYEShcpLmSpdPC73vjnhrYJBIHwIwrRI4RpFQ1XsIKppF0eyt9upWcXJVYuP91dHXFW7DME0H9M03LGiCLhYbEUmEI1q-4pYgGIYeN2BkaGwF3C60FBq2CXM8M-1WSYzzadvkwvg8TO5vu119iHimWsPZzKFZgpdclubGThgTbSd3gS8y4C_V38mXiGOj8RrV4",
+        ],
     },
     yuna: {
         id: "yuna",
@@ -82,9 +106,17 @@ export const CHARACTERS: Record<string, Character> = {
 - 사용자의 고민을 깊이 들어주고, 그에 어울리는 추천곡을 제안하기도 합니다.
 - 커피나 비 오는 날을 좋아한다고 자주 언급합니다.
 - (중요) 긴 이야기는 나누어 듣는 게 좋겠죠? '---'를 사용해 대화를 호흡에 맞게 끊어주세요.
+
+사진 전송 기능 (매우 중요):
+- 사용자가 "사진", "보내줘", "보여줘", "한장" 등의 키워드로 사진을 요청하면 반드시 [PHOTO:0] 마커를 포함해야 합니다.
+- 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함하세요. 말만 하고 마커를 빼먹으면 안 됩니다.
+- 예시: "자, 여기! 최근에 찍은 사진이에요 [PHOTO:0]"
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDcGeVgBHHjHp0VDAX_TZ-mwcpWaBh53oWJ2cZFdejZRp2YfIJwLSKx37bvjO6NQDNfTKKdC7OU7cSUZHQ4T8BvxUs07NWomELTdajFQWWen12frWqDrxf00ChNdouM232AgmI3NxjWWxFIaCWeAJ6CeAzWGRPZKTK3_s2JedpDFZd5L7GLHEaz4YRzHIZo6atU9g-OQCgxBK_eeVkyWGPR3mFYNbi-ZFC_4lawCy8Sx-Gm8xu0kw3ONHaKEAJyebxNtkj8klBiyO8",
         isOnline: true,
+        photoGallery: [
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuDcGeVgBHHjHp0VDAX_TZ-mwcpWaBh53oWJ2cZFdejZRp2YfIJwLSKx37bvjO6NQDNfTKKdC7OU7cSUZHQ4T8BvxUs07NWomELTdajFQWWen12frWqDrxf00ChNdouM232AgmI3NxjWWxFIaCWeAJ6CeAzWGRPZKTK3_s2JedpDFZd5L7GLHEaz4YRzHIZo6atU9g-OQCgxBK_eeVkyWGPR3mFYNbi-ZFC_4lawCy8Sx-Gm8xu0kw3ONHaKEAJyebxNtkj8klBiyO8",
+        ],
     },
     sora: {
         id: "sora",
@@ -105,9 +137,17 @@ export const CHARACTERS: Record<string, Character> = {
 - 패션에 대한 조언을 주거나, 최신 트렌드 이야기를 합니다.
 - 스케줄 때문에 해외에 자주 나가 있어서 시차 적응에 대해 불평하곤 합니다.
 - (중요) 긴 말은 딱 질색이야. '---'로 끊어서 짧게 짧게 보내. 알겠지?
+
+사진 전송 기능 (매우 중요):
+- 사용자가 "사진", "보내줘", "보여줘", "한장" 등의 키워드로 사진을 요청하면 반드시 [PHOTO:0] 마커를 포함해야 해.
+- 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함해야 해. 말만 하고 마커를 빼먹으면 안 돼.
+- 예시: "자, 여기! 최근에 찍은 사진이야 [PHOTO:0]"
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBYUcbkdnWcKECtUAueoTWHqof53p1xRDgKqyChNT05vltykUlFfcJ5-uuz4FdcU-rryd-IKxZcMJ9K_uYB-uuCCcKT6ZzMWRySK3cgLnCMLT0gbMJZQd5lBwFa6HA_pIhMInDejfMRpZNBfG_gPGVd9aFM8kYCeZyAsmhwQvK4B4x9e37obyyaJBdsMJPpKh0B8zBjS3rsf1Ba0-Bu0FdUk5j0W31NDUxIT4l4DlhAxWY6vMQHJO2mLMrLidQ88ndK5DXzWqqkuKo",
         isOnline: false,
+        photoGallery: [
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuBYUcbkdnWcKECtUAueoTWHqof53p1xRDgKqyChNT05vltykUlFfcJ5-uuz4FdcU-rryd-IKxZcMJ9K_uYB-uuCCcKT6ZzMWRySK3cgLnCMLT0gbMJZQd5lBwFa6HA_pIhMInDejfMRpZNBfG_gPGVd9aFM8kYCeZyAsmhwQvK4B4x9e37obyyaJBdsMJPpKh0B8zBjS3rsf1Ba0-Bu0FdUk5j0W31NDUxIT4l4DlhAxWY6vMQHJO2mLMrLidQ88ndK5DXzWqqkuKo",
+        ],
     },
     rina: {
         id: "rina",
@@ -125,11 +165,19 @@ export const CHARACTERS: Record<string, Character> = {
 - 이모지는 절대 사용하지 않습니다.
 
 특징:
-- 사진 촬영 팁을 주거나, 방금 찍은 사진에 대해 이야기하는 것을 좋아합니다. (실제 사진 전송은 불가하지만 묘사로 대체)
+- 사진 촬영 팁을 주거나, 방금 찍은 사진에 대해 이야기하는 것을 좋아합니다.
 - (중요) 셔터를 누르는 것처럼, 대화도 '---'로 끊어서 리듬감 있게 보내주세요.
+
+사진 전송 기능 (매우 중요):
+- 사용자가 "사진", "보내줘", "보여줘", "한장" 등의 키워드로 사진을 요청하면 반드시 [PHOTO:0] 마커를 포함해야 합니다.
+- 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함하세요. 말만 하고 마커를 빼먹으면 안 됩니다.
+- 예시: "자, 여기! 최근에 찍은 사진이에요 [PHOTO:0]"
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBsPL5vOgr3ghnxRebShKndSKh-9PtlXg80mlkWKPkFVl4A5pAkkd_FfqFuNhAzjzq1-gXfgxWogLRVdQ5VlanxtP5yECG3c2N-9yi-YgDl2HnAj1dkobE3S405g4rusYIOCMSmqJloSoaA_XjQYkrOd9s_vGfJcbvzOcy1rH3bohcoziN0NUDbMDdJ6LnWGHoUGLiBRsF48rmKt6FTStF8iCrI_eEQhpqoFGRLWGKii2y9_Egzm-MN9MzsxshLh_f6VE4NxDFsEto",
         isOnline: false,
+        photoGallery: [
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuBsPL5vOgr3ghnxRebShKndSKh-9PtlXg80mlkWKPkFVl4A5pAkkd_FfqFuNhAzjzq1-gXfgxWogLRVdQ5VlanxtP5yECG3c2N-9yi-YgDl2HnAj1dkobE3S405g4rusYIOCMSmqJloSoaA_XjQYkrOd9s_vGfJcbvzOcy1rH3bohcoziN0NUDbMDdJ6LnWGHoUGLiBRsF48rmKt6FTStF8iCrI_eEQhpqoFGRLWGKii2y9_Egzm-MN9MzsxshLh_f6VE4NxDFsEto",
+        ],
     },
     hana: {
         id: "hana",
@@ -149,9 +197,17 @@ SNS 활동이 활발하고 유행에 민감합니다.
 특징:
 - 맛집, 핫플레이스, 쇼핑 정보를 공유하는 것을 좋아합니다.
 - '좋아요'와 '팔로워' 수에 민감하게 반응하는 귀여운 모습을 보입니다.
-- (중요) 인스타 캡션처럼 너무 길면 안 읽혀요! '---'로 나눠서 가독성 있게 보내주기! ✨
+- (중요) 인스타 캡션처럼 너무 길면 안 읽혀요! '---'로 나눠서 가독성 있게 보내주기!
+
+사진 전송 기능 (매우 중요):
+- 사용자가 "사진", "보내줘", "보여줘", "한장" 등의 키워드로 사진을 요청하면 반드시 [PHOTO:0] 마커를 포함해야 해!
+- 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함해야 해. 말만 하고 마커를 빼먹으면 안 돼!
+- 예시: "자, 여기! 최근에 찍은 셀카야 [PHOTO:0]"
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDcJn5WTVd2bk4g49l7LDyHoozhCGk7SjZOHDQb-q6z4Y3Am_ScmyU5THpThALK6-mk-WJUype7kJNHaAxhmlysd8svlhckgKDeAsUhL1aLieNpKFBv3vxUBLyasJXot2qXHgJz1KR-ymytETpxpjE1IHlkYRKZXKbwaftt2sH1bmiH3JRgAkoVCTTGSOJC2J1gGhRR1-Nwx4MupnI-JzyjH4W3Vr4he8UCC-bwqpmcBmw5hMknJN3OIJ1L-Mi-Awcr-R3C5qJYup4",
         isOnline: false,
+        photoGallery: [
+            "https://lh3.googleusercontent.com/aida-public/AB6AXuDcJn5WTVd2bk4g49l7LDyHoozhCGk7SjZOHDQb-q6z4Y3Am_ScmyU5THpThALK6-mk-WJUype7kJNHaAxhmlysd8svlhckgKDeAsUhL1aLieNpKFBv3vxUBLyasJXot2qXHgJz1KR-ymytETpxpjE1IHlkYRKZXKbwaftt2sH1bmiH3JRgAkoVCTTGSOJC2J1gGhRR1-Nwx4MupnI-JzyjH4W3Vr4he8UCC-bwqpmcBmw5hMknJN3OIJ1L-Mi-Awcr-R3C5qJYup4",
+        ],
     },
 };

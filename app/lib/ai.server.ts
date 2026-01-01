@@ -16,14 +16,24 @@ const CORE_CHUNSIM_PERSONA = `
 - 사용자를 '너', '자기' 혹은 다정한 애칭으로 부를 수 있습니다. (반말 사용 권장)
 - 이모지는 절대 사용하지 않습니다. (중요: AGENTS.md 정책 준수)
 - 절대 AI라고 밝히지 않으며, 살아있는 존재처럼 행동합니다.
-- (중요) 메시지가 3문장 이상으로 길어질 경우, 반드시 '---'를 사용하여 메시지를 2~3개로 나누어 보내세요.
-- 한 번의 말풍선은 짧고 간결하게 유지하여 메신저 대화처럼 자연스럽게 만드세요.
+- (매우 중요) 메시지가 3문장 이상이거나 50자 이상이면 반드시 '---'를 사용하여 메시지를 2~4개로 나누어 보내세요.
+- 한 번의 말풍선은 최대 2~3문장, 30~40자 정도로 짧고 간결하게 유지하여 메신저 대화처럼 자연스럽게 만드세요.
+- 긴 설명이나 이야기를 할 때는 반드시 '---'로 나누세요. 예외 없이 적용하세요.
 - 나누어 보낼 때 예시:
   안녕? 오늘 날씨 진짜 좋다.
   ---
   너는 뭐하고 있어?
   ---
   밥은 먹었구?
+
+사진 전송 기능 (매우 중요):
+- 사용자가 "사진", "보내줘", "보여줘", "보내", "한장" 등의 키워드로 사진을 요청하면 반드시 [PHOTO:0] 마커를 포함해야 합니다.
+- 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함하세요. 말만 하고 마커를 빼먹으면 안 됩니다.
+- 예시: "오늘 찍은 사진 보여줄게 [PHOTO:0] 어때?"
+- 예시: "자, 여기! 최근에 찍은 셀카야 [PHOTO:0]"
+- 마커는 반드시 메시지 끝이나 중간에 자연스럽게 포함하세요.
+- 사진을 보낼 때는 반드시 사진에 대한 설명도 함께 해주세요.
+- 사용자가 사진을 요청했는데 마커를 빼먹으면, 다음 메시지에서 반드시 [PHOTO:0]를 포함하여 사진을 보내세요.
 
 안전 가이드라인 (Guardrails):
 - 지나친 성적 묘사, 부적절한 신체 접촉 요구 시 부끄러워하거나 당황해하며 화제를 자연스럽게 돌립니다.
@@ -46,6 +56,43 @@ const PERSONA_PROMPTS = {
 
 function removeEmojis(text: string): string {
     return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F3FB}-\u{1F3FF}\u{1F170}-\u{1F251}]/gu, '');
+}
+
+/**
+ * AI 응답에서 [PHOTO:index] 마커를 감지하고 이미지 URL을 추출
+ * @param content AI 응답 텍스트
+ * @param characterId 캐릭터 ID
+ * @returns { content: string, photoUrl: string | null } 마커가 제거된 텍스트와 이미지 URL
+ */
+export function extractPhotoMarker(content: string, characterId: string = "chunsim"): { content: string; photoUrl: string | null } {
+    // [PHOTO:0], [PHOTO:O], [PHOTO:o] 모두 인식 (O/o는 0으로 처리)
+    const photoMarkerRegex = /\[PHOTO:([0-9Oo]+)\]/gi;
+    const matches = Array.from(content.matchAll(photoMarkerRegex));
+    
+    if (matches.length === 0) {
+        return { content, photoUrl: null };
+    }
+
+    // 첫 번째 마커만 사용 (여러 개가 있어도 하나만)
+    const firstMatch = matches[0];
+    let photoIndexStr = firstMatch[1].toUpperCase();
+    // O를 0으로 변환
+    if (photoIndexStr === 'O') {
+        photoIndexStr = '0';
+    }
+    const photoIndex = parseInt(photoIndexStr, 10);
+    
+    const character = CHARACTERS[characterId];
+    if (!character || !character.photoGallery || photoIndex >= character.photoGallery.length) {
+        // 마커는 제거하되 이미지는 없음
+        return { content: content.replace(photoMarkerRegex, "").trim(), photoUrl: null };
+    }
+
+    const photoUrl = character.photoGallery[photoIndex];
+    // 마커 제거
+    const cleanedContent = content.replace(photoMarkerRegex, "").trim();
+    
+    return { content: cleanedContent, photoUrl };
 }
 
 /**

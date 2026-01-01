@@ -178,6 +178,7 @@ export default function ChatScreen() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let fullAiContent = "";
+      let currentMessageContent = ""; // 현재 말풍선의 내용 추적
 
       if (reader) {
         while (true) {
@@ -193,20 +194,25 @@ export default function ChatScreen() {
                 const data = JSON.parse(line.slice(6));
                 if (data.text) {
                   fullAiContent += data.text;
+                  currentMessageContent += data.text; // 현재 말풍선에 추가
                   setStreamingContent(prev => prev + data.text);
                 }
-                if (data.done) {
-                  const parts = fullAiContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
-
-                  const finalMsgs: Message[] = parts.map((part, idx) => ({
-                    id: idx === parts.length - 1 && data.messageId ? data.messageId : crypto.randomUUID(),
+                if (data.messageComplete) {
+                  // 현재 스트리밍 중인 내용을 하나의 메시지로 완성
+                  const completedMessage: Message = {
+                    id: data.messageId || crypto.randomUUID(),
                     role: "assistant",
-                    content: part,
+                    content: currentMessageContent, // 추적 중인 내용 사용
                     createdAt: new Date().toISOString(),
-                  }));
-
-                  setMessages(prev => [...prev, ...finalMsgs]);
-                  setStreamingContent("");
+                  };
+                  
+                  setMessages(prev => [...prev, completedMessage]);
+                  setStreamingContent(""); // 다음 말풍선을 위해 초기화
+                  currentMessageContent = ""; // 다음 말풍선을 위해 초기화
+                  // 스트리밍은 계속 진행 (다음 말풍선 시작)
+                }
+                if (data.done) {
+                  // 모든 스트리밍 완료
                   setIsAiStreaming(false);
                 }
               } catch (e) {

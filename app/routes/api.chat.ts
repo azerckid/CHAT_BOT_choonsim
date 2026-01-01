@@ -2,7 +2,7 @@ import { prisma } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import type { ActionFunctionArgs } from "react-router";
-import { streamAIResponse, generateSummary } from "~/lib/ai.server";
+import { streamAIResponse, generateSummary, extractPhotoMarker } from "~/lib/ai.server";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 
 const chatSchema = z.object({
@@ -77,29 +77,74 @@ export async function action({ request }: ActionFunctionArgs) {
             let fullContent = "";
 
             try {
-                // 스트리밍 실행 (기존 기억 및 미디어 포함)
+                // 1단계: AI 응답을 먼저 전체 받기 (화면에 표시하지 않음)
                 for await (const chunk of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id, characterId)) {
                     fullContent += chunk;
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
                 }
 
-                // AI 응답 저장 (여러 개로 나누어 저장)
-                const messageParts = fullContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
-                let lastSavedMessageId = "";
+                // 2단계: 전체 응답을 ---로 나누기 (없으면 적당한 길이로 강제로 나누기)
+                let messageParts = fullContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
+                
+                // ---가 없거나 하나만 있으면 적당한 길이로 강제로 나누기
+                if (messageParts.length <= 1 && fullContent.length > 100) {
+                    const chunkSize = 80; // 한 말풍선당 약 80자
+                    messageParts = [];
+                    let currentPart = "";
+                    
+                    const sentences = fullContent.split(/[.!?。！？]\s*/).filter(s => s.trim());
+                    
+                    for (const sentence of sentences) {
+                        if ((currentPart + sentence).length > chunkSize && currentPart) {
+                            messageParts.push(currentPart.trim());
+                            currentPart = sentence;
+                        } else {
+                            currentPart += (currentPart ? " " : "") + sentence;
+                        }
+                    }
+                    if (currentPart.trim()) {
+                        messageParts.push(currentPart.trim());
+                    }
+                }
 
-                for (const part of messageParts) {
+                // 3단계: 각 말풍선을 하나씩 순차적으로 스트리밍
+                for (let i = 0; i < messageParts.length; i++) {
+                    const part = messageParts[i];
+                    
+                    // 첫 번째 메시지에만 사진 마커 체크
+                    const { content: cleanedContent, photoUrl } = i === 0 
+                        ? extractPhotoMarker(part, characterId) 
+                        : { content: part, photoUrl: null };
+
+                    // 한 글자씩 스트리밍
+                    for (const char of cleanedContent) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: char })}\n\n`));
+                        await new Promise(resolve => setTimeout(resolve, 50)); // 50ms 딜레이
+                    }
+
+                    // 메시지 저장 및 완료 신호
                     const savedMessage = await prisma.message.create({
                         data: {
                             id: crypto.randomUUID(),
                             role: "assistant",
-                            content: part,
+                            content: cleanedContent,
                             conversationId,
                             createdAt: new Date(),
                             type: "TEXT",
+                            mediaUrl: photoUrl,
+                            mediaType: photoUrl ? "image" : null,
                         },
                     });
-                    lastSavedMessageId = savedMessage.id;
+
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage.id })}\n\n`));
+                    
+                    // 다음 말풍선 전에 약간의 딜레이
+                    if (i < messageParts.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 300)); // 말풍선 사이 300ms 딜레이
+                    }
                 }
+
+                // 모든 스트리밍 완료 신호
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
 
                 // 대화 요약 고도화
                 if (history.length >= 8) {
@@ -129,7 +174,6 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
                 }
 
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: lastSavedMessageId })}\n\n`));
                 controller.close();
             } catch (error) {
                 console.error("Streaming error:", error);
