@@ -52,10 +52,12 @@ export async function action({ request }: ActionFunctionArgs) {
                 where: { conversationId }
             });
 
-            // 대화방 삭제
-            await tx.conversation.delete({
-                where: { id: conversationId }
-            });
+            // 대화방 삭제 (기억 초기화가 아닐 때만)
+            if (!resetMemory) {
+                await tx.conversation.delete({
+                    where: { id: conversationId }
+                });
+            }
 
             // 기억 초기화 요청이 있는 경우
             if (resetMemory) {
