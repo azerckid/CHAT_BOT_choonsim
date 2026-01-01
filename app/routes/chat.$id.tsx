@@ -11,6 +11,17 @@ import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import { toast } from "sonner";
+import { CHARACTERS } from "~/lib/characters";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "~/components/ui/alert-dialog";
 
 type LoadingState = "idle" | "loading" | "network-error";
 
@@ -41,7 +52,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     orderBy: { createdAt: "asc" },
   });
 
-  return Response.json({ messages, user: session.user });
+  const conversation = await prisma.conversation.findUnique({
+    where: { id },
+  });
+
+  if (!conversation) {
+    if (messages.length > 0) {
+      // If messages exist but conversation record missing (orphan), handle gracefully if needed or throw
+      // For now, assume consistent DB
+    }
+  }
+
+  return Response.json({ messages, user: session.user, conversation });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -78,16 +100,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function ChatScreen() {
-  const { messages: initialMessages, user } = useLoaderData<typeof loader>() as { messages: any[], user: any };
+  const { messages: initialMessages, user, conversation } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any };
   const fetcher = useFetcher();
-  const { id: conversationId } = useParams();
   const navigate = useNavigate();
+
+  const conversationId = conversation?.id || useParams().id;
+  const character = CHARACTERS[conversation?.characterId || "chunsim"] || CHARACTERS["chunsim"];
+  const characterName = character.name;
+  const avatarUrl = character.avatarUrl;
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [streamingContent, setStreamingContent] = useState<string>("");
   const [isAiStreaming, setIsAiStreaming] = useState(false);
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [isOptimisticTyping, setIsOptimisticTyping] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -135,7 +163,12 @@ export default function ChatScreen() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage, conversationId, mediaUrl }),
+        body: JSON.stringify({
+          message: userMessage,
+          conversationId,
+          mediaUrl,
+          characterId: character.id // Pass characterId to API
+        }),
       });
 
       if (!response.ok) throw new Error("AI 응답 요청 실패");
@@ -204,14 +237,38 @@ export default function ChatScreen() {
   };
 
   const handleBack = () => navigate(-1);
-  const handleMenuClick = () => console.log("Menu clicked");
+
+  const handleDeleteConversation = async (resetMemory = false) => {
+    try {
+      const response = await fetch("/api/chat/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId, resetMemory }),
+      });
+
+      if (response.ok) {
+        toast.success(resetMemory ? "대화가 초기화되었습니다." : "대화방이 삭제되었습니다.");
+        if (resetMemory) {
+          setMessages([]);
+          setIsResetDialogOpen(false);
+        } else {
+          setIsDeleteDialogOpen(false);
+          navigate("/chats");
+        }
+      } else {
+        throw new Error("삭제 실패");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      toast.error("삭제 중 오류가 발생했습니다.");
+    }
+  };
+
   const handleRetry = () => {
     setLoadingState("loading");
     setTimeout(() => setLoadingState("idle"), 1000);
   };
 
-  const characterName = "춘심";
-  const avatarUrl = "https://lh3.googleusercontent.com/aida-public/AB6AXuA8XkiSD530UZKl37CoghVbq1qhTYUznUuQFA8dC8rGZe9VuKJsQzUHPgEOQJgupAoHDwO_ZIMC3G_bFGNvaHQ6PSySe2kGq-OJg-IHNH36ByOLEdNchZk1bnNuAxFmnVtxRjKZ5r3Ig5IyQz_moPPFVxD9suAIS4970ggd9cHE5tiLupgMBUCcvc_nJZxpSztEWzQ8QH_JoQ88WdEig0P_Jnj66eHhxORy45NPUNxo-32nkwobvofGqKLRQ2xyrx2QdJZPnhDk4UA";
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white h-screen flex flex-col overflow-hidden max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
@@ -220,7 +277,8 @@ export default function ChatScreen() {
         isOnline={true}
         statusText="Active Now"
         onBack={handleBack}
-        onMenuClick={handleMenuClick}
+        onDeleteChat={() => setIsDeleteDialogOpen(true)}
+        onResetChat={() => setIsResetDialogOpen(true)}
       />
 
       <main
@@ -279,6 +337,45 @@ export default function ChatScreen() {
       </main>
 
       <MessageInput onSend={handleSend} disabled={isAiStreaming || isOptimisticTyping} />
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>대화방 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              이 대화방을 정말 삭제할까요? 대화 중 보낸 사진들도 모두 삭제되며, 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDeleteConversation(false)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              삭제하기
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Confirmation Modal */}
+      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>대화 초기화</AlertDialogTitle>
+            <AlertDialogDescription>
+              {characterName}와의 모든 대화와 기억을 초기화할까요? 대화 중 보낸 사진들도 모두 삭제되며, {characterName}가 당신을 처음 만난 것처럼 행동하게 됩니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDeleteConversation(true)}>
+              초기화하기
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -40,6 +40,7 @@ model BookmarkCollection {
 
 model Conversation {
   id               String             @id
+  characterId      String             @default("chunsim")
   title            String
   userId           String?
   createdAt        DateTime           @default(now())

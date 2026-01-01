@@ -10,6 +10,7 @@ const chatSchema = z.object({
     conversationId: z.string().uuid(),
     personality: z.enum(["idol", "lover", "hybrid", "roleplay"]).optional(),
     mediaUrl: z.string().optional().nullable().transform(val => val === "" ? null : val),
+    characterId: z.string().optional().default("chunsim"),
 }).refine(data => data.message || data.mediaUrl, {
     message: "Message or media is required",
     path: ["message"],
@@ -32,7 +33,7 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: result.error.flatten() }, { status: 400 });
     }
 
-    const { message, conversationId, mediaUrl } = result.data;
+    const { message, conversationId, mediaUrl, characterId } = result.data;
 
     // 1. 대화 내역 및 사용자 정보 조회
     const [history, user] = await Promise.all([
@@ -77,7 +78,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
             try {
                 // 스트리밍 실행 (기존 기억 및 미디어 포함)
-                for await (const chunk of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id)) {
+                for await (const chunk of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id, characterId)) {
                     fullContent += chunk;
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
                 }

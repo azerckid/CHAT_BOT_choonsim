@@ -18,4 +18,20 @@ export async function uploadImage(file: string) {
     }
 }
 
+export async function deleteImage(url: string) {
+    try {
+        // URL에서 public_id 추출
+        // 예: https://res.cloudinary.com/cloudname/image/upload/v12345678/folder/public_id.jpg
+        const parts = url.split("/");
+        const filename = parts[parts.length - 1]; // public_id.jpg
+        const folder = parts[parts.length - 2];   // folder
+        const publicId = `${folder}/${filename.split(".")[0]}`;
+
+        await cloudinary.uploader.destroy(publicId);
+        console.log(`Deleted from Cloudinary: ${publicId}`);
+    } catch (error) {
+        console.error("Cloudinary delete error:", error);
+    }
+}
+
 export { cloudinary };

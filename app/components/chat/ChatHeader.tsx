@@ -5,15 +5,24 @@ interface ChatHeaderProps {
   isOnline?: boolean;
   statusText?: string;
   onBack?: () => void;
-  onMenuClick?: () => void;
+  onDeleteChat?: () => void;
+  onResetChat?: () => void;
 }
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 export function ChatHeader({
   characterName,
   isOnline = true,
   statusText = "Online now",
   onBack,
-  onMenuClick,
+  onDeleteChat,
+  onResetChat,
 }: ChatHeaderProps) {
   return (
     <header className="flex-none z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-200 dark:border-white/5 sticky top-0">
@@ -35,12 +44,27 @@ export function ChatHeader({
             {statusText}
           </span>
         </div>
-        <button
-          onClick={onMenuClick}
-          className="flex items-center justify-center text-slate-600 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full w-10 h-10 transition-colors"
-        >
-          <span className="material-symbols-outlined">more_horiz</span>
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                className="flex items-center justify-center text-slate-600 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full w-10 h-10 transition-colors"
+              >
+                <span className="material-symbols-outlined">more_horiz</span>
+              </button>
+            }
+          />
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onDeleteChat} variant="destructive">
+              <span className="material-symbols-outlined mr-2 text-[18px]">delete</span>
+              대화방 삭제
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onResetChat}>
+              <span className="material-symbols-outlined mr-2 text-[18px]">restart_alt</span>
+              대화 초기화 (기억 포함)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

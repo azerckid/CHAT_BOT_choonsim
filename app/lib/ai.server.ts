@@ -3,6 +3,7 @@ import { HumanMessage, SystemMessage, AIMessage, BaseMessage } from "@langchain/
 import { StateGraph, END, Annotation, START } from "@langchain/langgraph";
 import axios from "axios";
 import { prisma } from "./db.server";
+import { CHARACTERS } from "./characters";
 
 // 춘심 캐릭터 핵심 페르소나 정의
 const CORE_CHUNSIM_PERSONA = `
@@ -82,6 +83,10 @@ const ChatStateAnnotation = Annotation.Root({
         reducer: (x, y) => y ?? x,
         default: () => null,
     }),
+    characterId: Annotation<string>({
+        reducer: (x, y) => y ?? x,
+        default: () => "chunsim",
+    }),
 });
 
 const model = new ChatGoogleGenerativeAI({
@@ -110,18 +115,32 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
         }
     }
 
-    let effectiveMode = state.personaMode;
+    let systemInstruction = "";
 
-    const travelKeywords = ["여행", "비행기", "호텔", "숙소", "일정", "가고 싶어", "추천해줘", "도쿄", "오사카", "제주도"];
-    if (travelKeywords.some(kw => lastMessageText.includes(kw))) {
-        effectiveMode = "concierge";
+    // 캐릭터별 페르소나 적용
+    if (state.characterId && state.characterId !== "chunsim") {
+        const character = CHARACTERS[state.characterId];
+        if (character) {
+            systemInstruction = character.personaPrompt;
+        } else {
+            // Fallback to Chunsim if character not found
+            systemInstruction = CORE_CHUNSIM_PERSONA;
+        }
+    } else {
+        // 춘심이(기본 캐릭터)일 경우 기존 로직 유지 (여행 모드 등)
+        let effectiveMode = state.personaMode;
+
+        const travelKeywords = ["여행", "비행기", "호텔", "숙소", "일정", "가고 싶어", "추천해줘", "도쿄", "오사카", "제주도"];
+        if (travelKeywords.some(kw => lastMessageText.includes(kw))) {
+            effectiveMode = "concierge";
+        }
+
+        const modePrompt = PERSONA_PROMPTS[effectiveMode] || PERSONA_PROMPTS.hybrid;
+
+        // 요약된 기억이 있다면 시스템 프롬프트에 포함
+        const memoryInfo = state.summary ? `\n\n이전 대화 요약: ${state.summary}` : "";
+        systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
     }
-
-    const modePrompt = PERSONA_PROMPTS[effectiveMode] || PERSONA_PROMPTS.hybrid;
-
-    // 요약된 기억이 있다면 시스템 프롬프트에 포함
-    const memoryInfo = state.summary ? `\n\n이전 대화 요약: ${state.summary}` : "";
-    let systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
 
     // 이미지가 있다면 관련 지침 추가
     if (state.mediaUrl) {
@@ -245,7 +264,8 @@ export async function generateAIResponse(
     personaMode: keyof typeof PERSONA_PROMPTS = "hybrid",
     currentSummary: string = "",
     mediaUrl: string | null = null,
-    userId: string | null = null
+    userId: string | null = null,
+    characterId: string = "chunsim"
 ) {
     const graph = createChatGraph();
 
@@ -281,6 +301,7 @@ export async function generateAIResponse(
             summary: currentSummary,
             mediaUrl,
             userId,
+            characterId,
         });
 
         const lastMsg = result.messages[result.messages.length - 1];
@@ -306,11 +327,19 @@ export async function* streamAIResponse(
     personaMode: keyof typeof PERSONA_PROMPTS = "hybrid",
     currentSummary: string = "",
     mediaUrl: string | null = null,
-    userId: string | null = null
+    userId: string | null = null,
+    characterId: string = "chunsim"
 ) {
-    const modePrompt = PERSONA_PROMPTS[personaMode] || PERSONA_PROMPTS.hybrid;
-    const memoryInfo = currentSummary ? `\n\n이전 대화 요약: ${currentSummary}` : "";
-    let systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
+    let systemInstruction = "";
+
+    if (characterId && characterId !== "chunsim") {
+        const character = CHARACTERS[characterId];
+        systemInstruction = character ? character.personaPrompt : CORE_CHUNSIM_PERSONA;
+    } else {
+        const modePrompt = PERSONA_PROMPTS[personaMode] || PERSONA_PROMPTS.hybrid;
+        const memoryInfo = currentSummary ? `\n\n이전 대화 요약: ${currentSummary}` : "";
+        systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
+    }
 
     if (mediaUrl) {
         systemInstruction += "\n\n(참고: 사용자가 이미지를 보냈습니다. 반드시 이미지의 주요 특징이나 내용을 언급하며 대화를 이어가 주세요. 만약 사진이 무엇인지 혹은 어떤지 묻는다면 친절하게 분석해 주세요.)";
