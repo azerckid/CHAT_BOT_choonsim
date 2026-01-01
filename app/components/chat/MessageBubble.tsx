@@ -8,6 +8,7 @@ interface MessageBubbleProps {
   avatarUrl?: string;
   showAvatar?: boolean;
   className?: string;
+  isStreaming?: boolean;
 }
 
 export function MessageBubble({
@@ -18,6 +19,7 @@ export function MessageBubble({
   avatarUrl,
   showAvatar = true,
   className,
+  isStreaming = false,
 }: MessageBubbleProps) {
   const isUser = sender === "user";
 
@@ -64,6 +66,9 @@ export function MessageBubble({
         )}
         <div className="px-5 py-3 bg-white dark:bg-surface-dark rounded-2xl rounded-tl-sm text-slate-800 dark:text-gray-100 shadow-sm text-[15px] leading-relaxed relative">
           {content}
+          {isStreaming && (
+            <span className="inline-block w-1.5 h-4 ml-1 bg-primary animate-pulse align-middle" />
+          )}
         </div>
       </div>
       <button className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary p-1">
