@@ -163,13 +163,16 @@ export default function ChatScreen() {
                   setStreamingContent(prev => prev + data.text);
                 }
                 if (data.done) {
-                  const finalAiMsg: Message = {
-                    id: data.messageId || crypto.randomUUID(),
+                  const parts = fullAiContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
+
+                  const finalMsgs: Message[] = parts.map((part, idx) => ({
+                    id: idx === parts.length - 1 && data.messageId ? data.messageId : crypto.randomUUID(),
                     role: "assistant",
-                    content: fullAiContent,
+                    content: part,
                     createdAt: new Date().toISOString(),
-                  };
-                  setMessages(prev => [...prev, finalAiMsg]);
+                  }));
+
+                  setMessages(prev => [...prev, ...finalMsgs]);
                   setStreamingContent("");
                   setIsAiStreaming(false);
                 }

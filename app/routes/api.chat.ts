@@ -82,17 +82,23 @@ export async function action({ request }: ActionFunctionArgs) {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
                 }
 
-                // AI 응답 저장
-                const savedMessage = await prisma.message.create({
-                    data: {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: fullContent,
-                        conversationId,
-                        createdAt: new Date(),
-                        type: "TEXT",
-                    },
-                });
+                // AI 응답 저장 (여러 개로 나누어 저장)
+                const messageParts = fullContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
+                let lastSavedMessageId = "";
+
+                for (const part of messageParts) {
+                    const savedMessage = await prisma.message.create({
+                        data: {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: part,
+                            conversationId,
+                            createdAt: new Date(),
+                            type: "TEXT",
+                        },
+                    });
+                    lastSavedMessageId = savedMessage.id;
+                }
 
                 // 대화 요약 고도화
                 if (history.length >= 8) {
@@ -122,7 +128,7 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
                 }
 
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: savedMessage.id })}\n\n`));
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: lastSavedMessageId })}\n\n`));
                 controller.close();
             } catch (error) {
                 console.error("Streaming error:", error);

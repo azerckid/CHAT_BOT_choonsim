@@ -92,21 +92,30 @@ export function initCronJobs() {
 
                 const messageContent = await generateProactiveMessage(user.name || "친구", memory, personaMode);
 
-                // 3. 메시지 저장
-                await prisma.message.create({
-                    data: {
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: messageContent,
-                        conversationId: conversation.id,
-                        createdAt: new Date(),
+                // 3. 메시지 저장 및 전송 (여러 개로 나누어 보내기)
+                const messageParts = messageContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
+
+                for (const part of messageParts) {
+                    await prisma.message.create({
+                        data: {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: part,
+                            conversationId: conversation.id,
+                            createdAt: new Date(),
+                        }
+                    });
+
+                    // 4. 푸시 알림 발송
+                    await sendPushNotification(user, part);
+
+                    console.log(`Part sent to ${user.name}: ${part}`);
+
+                    // 자연스러운 느낌을 위해 약간의 딜레이
+                    if (messageParts.length > 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1500));
                     }
-                });
-
-                console.log(`Proactive message sent to ${user.name}: ${messageContent}`);
-
-                // 4. 푸시 알림 발송
-                await sendPushNotification(user, messageContent);
+                }
             }
         } catch (error) {
             console.error("Cron Job Error:", error);
