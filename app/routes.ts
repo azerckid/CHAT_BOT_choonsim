@@ -15,6 +15,8 @@ export default [
   route("api/auth/*", "routes/api.auth.$.ts"),
   route("api/messages", "routes/api.messages.ts"),
   route("api/chat", "routes/api.chat.ts"),
+  route("api/chat/create", "routes/api.chat.create.ts"),
+  route("api/chat/delete", "routes/api.chat.delete.ts"),
   route("api/upload", "routes/api.upload.ts"),
   route("api/test-cron", "routes/api.test-cron.ts"),
   route("api/push-subscription", "routes/api.push-subscription.ts"),
