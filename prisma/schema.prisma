@@ -1,0 +1,404 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model AgentExecution {
+  id               String   @id
+  messageId        String
+  agentName        String
+  intent           String
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalTokens      Int      @default(0)
+  rawOutput        String?
+  createdAt        DateTime @default(now())
+  Message          Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model Bookmark {
+  id           String   @id
+  userId       String
+  tweetId      String
+  createdAt    DateTime @default(now())
+  collectionId String?
+  Tweet        Tweet    @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BookmarkCollection {
+  id        String   @id
+  userId    String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Conversation {
+  id               String             @id
+  title            String
+  userId           String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  User             User?              @relation(fields: [userId], references: [id])
+  Message          Message[]
+  TravelPreference TravelPreference[]
+}
+
+model DMConversation {
+  id            String          @id
+  isGroup       Boolean         @default(false)
+  groupName     String?
+  lastMessageAt DateTime        @default(now())
+  isAccepted    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  DMParticipant DMParticipant[]
+  DirectMessage DirectMessage[]
+}
+
+model DMParticipant {
+  id             String         @id
+  conversationId String
+  userId         String
+  joinedAt       DateTime       @default(now())
+  leftAt         DateTime?
+  isAdmin        Boolean        @default(false)
+  User           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  DMConversation DMConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model DirectMessage {
+  id                String         @id
+  conversationId    String
+  senderId          String
+  content           String
+  isRead            Boolean        @default(false)
+  deletedBySender   Boolean        @default(false)
+  deletedByReceiver Boolean        @default(false)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime
+  mediaUrl          String?
+  mediaType         String?
+  User              User           @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  DMConversation    DMConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model FlightDeal {
+  id              String    @id
+  origin          String
+  destination     String
+  originalPrice   Float
+  discountedPrice Float
+  discountRate    Float
+  discountAmount  Float
+  bookingUrl      String?
+  validFrom       DateTime?
+  validTo         DateTime?
+  detectedAt      DateTime  @default(now())
+  notified        Boolean   @default(false)
+  status          String    @default("active")
+}
+
+model Follow {
+  id                            String   @id
+  followerId                    String
+  followingId                   String
+  createdAt                     DateTime @default(now())
+  status                        String?  @default("ACCEPTED")
+  User_Follow_followingIdToUser User     @relation("Follow_followingIdToUser", fields: [followingId], references: [id], onDelete: Cascade)
+  User_Follow_followerIdToUser  User     @relation("Follow_followerIdToUser", fields: [followerId], references: [id], onDelete: Cascade)
+}
+
+model Hotel {
+  id            String   @id
+  name          String
+  location      String
+  rating        Float?
+  pricePerNight Float?
+  description   String?
+  imageUrl      String?
+  bookingUrl    String?
+  latitude      Float?
+  longitude     Float?
+  features      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
+}
+
+model Like {
+  id        String   @id
+  userId    String
+  tweetId   String
+  createdAt DateTime @default(now())
+  Tweet     Tweet    @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Media {
+  id           String   @id
+  tweetId      String
+  type         String
+  url          String
+  thumbnailUrl String?
+  altText      String?
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  publicId     String?
+  Tweet        Tweet    @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id             String           @id
+  role           String
+  content        String
+  conversationId String
+  createdAt      DateTime         @default(now())
+  type           String           @default("TEXT")
+  senderId       String?
+  roomId         String?
+  read           Boolean          @default(false)
+  AgentExecution AgentExecution[]
+  Conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id                                  String   @id
+  recipientId                         String
+  issuerId                            String
+  type                                String
+  tweetId                             String?
+  isRead                              Boolean  @default(false)
+  createdAt                           DateTime @default(now())
+  Tweet                               Tweet?   @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  User_Notification_issuerIdToUser    User     @relation("Notification_issuerIdToUser", fields: [issuerId], references: [id], onDelete: Cascade)
+  User_Notification_recipientIdToUser User     @relation("Notification_recipientIdToUser", fields: [recipientId], references: [id], onDelete: Cascade)
+}
+
+model PublicTransportRoute {
+  id          String   @id
+  airportCode String
+  airportName String
+  city        String?
+  country     String?
+  routes      String
+  lastUpdated DateTime
+  source      String   @default("manual")
+  verified    Boolean  @default(false)
+}
+
+model Retweet {
+  id        String   @id
+  userId    String
+  tweetId   String
+  createdAt DateTime @default(now())
+  Tweet     Tweet    @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Room {
+  id         String       @id
+  name       String?
+  type       String       @default("DIRECT")
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime
+  RoomMember RoomMember[]
+}
+
+model RoomMember {
+  id       String   @id
+  userId   String
+  roomId   String
+  role     String   @default("MEMBER")
+  joinedAt DateTime @default(now())
+  Room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model Todo {
+  id          String    @id
+  userId      String
+  title       String
+  description String?
+  status      String    @default("PENDING")
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model TravelPlan {
+  id             String           @id
+  userId         String
+  title          String
+  description    String?
+  startDate      DateTime?
+  endDate        DateTime?
+  status         String           @default("PLANNING")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  User           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  TravelPlanItem TravelPlanItem[]
+}
+
+model TravelPlanItem {
+  id           String     @id
+  travelPlanId String
+  title        String
+  description  String?
+  date         DateTime?
+  time         String?
+  locationName String?
+  latitude     Float?
+  longitude    Float?
+  order        Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime
+  status       String?    @default("TODO")
+  TravelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id], onDelete: Cascade)
+}
+
+model TravelPreference {
+  id             String       @id
+  conversationId String
+  preferences    String       @default("{}")
+  Conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model TravelTag {
+  id             String           @id
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime         @default(now())
+  TweetTravelTag TweetTravelTag[]
+}
+
+model Tweet {
+  id                                       String           @id
+  userId                                   String
+  content                                  String
+  parentId                                 String?
+  isRetweet                                Boolean          @default(false)
+  originalTweetId                          String?
+  deletedAt                                DateTime?
+  locationName                             String?
+  latitude                                 Float?
+  longitude                                Float?
+  address                                  String?
+  travelDate                               DateTime?
+  country                                  String?
+  city                                     String?
+  travelPlanId                             String?
+  createdAt                                DateTime         @default(now())
+  updatedAt                                DateTime
+  visibility                               String?          @default("PUBLIC")
+  Bookmark                                 Bookmark[]
+  Like                                     Like[]
+  Media                                    Media[]
+  Notification                             Notification[]
+  Retweet                                  Retweet[]
+  Tweet_Tweet_originalTweetIdToTweet       Tweet?           @relation("Tweet_originalTweetIdToTweet", fields: [originalTweetId], references: [id])
+  other_Tweet_Tweet_originalTweetIdToTweet Tweet[]          @relation("Tweet_originalTweetIdToTweet")
+  Tweet_Tweet_parentIdToTweet              Tweet?           @relation("Tweet_parentIdToTweet", fields: [parentId], references: [id], onDelete: Cascade)
+  other_Tweet_Tweet_parentIdToTweet        Tweet[]          @relation("Tweet_parentIdToTweet")
+  User                                     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  TweetEmbedding                           TweetEmbedding?
+  TweetTravelTag                           TweetTravelTag[]
+}
+
+model TweetEmbedding {
+  id        String   @id
+  tweetId   String   @unique(map: "sqlite_autoindex_TweetEmbedding_2")
+  vector    Bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Tweet     Tweet    @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+}
+
+model TweetTravelTag {
+  id          String    @id
+  tweetId     String
+  travelTagId String
+  createdAt   DateTime  @default(now())
+  TravelTag   TravelTag @relation(fields: [travelTagId], references: [id], onDelete: Cascade)
+  Tweet       Tweet     @relation(fields: [tweetId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                                          String               @id
+  email                                       String
+  password                                    String?
+  name                                        String?
+  image                                       String?
+  provider                                    String               @default("local")
+  snsId                                       String?
+  createdAt                                   DateTime             @default(now())
+  updatedAt                                   DateTime
+  emailVerified                               Boolean              @default(false)
+  avatarUrl                                   String?
+  status                                      String               @default("OFFLINE")
+  bio                                         String?
+  coverImage                                  String?
+  isPrivate                                   Boolean?             @default(false)
+  Bookmark                                    Bookmark[]
+  BookmarkCollection                          BookmarkCollection[]
+  Conversation                                Conversation[]
+  DMParticipant                               DMParticipant[]
+  DirectMessage                               DirectMessage[]
+  Follow_Follow_followingIdToUser             Follow[]             @relation("Follow_followingIdToUser")
+  Follow_Follow_followerIdToUser              Follow[]             @relation("Follow_followerIdToUser")
+  Like                                        Like[]
+  Notification_Notification_issuerIdToUser    Notification[]       @relation("Notification_issuerIdToUser")
+  Notification_Notification_recipientIdToUser Notification[]       @relation("Notification_recipientIdToUser")
+  Retweet                                     Retweet[]
+  TravelPlan                                  TravelPlan[]
+  Tweet                                       Tweet[]
+}
+
+model account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model hotel_embeddings {
+  content   String?
+  metadata  String?
+  embedding Unsupported("float32(1536)")?
+
+  @@ignore
+}
+
+model session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime
+  updatedAt DateTime
+  ipAddress String?
+  userAgent String?
+  userId    String
+}
+
+model verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+}

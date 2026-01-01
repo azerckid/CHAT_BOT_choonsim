@@ -192,21 +192,19 @@
 ### 2.1 데이터베이스 설정
 
 #### 2.1.1 Turso 설정
-- [ ] Turso 프로젝트 생성
-- [ ] 데이터베이스 연결 설정
-- [ ] 환경 변수 설정
+- [x] Turso 프로젝트 생성 (기존 DB 활용)
+- [x] 데이터베이스 연결 설정
+- [x] 환경 변수 설정 (.env 확인 완료)
 
 #### 2.1.2 Prisma 스키마 작성
-- [ ] `users` 테이블
-- [ ] `user_settings` 테이블
-- [ ] `conversations` 테이블
-- [ ] `messages` 테이블
-- [ ] 관계 설정 (Foreign Keys)
-- [ ] 인덱스 설정
+- [x] `User` 테이블 (Introspected)
+- [x] `Conversation` 테이블 (Introspected)
+- [x] `Message` 테이블 (Introspected)
+- [x] 관계 설정 (Foreign Keys) (Introspected)
 
-#### 2.1.3 마이그레이션
-- [ ] 초기 마이그레이션 생성
-- [ ] 데이터베이스 스키마 적용
+#### 2.1.3 마이그레이션 및 설정
+- [x] 기존 데이터베이스 스키마 추출 (`prisma db pull`)
+- [x] Prisma Client 및 LibSQL 어댑터 설정 (`db.server.ts`)
 
 ### 2.2 인증 시스템
 

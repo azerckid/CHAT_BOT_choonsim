@@ -162,7 +162,7 @@ export default function SettingsScreen() {
         <div className="px-4 pt-4 pb-8">
           <div className="flex flex-col overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark shadow-sm dark:shadow-none border border-black/5 dark:border-white/5">
             <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-              <DialogTrigger asChild>
+              <DialogTrigger>
                 <button className="flex items-center gap-4 p-4 min-h-14 justify-between border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors w-full text-left">
                   <div className="flex items-center gap-3">
                     <div className="text-primary flex items-center justify-center rounded-full bg-primary/10 shrink-0 size-8">
@@ -195,7 +195,7 @@ export default function SettingsScreen() {
               </DialogContent>
             </Dialog>
             <Dialog open={deleteAccountDialogOpen} onOpenChange={setDeleteAccountDialogOpen}>
-              <DialogTrigger asChild>
+              <DialogTrigger>
                 <button className="flex items-center gap-4 p-4 min-h-14 justify-between border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors w-full text-left">
                   <div className="flex items-center gap-3">
                     <div className="text-slate-400 dark:text-slate-500 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 shrink-0 size-8">
