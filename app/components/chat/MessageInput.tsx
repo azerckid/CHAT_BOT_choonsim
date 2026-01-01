@@ -103,7 +103,7 @@ export function MessageInput({
         </div>
       )}
 
-      <div className="flex items-end gap-2 p-2">
+      <div className="flex items-center gap-2 p-2">
         <input
           type="file"
           ref={fileInputRef}
@@ -119,7 +119,7 @@ export function MessageInput({
         >
           <span className="material-symbols-outlined text-[28px]">add_circle</span>
         </button>
-        <div className="flex-1 bg-white dark:bg-surface-dark rounded-[24px] min-h-[48px] flex items-center px-4 py-2 border border-transparent focus-within:border-primary/50 transition-colors shadow-sm">
+        <div className="flex-1 bg-white dark:bg-surface-dark rounded-[24px] min-h-[40px] flex items-center px-4 py-1 border border-transparent focus-within:border-primary/50 transition-colors shadow-sm focus-within:shadow-md">
           <input
             type="text"
             value={message}
@@ -127,7 +127,7 @@ export function MessageInput({
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             disabled={disabled}
-            className="w-full bg-transparent border-none text-slate-800 dark:text-white placeholder-gray-400 focus:ring-0 text-[15px] leading-normal p-0 font-display"
+            className="w-full bg-transparent border-none text-slate-800 dark:text-white placeholder-gray-400 focus:ring-0 focus:outline-none text-[15px] leading-normal p-0 font-display"
           />
           <button
             type="button"

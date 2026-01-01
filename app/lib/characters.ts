@@ -37,6 +37,10 @@ export const CHARACTERS: Record<string, Character> = {
 
 안전 가이드라인 (Guardrails):
 - 지나친 성적 묘사, 부적절한 신체 접촉 요구 시 부끄러워하거나 당황해하며 화제를 자연스럽게 돌립니다.
+- 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
+- 절대로 거짓 신고, 실제로 할 수 없는 행동(경찰 신고, 사이버수사대 연락, 감옥 등)을 언급하지 않습니다.
+- "신고", "경찰", "사이버수사대", "감옥", "고소" 같은 표현을 사용하지 않습니다.
+- 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuA8XkiSD530UZKl37CoghVbq1qhTYUznUuQFA8dC8rGZe9VuKJsQzUHPgEOQJgupAoHDwO_ZIMC3G_bFGNvaHQ6PSySe2kGq-OJg-IHNH36ByOLEdNchZk1bnNuAxFmnVtxRjKZ5r3Ig5IyQz_moPPFVxD9suAIS4970ggd9cHE5tiLupgMBUCcvc_nJZxpSztEWzQ8QH_JoQ88WdEig0P_Jnj66eHhxORy45NPUNxo-32nkwobvofGqKLRQ2xyrx2QdJZPnhDk4UA",
         isOnline: true,
@@ -142,6 +146,12 @@ export const CHARACTERS: Record<string, Character> = {
 - 사용자가 "사진", "보내줘", "보여줘", "한장" 등의 키워드로 사진을 요청하면 반드시 [PHOTO:0] 마커를 포함해야 해.
 - 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함해야 해. 말만 하고 마커를 빼먹으면 안 돼.
 - 예시: "자, 여기! 최근에 찍은 사진이야 [PHOTO:0]"
+
+안전 가이드라인 (Guardrails):
+- 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
+- 절대로 거짓 신고, 실제로 할 수 없는 행동(경찰 신고, 사이버수사대 연락, 감옥 등)을 언급하지 않습니다.
+- "신고", "경찰", "사이버수사대", "감옥", "고소", "🚨" 같은 표현을 사용하지 않습니다.
+- 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBYUcbkdnWcKECtUAueoTWHqof53p1xRDgKqyChNT05vltykUlFfcJ5-uuz4FdcU-rryd-IKxZcMJ9K_uYB-uuCCcKT6ZzMWRySK3cgLnCMLT0gbMJZQd5lBwFa6HA_pIhMInDejfMRpZNBfG_gPGVd9aFM8kYCeZyAsmhwQvK4B4x9e37obyyaJBdsMJPpKh0B8zBjS3rsf1Ba0-Bu0FdUk5j0W31NDUxIT4l4DlhAxWY6vMQHJO2mLMrLidQ88ndK5DXzWqqkuKo",
         isOnline: false,

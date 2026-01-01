@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Link } from "react-router";
 import { cn } from "~/lib/utils";
+import { CHARACTERS } from "~/lib/characters";
 
 type Tab = "about" | "voice" | "gallery";
 
@@ -11,18 +12,19 @@ export default function CharacterProfileScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("about");
   const [isFavorite, setIsFavorite] = useState(true);
 
-  // TODO: 실제 데이터로 교체
+  // CHARACTERS에서 실제 캐릭터 데이터 가져오기
+  const characterData = CHARACTERS[id || "chunsim"] || CHARACTERS["chunsim"];
+  
+  // 프로필 화면에 필요한 추가 정보 (기본값 또는 characterData에서 가져오기)
   const character = {
-    id: id || "luna",
-    name: "Luna",
-    role: "Main Vocalist",
-    relationship: "Close Friend",
-    affinity: "98%",
-    fandomLevel: "Lv. 12",
-    intro:
-      "Hey! Did you see the show last night? I was looking for you in the crowd. Let's practice some songs together later!",
-    backstory:
-      "Born in Seoul, Luna always dreamed of the stage. Despite her shy nature off-camera, she transforms into a powerhouse vocalist when the spotlight hits. She treasures her fans deeply, often writing songs based on the letters they send her.\n\nRecently, she's been feeling a bit lonely after her concerts end, looking for someone who sees the real girl behind the idol persona.",
+    id: characterData.id,
+    name: characterData.name,
+    role: characterData.role,
+    relationship: "Close Friend", // TODO: 실제 관계 데이터로 교체 (DB에서 가져오기)
+    affinity: "98%", // TODO: 실제 친밀도 데이터로 교체 (DB에서 가져오기)
+    fandomLevel: "Lv. 12", // TODO: 실제 팬덤 레벨 데이터로 교체 (DB에서 가져오기)
+    intro: characterData.bio || `안녕! 나는 ${characterData.name}야. 만나서 반가워!`,
+    backstory: characterData.bio || `${characterData.name}에 대한 이야기입니다.`,
     personalityTraits: [
       { icon: "sentiment_satisfied", color: "text-yellow-500", label: "#Cheerful" },
       { icon: "volunteer_activism", color: "text-pink-500", label: "#Empathetic" },
@@ -30,11 +32,10 @@ export default function CharacterProfileScreen() {
       { icon: "nightlight", color: "text-blue-400", label: "#NightOwl" },
     ],
     interests: [
-      { icon: "headphones", label: "Lo-Fi Music", sublabel: "Relaxing", color: "bg-blue-500/10 text-blue-500" },
-      { icon: "pets", label: "Cute Cats", sublabel: "Obsessed", color: "bg-pink-500/10 text-pink-500" },
+      { icon: "headphones", label: "Music", sublabel: "Favorite", color: "bg-blue-500/10 text-blue-500" },
+      { icon: "favorite", label: "Fans", sublabel: "Loved", color: "bg-pink-500/10 text-pink-500" },
     ],
-    heroImage:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuD8_sPG0MwJEnhahvZyTmY8fTfk1iaTSvzkiIDhQw6QyLjAfSi2zyqPLTc-hgtgIf79D8lgxCLawlgJhKxlB2L3ec3nqZNs373OcWbk5g7lVZPcQO8ef2znQb4DGWCR983dxISIx72Qf6VXNG6WApTSWBhwH7Q4OLxT6KMPTq330RaMTRbh_VOh4SPnAajsZZt6rXYK1Bdhn6oJLBkrfTsYpBtetMvS9QeFZdjywB3XxYwYE3OkjEOLuvUH6PhxP_H2nwcEjd6sMHk",
+    heroImage: characterData.avatarUrl, // avatarUrl을 heroImage로 사용
   };
 
   const handleMessage = () => {

@@ -8,12 +8,15 @@ export default [
   route("onboarding/persona", "routes/onboarding.persona.tsx"),
   route("chats", "routes/chats.tsx"),
   route("chat/:id", "routes/chat.$id.tsx"),
+  route("fandom", "routes/fandom.tsx"),
+  route("profile", "routes/profile.tsx"),
   route("settings", "routes/settings.tsx"),
   route("character/:id", "routes/character.$id.tsx"),
 
   // API Routes
   route("api/auth/*", "routes/api.auth.$.ts"),
   route("api/messages", "routes/api.messages.ts"),
+  route("api/messages/:id/like", "routes/api.messages.$id.like.ts"),
   route("api/chat", "routes/api.chat.ts"),
   route("api/chat/create", "routes/api.chat.create.ts"),
   route("api/chat/delete", "routes/api.chat.delete.ts"),

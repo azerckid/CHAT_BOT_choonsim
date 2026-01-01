@@ -167,6 +167,18 @@ model Message {
   read           Boolean          @default(false)
   AgentExecution AgentExecution[]
   Conversation   Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  MessageLike    MessageLike[]
+}
+
+model MessageLike {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  createdAt DateTime @default(now())
+  Message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
 }
 
 model Notification {
@@ -347,6 +359,7 @@ model User {
   isPrivate                                   Boolean?             @default(false)
   checkInTime                                 String? // "09:00" 형식의 체크인 시간
   pushSubscription                            String? // 웹 푸시 구독 정보 (JSON)
+  subscriptionTier                            String?              @default("FREE") // FREE, BASIC, PREMIUM, ULTIMATE
   Bookmark                                    Bookmark[]
   BookmarkCollection                          BookmarkCollection[]
   Conversation                                Conversation[]
@@ -355,6 +368,7 @@ model User {
   Follow_Follow_followingIdToUser             Follow[]             @relation("Follow_followingIdToUser")
   Follow_Follow_followerIdToUser              Follow[]             @relation("Follow_followerIdToUser")
   Like                                        Like[]
+  MessageLike                                 MessageLike[]
   Notification_Notification_issuerIdToUser    Notification[]       @relation("Notification_issuerIdToUser")
   Notification_Notification_recipientIdToUser Notification[]       @relation("Notification_recipientIdToUser")
   Retweet                                     Retweet[]

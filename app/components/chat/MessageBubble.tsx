@@ -10,6 +10,9 @@ interface MessageBubbleProps {
   mediaUrl?: string;
   showAvatar?: boolean;
   className?: string;
+  messageId?: string;
+  isLiked?: boolean;
+  onLike?: (messageId: string, currentLiked: boolean) => void;
 }
 
 export function MessageBubble({
@@ -22,22 +25,44 @@ export function MessageBubble({
   className,
   isStreaming = false,
   mediaUrl,
+  messageId,
+  isLiked = false,
+  onLike,
 }: MessageBubbleProps) {
   const isUser = sender === "user";
+
+  const handleLike = () => {
+    if (messageId && onLike) {
+      onLike(messageId, isLiked);
+    }
+  };
 
   if (isUser) {
     return (
       <div className={cn("flex items-end gap-3 justify-end group", className)}>
-        <button className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary p-1 order-1">
-          <span className="material-symbols-outlined text-[18px]">favorite</span>
-        </button>
+        {messageId && onLike && (
+          <button 
+            onClick={handleLike}
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity p-1 order-1",
+              isLiked 
+                ? "opacity-100 text-primary" 
+                : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
+            )}
+          >
+            <span className={cn(
+              "material-symbols-outlined text-[18px]",
+              isLiked && "fill"
+            )}>favorite</span>
+          </button>
+        )}
         <div className="flex flex-col gap-1 items-end max-w-[75%] order-2">
           {mediaUrl && (
             <div className="mb-2 rounded-xl overflow-hidden shadow-lg border-2 border-primary/20 max-w-sm">
               <img src={mediaUrl} alt="User shared" className="w-full h-auto max-h-60 object-cover" />
             </div>
           )}
-          <div className="px-5 py-3 bg-primary text-white rounded-2xl rounded-tr-sm shadow-md shadow-primary/20 text-[15px] leading-relaxed">
+          <div className="px-5 py-1 bg-primary text-white rounded-2xl rounded-tr-sm shadow-md shadow-primary/20 text-[15px] leading-relaxed">
             {content}
           </div>
           {timestamp && (
@@ -83,14 +108,45 @@ export function MessageBubble({
           )}
         </div>
         {timestamp && (
-          <span className="text-[11px] text-gray-400 dark:text-white/30 ml-1">
-            {timestamp}
-          </span>
+          <div className="flex items-center gap-2 ml-1">
+            <span className="text-[11px] text-gray-400 dark:text-white/30">
+              {timestamp}
+            </span>
+            {messageId && onLike && (
+              <button 
+                onClick={handleLike}
+                className={cn(
+                  "opacity-0 group-hover:opacity-100 transition-opacity p-1",
+                  isLiked 
+                    ? "opacity-100 text-primary" 
+                    : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
+                )}
+              >
+                <span className={cn(
+                  "material-symbols-outlined text-[18px]",
+                  isLiked && "fill"
+                )}>favorite</span>
+              </button>
+            )}
+          </div>
+        )}
+        {!timestamp && messageId && onLike && (
+          <button 
+            onClick={handleLike}
+            className={cn(
+              "opacity-0 group-hover:opacity-100 transition-opacity p-1 ml-1",
+              isLiked 
+                ? "opacity-100 text-primary" 
+                : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
+            )}
+          >
+            <span className={cn(
+              "material-symbols-outlined text-[18px]",
+              isLiked && "fill"
+            )}>favorite</span>
+          </button>
         )}
       </div>
-      <button className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary p-1">
-        <span className="material-symbols-outlined text-[18px]">favorite</span>
-      </button>
     </div>
   );
 }

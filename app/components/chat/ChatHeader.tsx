@@ -2,6 +2,7 @@ import { Link } from "react-router";
 
 interface ChatHeaderProps {
   characterName: string;
+  characterId?: string;
   isOnline?: boolean;
   statusText?: string;
   onBack?: () => void;
@@ -18,6 +19,7 @@ import {
 
 export function ChatHeader({
   characterName,
+  characterId,
   isOnline = true,
   statusText = "Online now",
   onBack,
@@ -35,7 +37,16 @@ export function ChatHeader({
         </button>
         <div className="flex flex-col items-center flex-1 mx-2">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold leading-tight">{characterName}</h1>
+            {characterId ? (
+              <Link
+                to={`/character/${characterId}`}
+                className="text-lg font-bold leading-tight hover:underline"
+              >
+                {characterName}
+              </Link>
+            ) : (
+              <h1 className="text-lg font-bold leading-tight">{characterName}</h1>
+            )}
             {isOnline && (
               <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
             )}

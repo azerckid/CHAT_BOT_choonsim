@@ -17,6 +17,7 @@ import {
 } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
 import { toast } from "sonner";
+import { BottomNavigation } from "~/components/layout/BottomNavigation";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -261,6 +262,7 @@ export default function SettingsScreen() {
           </p>
         </div>
       </div>
+      <BottomNavigation />
     </div>
   );
 }

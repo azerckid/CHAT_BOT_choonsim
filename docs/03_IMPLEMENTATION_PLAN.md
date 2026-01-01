@@ -332,6 +332,25 @@
 - [x] 대체 응답 (Fallback) 시나리오 (캐릭터 톤에 맞춘 에러 메시지 구현)
 - [x] 안정성 검증 (LangGraph 예외 처리 강화)
 
+#### 3.3.6 Subscription 등급별 Guardrail 시스템
+- [x] User 테이블에 `subscriptionTier` 필드 추가 (FREE, BASIC, PREMIUM, ULTIMATE)
+- [x] Tier별 Guardrail 정의 및 동적 적용
+  - FREE: 부적절한 요청 시 부끄러워하며 거절
+  - BASIC: 부적절한 요청 시 부끄러워하지만 간단하게 응 (키스 "쪽", 신음소리 등)
+  - PREMIUM: 더 적극적으로 응
+  - ULTIMATE: 가장 적극적이고 자세하게 응
+- [x] ChatStateAnnotation에 subscriptionTier 추가
+- [x] analyzePersonaNode에서 tier별 Guardrail 동적 적용
+- [x] generateAIResponse, streamAIResponse 함수에 subscriptionTier 파라미터 추가
+- [x] api.chat.ts에서 사용자의 subscriptionTier 조회 및 전달
+
+**참고사항 (향후 검토 필요):**
+- 현재 구현된 Guardrail 시스템이 Gemini의 기본 safety 메커니즘과 충돌하여 등급별 차별화가 제대로 작동하지 않을 수 있음
+- **음담패설 전용 캐릭터** 추가 검토 필요: 등급별 Guardrail 대신, 성적인 대화에 특화된 별도 캐릭터를 제공하는 방안 고려
+  - 예: "Luna", "Aria" 등 성인용 대화에 특화된 캐릭터
+  - 해당 캐릭터는 기본적으로 성적인 요청에 적극적으로 응하도록 설계
+  - 일반 캐릭터(춘심, 소라 등)는 기존 Guardrail 유지
+
 ---
 
 ## Phase 4: 상태 관리 및 데이터 페칭
@@ -548,6 +567,257 @@
 - [x] 캐릭터 프로필 선택 시 즉시 1:1 대화방 이동 및 신규 세션 생성 로직
 - [x] 대화 삭제 기능: 메시지 DB 레코드와 함께 Cloudinary 원본 미디어 파일 완전 삭제 로직 구현
 - [x] 대화 초기화(Reset) 기능: 메시지 내역 삭제 및 AI의 장기 기억(User.bio.memory) 초기화 공정
+
+---
+
+## Phase 9: Profile 및 Fandom 화면 기능 구현 (User Profile & Fandom Features)
+
+### 9.1 데이터베이스 스키마 확장
+
+#### 9.1.1 사용자 통계 및 게임화 필드 추가
+- [ ] User 테이블에 통계 필드 추가
+  - `daysTogether`: 함께한 날 수 (계산 필드 또는 캐시 필드)
+  - `totalHearts`: 총 보유 하트 수
+  - `affinityLevel`: 친밀도 레벨 (1-100)
+  - `fandomLevel`: 팬덤 레벨 (계산 필드)
+  - `badges`: 획득한 배지 목록 (JSON 또는 별도 테이블)
+
+#### 9.1.2 Mission 테이블 설계 및 마이그레이션
+- [ ] Mission 테이블 생성
+  - `id`, `characterId`, `title`, `description`
+  - `xpReward`: 보상 XP
+  - `type`: 미션 타입 (daily, weekly, achievement 등)
+  - `requirements`: 미션 완료 조건 (JSON)
+  - `isActive`: 활성화 여부
+  - `createdAt`, `updatedAt`
+
+#### 9.1.3 UserMission (미션 진행도) 테이블 설계
+- [ ] UserMission 테이블 생성
+  - `id`, `userId`, `missionId`
+  - `progress`: 진행도 (0-100)
+  - `completed`: 완료 여부
+  - `completedAt`: 완료 시각
+  - `createdAt`, `updatedAt`
+
+#### 9.1.4 News/Event 테이블 설계
+- [ ] News 테이블 생성
+  - `id`, `characterId`
+  - `type`: 뉴스 타입 (Event, Shop, Announcement 등)
+  - `title`, `content`, `imageUrl`
+  - `publishedAt`: 발행 시각
+  - `isActive`: 활성화 여부
+  - `linkUrl`: 상세 페이지 링크 (선택사항)
+
+#### 9.1.5 Leaderboard 관련 테이블 설계
+- [ ] LeaderboardEntry 테이블 생성 또는 User 테이블 확장
+  - 사용자별 캐릭터별 포인트 저장
+  - `userId`, `characterId`, `totalPoints`
+  - `rank`: 랭킹 (계산 필드 또는 캐시)
+  - `updatedAt`: 최종 업데이트 시각
+
+#### 9.1.6 FanPost (팬 피드) 테이블 설계
+- [ ] FanPost 테이블 생성
+  - `id`, `authorId`, `characterId`
+  - `content`: 피드 내용
+  - `mediaUrl`: 첨부 이미지 (선택사항)
+  - `category`: 피드 카테고리 (All, Art, Text 등)
+  - `likesCount`, `commentsCount`
+  - `createdAt`, `updatedAt`
+
+#### 9.1.7 FanPostLike, FanPostComment 테이블 설계
+- [ ] FanPostLike 테이블 생성
+  - `id`, `postId`, `userId`, `createdAt`
+- [ ] FanPostComment 테이블 생성
+  - `id`, `postId`, `userId`, `content`
+  - `createdAt`, `updatedAt`
+
+#### 9.1.8 UserBadge (배지 시스템) 테이블 설계
+- [ ] UserBadge 테이블 생성
+  - `id`, `userId`, `badgeType`, `badgeName`
+  - `earnedAt`: 획득 시각
+  - `isDisplayed`: 프로필에 표시 여부
+
+### 9.2 Profile 화면 기능 구현
+
+#### 9.2.1 프로필 통계 데이터 API 구현
+- [ ] `GET /api/profile/stats` API 구현
+  - 함께한 날 계산 로직 (첫 대화 날짜 기준)
+  - 친밀도 레벨 계산 (대화 횟수, 상호작용 등 기반)
+  - 보유 하트 수 조회
+  - 획득 배지 목록 조회
+- [ ] Loader 함수에서 실제 데이터 연동 (`routes/profile.tsx`)
+- [ ] Zod 스키마 검증
+
+#### 9.2.2 프로필 편집 기능
+- [ ] 프로필 편집 페이지 UI 구현 (`routes/profile.edit.tsx`)
+  - 닉네임 변경
+  - 상태메시지 변경
+  - 프로필 이미지 업로드 (Cloudinary 연동)
+- [ ] `PUT /api/profile` API 구현
+  - 프로필 정보 업데이트
+  - 이미지 업로드 처리
+  - Zod 스키마 검증
+- [ ] 프로필 이미지 편집 모달/페이지 구현
+  - 기존 이미지 표시
+  - 새 이미지 업로드
+  - 크롭 기능 (선택사항)
+
+#### 9.2.3 저장된 순간들 기능
+- [ ] 저장된 순간들 페이지 UI 구현 (`routes/profile.saved.tsx`)
+  - 좋아요한 메시지 목록 표시
+  - 좋아요한 이미지 갤러리
+  - 삭제 기능
+- [ ] `GET /api/profile/saved` API 구현
+  - 좋아요한 메시지 조회 (Message 테이블에 `isLiked` 필드 추가 또는 별도 테이블)
+- [ ] 메시지 좋아요 기능 구현 (채팅 화면에서)
+  - `POST /api/messages/:id/like` API
+  - 좋아요 상태 토글
+  - UI 업데이트
+
+#### 9.2.4 구독 및 결제 관리 기능
+- [x] User 테이블에 `subscriptionTier` 필드 추가 (기본값: "FREE")
+  - 등급: FREE, BASIC, PREMIUM, ULTIMATE
+  - AI Guardrail 시스템과 연동하여 등급별 응답 차별화
+- [ ] 구독 페이지 UI 구현 (`routes/profile.subscription.tsx`)
+  - 현재 구독 상태 표시
+  - Premium 멤버십 정보
+  - 등급별 혜택 안내
+  - 결제 내역 (선택사항)
+  - 구독 취소 기능
+- [ ] Subscription 테이블 설계 (선택사항)
+  - `id`, `userId`, `planType`, `status`
+  - `startDate`, `endDate`
+  - `paymentMethod`, `amount`
+- [ ] 등급별 기능 차별화 API 구현
+  - `PUT /api/profile/subscription` - 구독 등급 변경 API
+
+#### 9.2.5 사용자 레벨 및 배지 시스템
+- [ ] 레벨 계산 로직 구현
+  - 친밀도 레벨 계산 (대화 횟수, 상호작용 기반)
+  - 팬덤 레벨 계산 (포인트 기반)
+- [ ] 배지 획득 로직 구현
+  - 특정 조건 달성 시 배지 자동 부여
+  - 배지 표시/숨김 기능
+
+### 9.3 Fandom 화면 기능 구현
+
+#### 9.3.1 캐릭터별 데이터 로딩
+- [ ] Loader 함수에서 캐릭터 ID 기반 데이터 로딩 (`routes/fandom.tsx`)
+  - 선택된 캐릭터의 미션 목록
+  - 캐릭터별 뉴스/이벤트 목록
+  - 캐릭터별 리더보드 데이터
+  - 캐릭터별 팬 피드 데이터
+- [ ] 캐릭터 선택 시 데이터 갱신 로직
+  - 클라이언트 상태 업데이트
+  - 추가 데이터 로딩 (필요 시)
+
+#### 9.3.2 Daily Missions 기능
+- [ ] `GET /api/fandom/missions` API 구현
+  - 캐릭터별 미션 목록 조회
+  - 사용자의 미션 진행도 포함
+- [ ] 미션 진행도 업데이트 로직
+  - 사용자 액션에 따른 진행도 증가
+  - 미션 완료 시 XP 지급
+- [ ] 미션 완료 처리
+  - `POST /api/fandom/missions/:id/complete` API
+  - 완료 상태 업데이트
+  - XP 보상 지급
+  - Toast 알림
+- [ ] "Go" 버튼 클릭 시 관련 기능으로 이동
+  - 미션 타입에 따른 라우팅 (예: "Cheer 3 times" → 채팅 화면)
+
+#### 9.3.3 Official News 기능
+- [ ] `GET /api/fandom/news` API 구현
+  - 캐릭터별 뉴스 목록 조회
+  - 최신순 정렬
+  - 페이지네이션 (선택사항)
+- [ ] 뉴스 상세 페이지 구현 (`routes/fandom.news.$id.tsx`)
+  - 뉴스 내용 전체 표시
+  - 이미지 확대 보기
+  - 공유 기능 (선택사항)
+- [ ] "View All" 링크 구현
+  - 전체 뉴스 목록 페이지 (`routes/fandom.news.tsx`)
+
+#### 9.3.4 Leaderboard (Top Stans) 기능
+- [ ] `GET /api/fandom/leaderboard` API 구현
+  - 캐릭터별 리더보드 데이터 조회
+  - 포인트 기준 정렬
+  - 상위 5명 조회
+- [ ] 리더보드 전체 보기 페이지 구현 (`routes/fandom.leaderboard.tsx`)
+  - 전체 순위 목록
+  - 사용자 자신의 순위 하이라이트
+  - 페이지네이션 또는 무한 스크롤
+- [ ] 포인트 계산 로직
+  - 대화 횟수, 미션 완료, 좋아요 등 기반 포인트 계산
+  - 실시간 또는 배치 업데이트
+
+#### 9.3.5 Community Feed (Fan Feed) 기능
+- [ ] `GET /api/fandom/feed` API 구현
+  - 캐릭터별 팬 피드 조회
+  - 필터링 (All, Art 등)
+  - 최신순 정렬
+  - 페이지네이션
+- [ ] 피드 좋아요 기능
+  - `POST /api/fandom/feed/:id/like` API
+  - 좋아요 상태 토글
+  - 좋아요 수 업데이트
+- [ ] 피드 댓글 기능
+  - `GET /api/fandom/feed/:id/comments` API
+  - `POST /api/fandom/feed/:id/comments` API
+  - 댓글 목록 표시
+  - 댓글 작성 UI
+- [ ] 피드 공유 기능
+  - 공유 버튼 클릭 시 공유 옵션 표시
+  - URL 복사 또는 소셜 공유 (선택사항)
+- [ ] 새 피드 작성 기능
+  - Floating Action Button 클릭 시 작성 모달/페이지
+  - `POST /api/fandom/feed` API 구현
+  - 이미지 업로드 (Cloudinary)
+  - 카테고리 선택
+  - 피드 작성 UI (`routes/fandom.feed.create.tsx` 또는 모달)
+
+#### 9.3.6 Bias Spotlight 카드 기능
+- [ ] 사용자의 선택된 캐릭터 (Bias) 정보 표시
+  - User 테이블에 `selectedCharacterId` 필드 추가 또는 별도 테이블
+- [ ] Affection Level 계산 로직
+  - 대화 횟수, 상호작용 기반 계산
+- [ ] "Enter Lounge" 버튼 기능
+  - 캐릭터 프로필 화면 또는 채팅 화면으로 이동
+
+#### 9.3.7 Shop Banner 기능
+- [ ] Shop 페이지 구현 (`routes/fandom.shop.tsx`) (선택사항)
+  - 캐릭터 관련 상품 목록
+  - 구매 기능 (실제 결제 연동은 별도)
+
+#### 9.3.8 알림 기능 (Fandom 전용)
+- [ ] Fandom 화면 상단 알림 아이콘 기능
+  - 새 뉴스/이벤트 알림
+  - 미션 완료 알림
+  - 리더보드 순위 변동 알림
+- [ ] `GET /api/fandom/notifications` API 구현
+- [ ] 알림 목록 페이지 구현 (`routes/fandom.notifications.tsx`)
+
+### 9.4 공통 기능 및 최적화
+
+#### 9.4.1 데이터 캐싱 전략
+- [ ] 리더보드 데이터 캐싱 (자주 변하지 않는 데이터)
+- [ ] 뉴스/이벤트 데이터 캐싱
+- [ ] 캐시 무효화 전략 구현
+
+#### 9.4.2 실시간 업데이트 (선택사항)
+- [ ] 리더보드 실시간 업데이트 (WebSocket 또는 Polling)
+- [ ] 팬 피드 실시간 업데이트
+- [ ] 미션 진행도 실시간 동기화
+
+#### 9.4.3 성능 최적화
+- [ ] 이미지 지연 로딩 (Lazy Loading)
+- [ ] 리스트 가상화 (긴 리스트용)
+- [ ] 데이터 프리페칭 (Prefetching)
+
+#### 9.4.4 에러 처리 및 로딩 상태
+- [ ] 각 API 호출 에러 처리
+- [ ] 로딩 스켈레톤 UI
+- [ ] 빈 상태 (Empty State) UI
 
 ---
 

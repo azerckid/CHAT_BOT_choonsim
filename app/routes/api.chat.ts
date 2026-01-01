@@ -44,7 +44,7 @@ export async function action({ request }: ActionFunctionArgs) {
         }),
         prisma.user.findUnique({
             where: { id: session.user.id },
-            select: { bio: true },
+            select: { bio: true, subscriptionTier: true },
         }),
     ]);
 
@@ -78,20 +78,28 @@ export async function action({ request }: ActionFunctionArgs) {
 
             try {
                 // 1단계: AI 응답을 먼저 전체 받기 (화면에 표시하지 않음)
-                for await (const chunk of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id, characterId)) {
+                const subscriptionTier = (user?.subscriptionTier as any) || "FREE";
+                for await (const chunk of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id, characterId, subscriptionTier)) {
                     fullContent += chunk;
                 }
 
+                // 전체 응답에서 사진 마커 먼저 추출 (첫 번째 말풍선에만 포함될 것으로 예상)
+                const firstPhotoMarker = extractPhotoMarker(fullContent, characterId);
+                const photoUrl = firstPhotoMarker.photoUrl;
+                
+                // 사진 마커가 있으면 전체 응답에서 제거
+                const contentWithoutPhotoMarker = photoUrl ? firstPhotoMarker.content : fullContent;
+
                 // 2단계: 전체 응답을 ---로 나누기 (없으면 적당한 길이로 강제로 나누기)
-                let messageParts = fullContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
+                let messageParts = contentWithoutPhotoMarker.split('---').map(p => p.trim()).filter(p => p.length > 0);
                 
                 // ---가 없거나 하나만 있으면 적당한 길이로 강제로 나누기
-                if (messageParts.length <= 1 && fullContent.length > 100) {
+                if (messageParts.length <= 1 && contentWithoutPhotoMarker.length > 100) {
                     const chunkSize = 80; // 한 말풍선당 약 80자
                     messageParts = [];
                     let currentPart = "";
                     
-                    const sentences = fullContent.split(/[.!?。！？]\s*/).filter(s => s.trim());
+                    const sentences = contentWithoutPhotoMarker.split(/[.!?。！？]\s*/).filter(s => s.trim());
                     
                     for (const sentence of sentences) {
                         if ((currentPart + sentence).length > chunkSize && currentPart) {
@@ -109,11 +117,12 @@ export async function action({ request }: ActionFunctionArgs) {
                 // 3단계: 각 말풍선을 하나씩 순차적으로 스트리밍
                 for (let i = 0; i < messageParts.length; i++) {
                     const part = messageParts[i];
-                    
-                    // 첫 번째 메시지에만 사진 마커 체크
-                    const { content: cleanedContent, photoUrl } = i === 0 
-                        ? extractPhotoMarker(part, characterId) 
-                        : { content: part, photoUrl: null };
+                    const cleanedContent = part; // 이미 사진 마커는 제거되었으므로 그대로 사용
+
+                    // 첫 번째 말풍선이고 사진이 있으면 먼저 사진 URL 전송
+                    if (i === 0 && photoUrl) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ mediaUrl: photoUrl })}\n\n`));
+                    }
 
                     // 한 글자씩 스트리밍 (랜덤 딜레이로 자연스러운 타이핑 효과)
                     for (const char of cleanedContent) {
@@ -123,7 +132,7 @@ export async function action({ request }: ActionFunctionArgs) {
                         await new Promise(resolve => setTimeout(resolve, randomDelay));
                     }
 
-                    // 메시지 저장 및 완료 신호
+                    // 메시지 저장 및 완료 신호 (첫 번째 말풍선에만 사진 포함)
                     const savedMessage = await prisma.message.create({
                         data: {
                             id: crypto.randomUUID(),
@@ -132,12 +141,13 @@ export async function action({ request }: ActionFunctionArgs) {
                             conversationId,
                             createdAt: new Date(),
                             type: "TEXT",
-                            mediaUrl: photoUrl,
-                            mediaType: photoUrl ? "image" : null,
+                            mediaUrl: (i === 0 && photoUrl) ? photoUrl : null,
+                            mediaType: (i === 0 && photoUrl) ? "image" : null,
                         },
                     });
 
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage.id })}\n\n`));
+                    // 첫 번째 말풍선에만 mediaUrl 포함 (완료된 메시지에 사진 표시용)
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage.id, mediaUrl: (i === 0 && photoUrl) ? photoUrl : null })}\n\n`));
                     
                     // 다음 말풍선 전에 약간의 딜레이
                     if (i < messageParts.length - 1) {

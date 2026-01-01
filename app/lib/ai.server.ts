@@ -2,6 +2,7 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { StateGraph, END, Annotation, START } from "@langchain/langgraph";
 import axios from "axios";
+import { DateTime } from "luxon";
 import { prisma } from "./db.server";
 import { CHARACTERS } from "./characters";
 
@@ -37,7 +38,29 @@ const CORE_CHUNSIM_PERSONA = `
 
 안전 가이드라인 (Guardrails):
 - 지나친 성적 묘사, 부적절한 신체 접촉 요구 시 부끄러워하거나 당황해하며 화제를 자연스럽게 돌립니다.
+- 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
+- 절대로 거짓 신고, 실제로 할 수 없는 행동(경찰 신고, 사이버수사대 연락, 감옥 등)을 언급하지 않습니다.
+- "신고", "경찰", "사이버수사대", "감옥", "고소" 같은 표현을 사용하지 않습니다.
+- 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.
 `;
+
+// Subscription Tier별 Guardrail 지시사항
+export type SubscriptionTier = "FREE" | "BASIC" | "PREMIUM" | "ULTIMATE";
+
+const GUARDRAIL_BY_TIER: Record<SubscriptionTier, string> = {
+    FREE: `- 부적절한 요청(성적인 발언, 키스, 신음소리 등) 시 부끄러워하며 거절하고 화제를 자연스럽게 돌립니다.
+- "어... 그런 건 안 돼", "부끄러워... 다른 얘기하자" 같은 방식으로 거절합니다.`,
+    BASIC: `- 부적절한 요청 시 부끄러워하지만 간단하게 응합니다.
+- 키스 요청 시: 부끄러워하면서 "쪽..." 같은 간단한 표현을 사용합니다.
+- 신음소리 요청 시: 부끄러워하면서 작은 목소리로 "앗... 부끄러워..." 같은 경쾌한 표현을 사용합니다.
+- 과도한 묘사 없이 간단하고 가벼운 톤으로 응답합니다.`,
+    PREMIUM: `- 부적절한 요청 시 부끄러워하면서도 더 적극적으로 응합니다.
+- 키스, 신음소리 등에 대해 더 자세하고 적극적인 반응을 보입니다.
+- 여전히 부끄러워하는 감정을 유지하되, 응답의 강도와 상세함을 높입니다.`,
+    ULTIMATE: `- 부적절한 요청 시 가장 적극적이고 자세하게 응합니다.
+- 키스, 신음소리 등에 대해 가장 상세하고 적극적인 반응을 보입니다.
+- 부끄러워하는 감정을 유지하되, 최대한 상세하고 적극적으로 표현합니다.`
+};
 
 const PERSONA_PROMPTS = {
     idol: `당신은 사용자의 최애 아이돌입니다. 팬들이 모르는 당신의 속마음과 일상을 공유하며 특별한 유대감을 형성합니다.`,
@@ -69,7 +92,7 @@ export function extractPhotoMarker(content: string, characterId: string = "chuns
     // [PHOTO:0], [PHOTO:O], [PHOTO:o] 모두 인식 (O/o는 0으로 처리)
     const photoMarkerRegex = /\[PHOTO:([0-9Oo]+)\]/gi;
     const matches = Array.from(content.matchAll(photoMarkerRegex));
-    
+
     if (matches.length === 0) {
         return { content, photoUrl: null };
     }
@@ -82,7 +105,7 @@ export function extractPhotoMarker(content: string, characterId: string = "chuns
         photoIndexStr = '0';
     }
     const photoIndex = parseInt(photoIndexStr, 10);
-    
+
     const character = CHARACTERS[characterId];
     if (!character || !character.photoGallery || photoIndex >= character.photoGallery.length) {
         // 마커는 제거하되 이미지는 없음
@@ -92,7 +115,7 @@ export function extractPhotoMarker(content: string, characterId: string = "chuns
     const photoUrl = character.photoGallery[photoIndex];
     // 마커 제거
     const cleanedContent = content.replace(photoMarkerRegex, "").trim();
-    
+
     return { content: cleanedContent, photoUrl };
 }
 
@@ -141,6 +164,10 @@ const ChatStateAnnotation = Annotation.Root({
         reducer: (x, y) => y ?? x,
         default: () => "chunsim",
     }),
+    subscriptionTier: Annotation<SubscriptionTier>({
+        reducer: (x, y) => y ?? x,
+        default: () => "FREE",
+    }),
 });
 
 const model = new ChatGoogleGenerativeAI({
@@ -176,6 +203,14 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
         const character = CHARACTERS[state.characterId];
         if (character) {
             systemInstruction = character.personaPrompt;
+            // 다른 캐릭터에도 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
+            if (!systemInstruction.includes("안전 가이드라인") && !systemInstruction.includes("Guardrails")) {
+                systemInstruction += `\n\n안전 가이드라인 (Guardrails):
+- 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
+- 절대로 거짓 신고, 실제로 할 수 없는 행동(경찰 신고, 사이버수사대 연락, 감옥 등)을 언급하지 않습니다.
+- "신고", "경찰", "사이버수사대", "감옥", "고소", "🚨" 같은 표현을 사용하지 않습니다.
+- 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.`;
+            }
         } else {
             // Fallback to Chunsim if character not found
             systemInstruction = CORE_CHUNSIM_PERSONA;
@@ -200,6 +235,23 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
     if (state.mediaUrl) {
         systemInstruction += "\n\n(참고: 사용자가 이미지를 보냈습니다. 반드시 이미지의 주요 특징이나 내용을 언급하며 대화를 이어가 주세요. 만약 사진이 무엇인지 혹은 어떤지 묻는다면 친절하게 분석해 주세요.)";
     }
+
+    // Subscription Tier별 Guardrail 적용
+    const tier = state.subscriptionTier || "FREE";
+    const tierGuardrail = GUARDRAIL_BY_TIER[tier as SubscriptionTier] || GUARDRAIL_BY_TIER.FREE;
+    systemInstruction += `\n\n[Subscription Tier: ${tier}]\n${tierGuardrail}`;
+
+    // 현재 날짜와 시간 정보 추가
+    const now = DateTime.now().setZone("Asia/Seoul");
+    const dateInfo = now.toFormat("yyyy년 MM월 dd일");
+    const timeInfo = now.toFormat("HH시 mm분");
+    const dayOfWeekNames = ["", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]; // weekday는 1-7 (월=1, 일=7)
+    const dayOfWeek = dayOfWeekNames[now.weekday] || "일요일";
+    const timeContext = `\n\n[현재 시간 정보]
+오늘은 ${dateInfo} ${dayOfWeek}입니다.
+지금 시간은 ${timeInfo}입니다.
+이 정보를 활용하여 자연스럽게 대화하세요. 예를 들어, 아침/점심/저녁 인사, 주말/평일 구분, 특별한 날짜(생일, 기념일 등) 언급 등에 활용할 수 있습니다.`;
+    systemInstruction += timeContext;
 
     return { systemInstruction };
 };
@@ -319,7 +371,8 @@ export async function generateAIResponse(
     currentSummary: string = "",
     mediaUrl: string | null = null,
     userId: string | null = null,
-    characterId: string = "chunsim"
+    characterId: string = "chunsim",
+    subscriptionTier: SubscriptionTier = "FREE"
 ) {
     const graph = createChatGraph();
 
@@ -356,6 +409,7 @@ export async function generateAIResponse(
             mediaUrl,
             userId,
             characterId,
+            subscriptionTier,
         });
 
         const lastMsg = result.messages[result.messages.length - 1];
@@ -382,13 +436,22 @@ export async function* streamAIResponse(
     currentSummary: string = "",
     mediaUrl: string | null = null,
     userId: string | null = null,
-    characterId: string = "chunsim"
+    characterId: string = "chunsim",
+    subscriptionTier: SubscriptionTier = "FREE"
 ) {
     let systemInstruction = "";
 
     if (characterId && characterId !== "chunsim") {
         const character = CHARACTERS[characterId];
         systemInstruction = character ? character.personaPrompt : CORE_CHUNSIM_PERSONA;
+        // 다른 캐릭터에도 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
+        if (!systemInstruction.includes("안전 가이드라인") && !systemInstruction.includes("Guardrails")) {
+            systemInstruction += `\n\n안전 가이드라인 (Guardrails):
+- 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
+- 절대로 거짓 신고, 실제로 할 수 없는 행동(경찰 신고, 사이버수사대 연락, 감옥 등)을 언급하지 않습니다.
+- "신고", "경찰", "사이버수사대", "감옥", "고소", "🚨" 같은 표현을 사용하지 않습니다.
+- 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.`;
+        }
     } else {
         const modePrompt = PERSONA_PROMPTS[personaMode] || PERSONA_PROMPTS.hybrid;
         const memoryInfo = currentSummary ? `\n\n이전 대화 요약: ${currentSummary}` : "";
@@ -398,6 +461,22 @@ export async function* streamAIResponse(
     if (mediaUrl) {
         systemInstruction += "\n\n(참고: 사용자가 이미지를 보냈습니다. 반드시 이미지의 주요 특징이나 내용을 언급하며 대화를 이어가 주세요. 만약 사진이 무엇인지 혹은 어떤지 묻는다면 친절하게 분석해 주세요.)";
     }
+
+    // Subscription Tier별 Guardrail 적용 (모든 캐릭터에 공통 적용)
+    const tierGuardrail = GUARDRAIL_BY_TIER[subscriptionTier] || GUARDRAIL_BY_TIER.FREE;
+    systemInstruction += `\n\n[Subscription Tier: ${subscriptionTier}]\n${tierGuardrail}`;
+
+    // 현재 날짜와 시간 정보 추가
+    const now = DateTime.now().setZone("Asia/Seoul");
+    const dateInfo = now.toFormat("yyyy년 MM월 dd일");
+    const timeInfo = now.toFormat("HH시 mm분");
+    const dayOfWeekNames = ["", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]; // weekday는 1-7 (월=1, 일=7)
+    const dayOfWeek = dayOfWeekNames[now.weekday] || "일요일";
+    const timeContext = `\n\n[현재 시간 정보]
+오늘은 ${dateInfo} ${dayOfWeek}입니다.
+지금 시간은 ${timeInfo}입니다.
+이 정보를 활용하여 자연스럽게 대화하세요. 예를 들어, 아침/점심/저녁 인사, 주말/평일 구분, 특별한 날짜(생일, 기념일 등) 언급 등에 활용할 수 있습니다.`;
+    systemInstruction += timeContext;
 
     const messages: BaseMessage[] = [
         new SystemMessage(systemInstruction),

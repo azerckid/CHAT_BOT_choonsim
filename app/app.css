@@ -26,6 +26,7 @@
   --color-background-dark: #221019;
   --color-surface-dark: #2d1b24; /* 캐릭터 프로필 카드용 (HTML: #2d1b24) */
   --color-surface-dark-input: #331926; /* 로그인/회원가입 입력 필드용 (HTML: #331926) */
+  --color-surface-highlight: #482336; /* 회원 프로필 하이라이트용 (HTML: #482336) */
   --color-border-pink: #67324d;
   --color-text-muted: #c992ad;
 
@@ -156,6 +157,7 @@ body {
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-surface-highlight: #482336;
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);

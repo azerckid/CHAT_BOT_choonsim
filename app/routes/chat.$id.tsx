@@ -48,14 +48,33 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { id } = params;
   if (!id) throw new Response("Not Found", { status: 404 });
 
-  const messages = await prisma.message.findMany({
-    where: { conversationId: id },
-    orderBy: { createdAt: "asc" },
-  });
+  const [messages, conversation, userLikes] = await Promise.all([
+    prisma.message.findMany({
+      where: { conversationId: id },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.conversation.findUnique({
+      where: { id },
+    }),
+    prisma.messageLike.findMany({
+      where: {
+        userId: session.user.id,
+        Message: {
+          conversationId: id,
+        },
+      },
+      select: {
+        messageId: true,
+      },
+    }),
+  ]);
 
-  const conversation = await prisma.conversation.findUnique({
-    where: { id },
-  });
+  const likedMessageIds = new Set(userLikes.map(like => like.messageId));
+
+  const messagesWithLikes = messages.map(msg => ({
+    ...msg,
+    isLiked: likedMessageIds.has(msg.id),
+  }));
 
   if (!conversation) {
     if (messages.length > 0) {
@@ -64,7 +83,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
   }
 
-  return Response.json({ messages, user: session.user, conversation });
+  return Response.json({ messages: messagesWithLikes, user: session.user, conversation });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -112,6 +131,7 @@ export default function ChatScreen() {
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [streamingContent, setStreamingContent] = useState<string>("");
+  const [streamingMediaUrl, setStreamingMediaUrl] = useState<string | null>(null);
   const [isAiStreaming, setIsAiStreaming] = useState(false);
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [isOptimisticTyping, setIsOptimisticTyping] = useState(false);
@@ -143,6 +163,7 @@ export default function ChatScreen() {
       content,
       mediaUrl: mediaUrl || null,
       createdAt: new Date().toISOString(),
+      isLiked: false,
     };
     setMessages(prev => [...prev, newUserMsg]);
 
@@ -160,6 +181,7 @@ export default function ChatScreen() {
   const startAiStreaming = async (userMessage: string, mediaUrl?: string) => {
     setIsAiStreaming(true);
     setStreamingContent("");
+    setStreamingMediaUrl(null);
 
     try {
       const response = await fetch("/api/chat", {
@@ -205,13 +227,20 @@ export default function ChatScreen() {
                     id: data.messageId || crypto.randomUUID(),
                     role: "assistant",
                     content: currentMessageContent, // 추적 중인 내용 사용
+                    mediaUrl: data.mediaUrl || null,
                     createdAt: new Date().toISOString(),
+                    isLiked: false,
                   };
                   
                   setMessages(prev => [...prev, completedMessage]);
                   setStreamingContent(""); // 다음 말풍선을 위해 초기화
+                  setStreamingMediaUrl(null); // 다음 말풍선을 위해 초기화
                   currentMessageContent = ""; // 다음 말풍선을 위해 초기화
                   // 스트리밍은 계속 진행 (다음 말풍선 시작)
+                }
+                if (data.mediaUrl && !data.messageComplete) {
+                  // 스트리밍 중에 사진 URL이 있으면 저장 (첫 번째 메시지에만)
+                  setStreamingMediaUrl(data.mediaUrl);
                 }
                 if (data.done) {
                   // 모든 스트리밍 완료
@@ -285,6 +314,7 @@ export default function ChatScreen() {
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white h-screen flex flex-col overflow-hidden max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
       <ChatHeader
         characterName={characterName}
+        characterId={character.id}
         isOnline={true}
         statusText="Active Now"
         onBack={handleBack}
@@ -314,12 +344,29 @@ export default function ChatScreen() {
             {messages.map((msg) => (
               <MessageBubble
                 key={msg.id}
+                messageId={msg.id}
                 sender={msg.role === "user" ? "user" : "ai"}
                 senderName={msg.role === "user" ? user?.name : characterName}
                 content={msg.content}
                 mediaUrl={msg.mediaUrl || undefined}
                 avatarUrl={msg.role === "assistant" ? avatarUrl : undefined}
                 timestamp={new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                isLiked={msg.isLiked || false}
+                onLike={async (messageId, liked) => {
+                  try {
+                    const response = await fetch(`/api/messages/${messageId}/like`, {
+                      method: liked ? "DELETE" : "POST",
+                      headers: { "Content-Type": "application/json" },
+                    });
+                    if (response.ok) {
+                      setMessages(prev => prev.map(m => 
+                        m.id === messageId ? { ...m, isLiked: !liked } : m
+                      ));
+                    }
+                  } catch (error) {
+                    console.error("Like error:", error);
+                  }
+                }}
               />
             ))}
 
@@ -330,6 +377,7 @@ export default function ChatScreen() {
                     sender="ai"
                     senderName={characterName}
                     content={streamingContent}
+                    mediaUrl={streamingMediaUrl || undefined}
                     avatarUrl={avatarUrl}
                     timestamp={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     isStreaming={true}

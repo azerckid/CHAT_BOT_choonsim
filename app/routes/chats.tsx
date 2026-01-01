@@ -53,7 +53,12 @@ export default function ChatListScreen() {
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleIdolClick = async (characterId: string) => {
+  const handleIdolClick = (characterId: string) => {
+    // 아이돌 아바타 클릭 시 프로필 화면으로 이동
+    navigate(`/character/${characterId}`);
+  };
+
+  const handleStartChat = async (characterId: string) => {
     try {
       setLoadingState("loading");
       const response = await fetch("/api/chat/create", {
@@ -165,6 +170,7 @@ export default function ChatListScreen() {
                 avatarUrl={character.avatarUrl}
                 isRead={lastMsg ? lastMsg.read : true}
                 isOnline={character.isOnline}
+                characterId={character.id}
               />
             );
           })
@@ -188,7 +194,7 @@ export default function ChatListScreen() {
               <button
                 key={char.id}
                 onClick={() => {
-                  handleIdolClick(char.id);
+                  handleStartChat(char.id);
                   setIsNewChatOpen(false);
                 }}
                 className="flex items-center gap-4 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-left"

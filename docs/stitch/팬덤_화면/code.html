@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Fandom Community</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee2b8c",
+                        "background-light": "#f8f6f7",
+                        "background-dark": "#221019",
+                        "surface-dark": "#2f1623",
+                        "surface-light": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display antialiased min-h-screen relative pb-24">
+<!-- Top App Bar -->
+<div class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-black/5 dark:border-white/5">
+<div class="flex items-center p-4 justify-between max-w-md mx-auto w-full">
+<button class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-slate-800 dark:text-white">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h2 class="text-lg font-bold leading-tight tracking-tight flex-1 text-center">Fandom Lounge</h2>
+<button class="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<div class="relative">
+<span class="material-symbols-outlined text-slate-800 dark:text-white">notifications</span>
+<span class="absolute top-0 right-0 size-2.5 bg-primary rounded-full border-2 border-background-light dark:border-background-dark"></span>
+</div>
+</button>
+</div>
+</div>
+<div class="max-w-md mx-auto w-full flex flex-col gap-6 pt-4">
+<!-- Character Selector (Story Style) -->
+<div class="w-full overflow-x-auto scrollbar-hide px-4">
+<div class="flex gap-4 min-w-max">
+<!-- Active Idol -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer">
+<div class="p-[3px] rounded-full bg-gradient-to-tr from-primary to-purple-400">
+<div class="size-16 rounded-full border-4 border-background-light dark:border-background-dark overflow-hidden bg-surface-dark">
+<img class="w-full h-full object-cover" data-alt="Portrait of Yuna, a virtual kpop idol with pink hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAulTixF2VlS-TLKr-cH2-EHoCN-zfbVwPtBnMGLBVsKoEjlNlipOTKUc3_Z0q65DArBf1yQQNoLhQb0LArdK7y6NSR5fZ1NzQu-EoywURaROLybR-kWegBD4r9SHxrqtmVAO1kdP7RjkbJqhL8jL8bpQciivtAcZQICkpXrV0IkJaEd1oiwckRW4HgxeR6WI-uMEJvJX6I2PFTLlMAklEKgDgvWjGi-sMX74T5NOrbldLHTZ51B2y85xzKTjSDUaFx8MTAfJbhR5U"/>
+</div>
+</div>
+<span class="text-xs font-bold text-primary">Yuna</span>
+</div>
+<!-- Other Idols -->
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+<div class="p-[3px] rounded-full bg-transparent">
+<div class="size-16 rounded-full border-4 border-transparent overflow-hidden bg-surface-dark/50">
+<img class="w-full h-full object-cover" data-alt="Portrait of Mina, an AI idol with blue hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbena4M5FmY0TO7RiOKeFpOmuEbWrHfzm15fo9ZK8HCVYmtRNpS8NexRQW-IbbHq4ypR04f4UK1pwQf7vV2gnjdPIPzDo5twU3A0kwMPFgAUAAiF9wd1js227NU4yvRRD2ij0eHQh6pYJ6vUMMQ97vyb0dHSniWUe1Pfd6j7tAnSn1ZK_kt87JpjhFPJYtYqBlJxEzJCFUnk52l1L_Ok-H-PMUQb1Lapie0_-x7_ur__yb1wcca-RWZXaEAe6m2hFQIt5J8Pt71n4"/>
+</div>
+</div>
+<span class="text-xs font-medium">Mina</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+<div class="p-[3px] rounded-full bg-transparent">
+<div class="size-16 rounded-full border-4 border-transparent overflow-hidden bg-surface-dark/50">
+<img class="w-full h-full object-cover" data-alt="Portrait of Sato, an AI idol with short hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARxL64euQIuRKSsWE6VIcF4itcnuR7KKa-1jXwihQ2zyfZShPPiF9eu3GccXFrqJWE_niXli-jGDhW9z9aj5QRE8d4Pk45tfGYUE2KlawyatMv7efoAW1QeF0Bff0RGGDoDulVgNBVkqH5Gdv2nUrGjpn5gb6H7KlVwAW2FVsVEkjMexeCNdVo1AYFTJqzRELNWHcMXcxW90j74S2wRlAcX6VX4x4KKkHPrFNuv6yDiq5EJ7nsAF-UXhDrXLhPnVrfa5sfIr8_7e0"/>
+</div>
+</div>
+<span class="text-xs font-medium">Sato</span>
+</div>
+<div class="flex flex-col items-center gap-2 group cursor-pointer opacity-70 hover:opacity-100 transition-opacity">
+<div class="p-[3px] rounded-full bg-transparent">
+<div class="size-16 rounded-full border-4 border-transparent overflow-hidden bg-surface-dark/50">
+<img class="w-full h-full object-cover" data-alt="Portrait of Eri, an AI idol looking elegant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBx_G-zafphd7tfk_qQbK1bF_v39uX3-M22tnAH8aOJU_f2DJ5-ny1XpuWqm2V_OBRwzkjdzCLbFIYfPq3QbnYetGGe1lHVDfhxOZ0kTmMXD4VwCoq8e3LC1CDhDct3z0M0HxRnE-kAX5MnUdSw0k31Lwl8wr7_7pE3pf9JdLi0Rpq1BSdO3BZf-rytMrQ3_i-GFYkYOTHdYDTwGK1mOlP4qhhLz0c0bFfRZ3qrf5vIzlhbRQHAXjj1roYkW9DJFmlmbu5bnwEKKOw"/>
+</div>
+</div>
+<span class="text-xs font-medium">Eri</span>
+</div>
+</div>
+</div>
+<!-- Bias Spotlight Card -->
+<div class="px-4">
+<div class="relative overflow-hidden rounded-2xl bg-surface-dark dark:bg-surface-dark shadow-lg dark:shadow-none group">
+<!-- Background Image with Overlay -->
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1506979287313-09437452d37c?q=80&amp;w=800&amp;auto=format&amp;fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay" data-alt="Abstract concert stage lights background in pink and purple"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-90"></div>
+<div class="relative p-6 flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div>
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold mb-2 border border-primary/30">
+<span class="material-symbols-outlined text-[14px]">star</span>
+                                My Bias
+                            </span>
+<h2 class="text-2xl font-bold text-white leading-tight">Yuna's Official Space</h2>
+<p class="text-white/60 text-sm">Main Vocalist • AI Generation 3</p>
+</div>
+<div class="flex flex-col items-center">
+<div class="size-12 rounded-full border-2 border-primary p-1 bg-surface-dark">
+<span class="flex items-center justify-center h-full w-full text-xs font-bold text-primary">LV.12</span>
+</div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-sm font-medium text-white/80">
+<span>Affection Level</span>
+<span class="text-primary">85%</span>
+</div>
+<div class="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[85%] rounded-full shadow-[0_0_10px_rgba(238,43,140,0.5)]"></div>
+</div>
+<p class="text-xs text-white/50 text-right">150 XP to Close Friend</p>
+</div>
+<button class="mt-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+<span class="material-symbols-outlined">forum</span>
+                        Enter Lounge
+                    </button>
+</div>
+</div>
+</div>
+<!-- Fan Missions -->
+<div class="px-4">
+<div class="flex items-center justify-between mb-3">
+<h3 class="text-xl font-bold dark:text-white text-slate-900">Daily Missions</h3>
+<a class="text-sm font-medium text-primary hover:text-primary/80" href="#">View All</a>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Mission 1 -->
+<div class="p-4 rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm flex items-center gap-4">
+<div class="size-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-blue-500">campaign</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between mb-1">
+<p class="text-sm font-bold dark:text-white truncate">Cheer Yuna 3 times</p>
+<span class="text-xs font-bold text-primary">+50 XP</span>
+</div>
+<div class="h-1.5 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-blue-500 w-[66%] rounded-full"></div>
+</div>
+</div>
+<button class="shrink-0 size-8 rounded-full bg-blue-500 text-white flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">check</span>
+</button>
+</div>
+<!-- Mission 2 -->
+<div class="p-4 rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm flex items-center gap-4 opacity-60">
+<div class="size-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">share</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between mb-1">
+<p class="text-sm font-bold dark:text-white truncate">Share a fan post</p>
+<span class="text-xs font-bold text-primary">+30 XP</span>
+</div>
+<div class="h-1.5 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[0%] rounded-full"></div>
+</div>
+</div>
+<button class="shrink-0 px-3 py-1 rounded-lg bg-slate-100 dark:bg-white/10 text-xs font-bold text-slate-500 dark:text-white/50">
+                        Go
+                    </button>
+</div>
+</div>
+</div>
+<!-- Official News -->
+<div class="pl-4">
+<div class="flex items-center gap-2 mb-3 pr-4">
+<span class="material-symbols-outlined text-primary">new_releases</span>
+<h3 class="text-xl font-bold dark:text-white text-slate-900">Official Updates</h3>
+</div>
+<div class="flex overflow-x-auto gap-4 pb-4 pr-4 scrollbar-hide">
+<!-- News Card 1 -->
+<div class="min-w-[260px] rounded-xl overflow-hidden bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm group cursor-pointer">
+<div class="aspect-[16/9] w-full bg-slate-200 relative">
+<img class="w-full h-full object-cover" data-alt="Concert stage with pink lighting and smoke" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAn299V6Y9ExjF7uP_prFCSAHAOIKuxQOwWizs6fjsgwk-o1X8monvsvjpwRZZWWjx_vL26FrSyUt6a4RmUqDLCyqCw6PS1iZ2cXj217ujdHqOwry7Qms8-SusWij1I3Hcq9qNQWQEX7vXWUNw1yaxvV3MZMjGV91UJkkVEEAp_Yb9UJp-pImib87v5_YIpx8vQVaABghglBilISWgN9RZ_k6OV-EZu3e1l2DO1c9NN6sqnEm0W1QgJ-mlSL6qUBqxS731OjPVy4OI"/>
+<div class="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[10px] font-bold text-white uppercase tracking-wider">Event</div>
+</div>
+<div class="p-3">
+<h4 class="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary transition-colors">Summer Fan Meeting: Date Announcement!</h4>
+<p class="text-xs text-slate-500 dark:text-white/40 mt-1">2 hours ago</p>
+</div>
+</div>
+<!-- News Card 2 -->
+<div class="min-w-[260px] rounded-xl overflow-hidden bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm group cursor-pointer">
+<div class="aspect-[16/9] w-full bg-slate-200 relative">
+<img class="w-full h-full object-cover" data-alt="Close up of fashionable colorful clothes on a rack" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDL-kBz0lyDRMr3OGRB8JQljGuKjUNwwYSyh9NsZ9QM6-qwwh8MiyWwe5x3jr_3LNQzdp7GO4ZIEhNODOxTpBt3-Xif_6-Yl7DYy0263dp5K2qrnRLzZCXV22Nm-NdlRaLeRUFa1p0U4PxW4VWt4dgmbJqnSagAKjPYJeDT3hgvDmQy3F6hQvphKzbxCzVExrwjqhHZx-8G3JUvtOTI9HO_y3iNoOR8tJvcmHbuaAgHi7MZyrartur3WC6Ucs_8MdTnBJttJM-lhuQ"/>
+<div class="absolute top-2 left-2 px-2 py-0.5 rounded bg-primary text-[10px] font-bold text-white uppercase tracking-wider">Shop</div>
+</div>
+<div class="p-3">
+<h4 class="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-primary transition-colors">New Outfit "Neon Dreams" Available Now</h4>
+<p class="text-xs text-slate-500 dark:text-white/40 mt-1">1 day ago</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Leaderboard -->
+<div class="px-4">
+<h3 class="text-xl font-bold dark:text-white text-slate-900 mb-4">Top Stans</h3>
+<div class="bg-surface-dark/50 dark:bg-surface-dark rounded-2xl p-4 border border-slate-100 dark:border-white/5">
+<!-- Podium -->
+<div class="flex items-end justify-center gap-4 mb-6 pt-4">
+<!-- 2nd Place -->
+<div class="flex flex-col items-center gap-1 w-1/3">
+<div class="relative">
+<div class="size-12 rounded-full border-2 border-slate-400 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Profile picture of user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6JFbJqcqzjabVAkBMCZHt9b3pNGwUZBzlAX2F896w1jGs2ckMtGBwR7dtXQepodLu1aLIURb-koLxM-VTqlLN6tPH42w4BjXsXRm0EPInBMhiHfZ_8vVc0muFLlxwCQK1rZ9EPVH3sb7mzABkGxqaHeD00OnVTb257m48JPVxa2Yi2dZnDIUas6k6DuSwGLuKu2fkfcmIlhhx6f2c7uoqr8LxAH08FjpJXjwoyeokjL21zfgF8WENEDhUJ7I32n1vPmY6DJ8Cro4"/>
+</div>
+<div class="absolute -bottom-2 inset-x-0 flex justify-center">
+<span class="bg-slate-400 text-[10px] font-bold px-1.5 rounded text-white">2</span>
+</div>
+</div>
+<p class="text-xs font-bold text-white mt-1 truncate w-full text-center">SunnyDay</p>
+<p class="text-[10px] text-white/50">4.2k pts</p>
+</div>
+<!-- 1st Place -->
+<div class="flex flex-col items-center gap-1 w-1/3 -mt-6">
+<span class="material-symbols-outlined text-yellow-500 text-lg animate-bounce">crown</span>
+<div class="relative">
+<div class="size-16 rounded-full border-4 border-yellow-500 overflow-hidden shadow-[0_0_15px_rgba(234,179,8,0.4)]">
+<img class="w-full h-full object-cover" data-alt="Profile picture of user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFWgvqzIRh9iu9JB5zlXWhnjdpvyp8zvCwNd7B9Z74r4JWtIR5tkNNPf9HBpmNCVYq0uRccUFLQdU6JAMhoVlhokxB3x7g07x_u8j0_jacSYMQFQA-btNo-ShVm8eJLhf554vT5Fzcd8sWFqrvzIpyFa7nTIT3CmDie1B8aaNkue01ETNKxWnUYsRV07np0_T5UIexExUu12GtQBGzedEbx_4Sa5LlW3j_KNkNc2nqV8nMswSZI2nIpSVsmaC44udAZAD2h4IFFmo"/>
+</div>
+<div class="absolute -bottom-2 inset-x-0 flex justify-center">
+<span class="bg-yellow-500 text-xs font-bold px-2 py-0.5 rounded text-black">1</span>
+</div>
+</div>
+<p class="text-sm font-bold text-primary mt-1 truncate w-full text-center">K-PopLvr</p>
+<p class="text-xs text-white/50">5.8k pts</p>
+</div>
+<!-- 3rd Place -->
+<div class="flex flex-col items-center gap-1 w-1/3">
+<div class="relative">
+<div class="size-12 rounded-full border-2 border-orange-700 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Profile picture of user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-4DmZj7XqvzUaZu8nceR5X0p9HFB6Jo_iPuvs4v_8ZuGZb3pSjaIo1x4ENFpCckov9V51r9iliOAQzPnEtUMp7eOyN91qxLIl5Vhi_V2zBY-aaTaEfLYMkg9FyXYq1syhPtmDydCD_omgJyw_aK8WSLUyWlLrl0PYxMkGSJx6_vQmKN0nKFPn_VxH6hwy4eMW-u9FiqTq_1E1mc6F7Jt9hBPwnPh8nPiun2GLRUlMmVFNyDh-lrgxa2ZZRxCH2pX8qyqd8mHV2zg"/>
+</div>
+<div class="absolute -bottom-2 inset-x-0 flex justify-center">
+<span class="bg-orange-700 text-[10px] font-bold px-1.5 rounded text-white">3</span>
+</div>
+</div>
+<p class="text-xs font-bold text-white mt-1 truncate w-full text-center">Mochi</p>
+<p class="text-[10px] text-white/50">3.9k pts</p>
+</div>
+</div>
+<!-- List Items (4 and 5) -->
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+<span class="text-sm font-bold text-white/40 w-4 text-center">4</span>
+<div class="size-8 rounded-full bg-slate-700 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5C-Ic1S2eX0pvI_VYMtiq3BDJsXsuYS4hZs7EiOxCek0oX1hVxbO0E-6f_ADrNie1_DaBaAZyXBu93ejzz1CqPzUDVSr6vjWL4udDMN2wnc4p7fGt81pVFnKzdqvwqQALPbZLOb1Jo4luii8E0156rAFOkwqKw2iKRjoV6SDX73-N7U3kf268yIrZDCl8t4uMiazL726QKAyGH_YDFSjTFTqmh4fPPjIXfkDlpffmxHIkbEkemlT-JYOl681oXrPUsAymvUkUibI"/>
+</div>
+<p class="text-sm font-medium text-white flex-1">Starlight99</p>
+<p class="text-xs text-primary font-bold">2.1k</p>
+</div>
+<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+<span class="text-sm font-bold text-white/40 w-4 text-center">5</span>
+<div class="size-8 rounded-full bg-slate-700 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaj3cHuTxVhxYml7rnom27dGcijWU3-KLSBTB2MR1RjjyCqA0uy47a-m6l9mp5Agw0SvUjOF35eMHdAkNV5-ndWQzjpv7GM2TI-0XDuQAo7hpI9_VWVs4PNIIeE8RISPpwBfD5DPJH8owiBZDZuZSSRIJi8-FZ6w6TvCqd6SpYZ3lPSPu_jDyhbUYSINWvV9MIPn7YvknuVEGlmTaQOQduyM4i2WChRF9oiI0Fe_qIdbRiqCUnW2C1BqSp6VXCO3-dZnSTJbZ-Y-Q"/>
+</div>
+<p class="text-sm font-medium text-white flex-1">PixelHeart</p>
+<p class="text-xs text-primary font-bold">1.8k</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Shop Banner -->
+<div class="px-4">
+<div class="relative rounded-2xl overflow-hidden h-32 flex items-center shadow-lg group cursor-pointer">
+<img class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Neon pink shopping cart aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCs__jgwFohzsVOb4AbK4GIShS5w5r8A2oZIbE9bD3Uclc3uqEpFFLsqzH4e8wKalOl5155wm5BC9BT1aimVq2fH3Jma7uLRvzWDjIPrvD0HGC60a6a8cyaFfQyXNb0MRx2FEht_4Wg220r5YfwewQM7oE3dQM6dblEO4hYP2sA8T8V0oawqzRwiSei1giZx6IAbQsjrYoVXTe-cnphdGVsHtigNP_lMUMKuKsQ2pK7XTC7YacLXSGf_WlgQVGZ_-QWxFd4Y_KkSQ8"/>
+<div class="absolute inset-0 bg-gradient-to-r from-black/80 to-transparent"></div>
+<div class="relative z-10 p-6 flex flex-col items-start gap-2">
+<span class="px-2 py-0.5 bg-primary text-white text-[10px] font-bold uppercase tracking-wider rounded">Limited Drop</span>
+<h3 class="text-xl font-bold text-white">Yuna's Concert<br/>Merch Store</h3>
+<div class="flex items-center gap-1 text-xs font-bold text-primary mt-1">
+                        Shop Now <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Community Feed -->
+<div class="px-4">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-xl font-bold dark:text-white text-slate-900">Fan Feed</h3>
+<div class="flex gap-2">
+<button class="px-3 py-1 rounded-full bg-primary text-white text-xs font-bold">All</button>
+<button class="px-3 py-1 rounded-full bg-slate-200 dark:bg-white/10 dark:text-white/60 text-slate-600 text-xs font-bold">Art</button>
+</div>
+</div>
+<!-- Feed Post 1 -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-100 dark:border-white/5 p-4 mb-4 shadow-sm">
+<div class="flex items-center gap-3 mb-3">
+<div class="size-10 rounded-full bg-slate-200 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjHusStF9Ki8ivdvGna1INEAsuVqxzyAWDJ2HdHAvtj2TuCbBDkYVq7psrKSL5rymgGbE4KJ1Q8d6H1c5J97U92OnuAa1Zt5eMvr06olx_txMkZlrVzsjDyf9sanAI6LODb18OYdNrswcAmEv5yVspRovEQZvlIpBUI_gTdKOZNv7iYjmPQfGppnrqc6hOTlBWhi6gBSEmKQk1Z9KJ1Na7ACFL2UZywZQqIcRaOaBCoBuyeep0IU_X39T0ui1mc1j5_2Q4NIO134Y"/>
+</div>
+<div>
+<p class="text-sm font-bold dark:text-white text-slate-900">Jessica_Stan</p>
+<p class="text-xs text-slate-500 dark:text-white/40">20 mins ago</p>
+</div>
+<button class="ml-auto text-slate-400">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<p class="text-sm text-slate-700 dark:text-white/90 mb-3 leading-relaxed">
+                    Just unlocked the "Close Friend" status with Yuna! OMG her reaction was so cute 🥰 Can't wait for the new song! #Yuna #Fandom
+                </p>
+<!-- Post Image -->
+<div class="rounded-lg overflow-hidden mb-3">
+<img class="w-full h-auto object-cover" data-alt="Concert crowd cheering with pink glow sticks" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZIgwO7x4kLDDfLSjp7Sih4MeQ16haBHLRtEDLorzs4SimGdd5ar5gtvN8DpHG1Oi8tIyuEUZaoMltQFtb8bQ03-r4I6T2RCxoZgQwzDUmdeKRALI9S0dJAms13ZuLKXSpeBDK_bbjIKfBt4KfWzFOJQW6kz9O9UM7q9zA5jPJbZ2KvU4myOZ-pkS4Xk7DmSU03vzxs9vuNwrdCknWtZCDcKnSek3axZnw5FOUEeEb6W0e5ukV5aLqgBbh24VVkn1FiQHMW7cu1dU"/>
+</div>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+<button class="flex items-center gap-1.5 text-slate-500 dark:text-white/60 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+<span class="text-xs font-medium">124</span>
+</button>
+<button class="flex items-center gap-1.5 text-slate-500 dark:text-white/60 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+<span class="text-xs font-medium">18</span>
+</button>
+<button class="flex items-center gap-1.5 text-slate-500 dark:text-white/60 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">share</span>
+</button>
+</div>
+</div>
+<!-- Feed Post 2 (Text only) -->
+<div class="bg-white dark:bg-surface-dark rounded-xl border border-slate-100 dark:border-white/5 p-4 mb-4 shadow-sm">
+<div class="flex items-center gap-3 mb-3">
+<div class="size-10 rounded-full bg-slate-200 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="User avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQLICXqljEVeJuiqzmNdq7k3DqzXrsH1S8QNwPT41GsuYM2N_2Dv6IqHEa7AbQzPLbl7ZH2Lqm7DpWzP4pEcAEH1jT8aQMieRJumxBy4B72njUumhIFmXMFyQGLU9WMKwTtQTyE0KvutDWwOIliHKOTaPxnyyAWccpDqUHaCGYfvd2mvrAF1SBldPL6arCkLM1aQq7PMf72j4pCPEw9bz93D3r-6MnuGPiuEzdCnHLaNc5QH2vVbGnIA7BNUoSUtfeguRQsSS0LGE"/>
+</div>
+<div>
+<p class="text-sm font-bold dark:text-white text-slate-900">MikeDev</p>
+<p class="text-xs text-slate-500 dark:text-white/40">1 hour ago</p>
+</div>
+</div>
+<p class="text-sm text-slate-700 dark:text-white/90 mb-3 leading-relaxed">
+                    Does anyone know how to complete the "Share a fan post" mission? I keep clicking share but it doesn't register 🤔
+                </p>
+<div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
+<button class="flex items-center gap-1.5 text-slate-500 dark:text-white/60 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+<span class="text-xs font-medium">12</span>
+</button>
+<button class="flex items-center gap-1.5 text-slate-500 dark:text-white/60 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">chat_bubble</span>
+<span class="text-xs font-medium">5</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-4 z-40 size-14 rounded-full bg-primary text-white shadow-[0_4px_20px_rgba(238,43,140,0.5)] flex items-center justify-center hover:scale-110 transition-transform active:scale-90">
+<span class="material-symbols-outlined text-3xl">edit</span>
+</button>
+<!-- Bottom Navigation (Visual Mockup) -->
+<div class="fixed bottom-0 w-full z-50 bg-background-light dark:bg-background-dark border-t border-slate-200 dark:border-white/5 pb-5 pt-3 px-6">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-white/40">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-medium">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-white/40">
+<span class="material-symbols-outlined">chat</span>
+<span class="text-[10px] font-medium">Chat</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined filled">groups</span>
+<span class="text-[10px] font-medium">Fandom</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-white/40">
+<span class="material-symbols-outlined">storefront</span>
+<span class="text-[10px] font-medium">Shop</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-slate-400 dark:text-white/40">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-medium">Profile</span>
+</button>
+</div>
+</div>
+</body></html>

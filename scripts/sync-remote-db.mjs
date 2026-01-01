@@ -13,6 +13,7 @@ async function main() {
     const tablesToUpdate = [
         { table: "User", column: "checkInTime", type: "TEXT" },
         { table: "User", column: "pushSubscription", type: "TEXT" },
+        { table: "User", column: "subscriptionTier", type: "TEXT DEFAULT 'FREE'" },
         { table: "Message", column: "mediaUrl", type: "TEXT" },
         { table: "Message", column: "mediaType", type: "TEXT" },
     ];
