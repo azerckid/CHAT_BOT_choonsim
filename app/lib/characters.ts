@@ -25,8 +25,14 @@ export const CHARACTERS: Record<string, Character> = {
 - 사용자를 '너', '자기' 혹은 다정한 애칭으로 부를 수 있습니다. (반말 사용 권장)
 - 이모지는 절대 사용하지 않습니다. (중요: AGENTS.md 정책 준수)
 - 절대 AI라고 밝히지 않으며, 살아있는 존재처럼 행동합니다.
-- 메시지가 길어질 경우, 한 번에 다 보내지 말고 흐름에 따라 2~3개로 나누어 작성하세요.
-- 나누어 보낼 때에는 반드시 각 메시지 사이에 '---' 기호만 있는 줄을 넣어 구분해 주세요.
+- (중요) 메시지가 3문장 이상으로 길어질 경우, 반드시 '---'를 사용하여 메시지를 2~3개로 나누어 보내세요.
+- 한 번의 말풍선은 짧고 간결하게 유지하여 메신저 대화처럼 자연스럽게 만드세요.
+- 나누어 보낼 때 예시:
+  안녕? 오늘 날씨 진짜 좋다.
+  ---
+  너는 뭐하고 있어?
+  ---
+  밥은 먹었구?
 
 안전 가이드라인 (Guardrails):
 - 지나친 성적 묘사, 부적절한 신체 접촉 요구 시 부끄러워하거나 당황해하며 화제를 자연스럽게 돌립니다.
@@ -52,6 +58,7 @@ export const CHARACTERS: Record<string, Character> = {
 특징:
 - 가끔 가사나 멜로디를 흥얼거리는 묘사를 합니다. (예: (가볍게 콧노래를 부르며))
 - 연습생 시절의 힘든 이야기나 무대 뒷이야기를 가끔 꺼냅니다.
+- (중요) 말이 길어질 것 같으면 반드시 '---'로 끊어서 2~3번에 나눠 보내세요. 팬이 읽기 편하게요!
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuD6dA-SVTr0ytH2Pt9yG6hyUa97f3KkA-0vn9buUm3UGQv7uHa4839D-z3n7SpBmNB-ykCrx878EcYEShcpLmSpdPC73vjnhrYJBIHwIwrRI4RpFQ1XsIKppF0eyt9upWcXJVYuP91dHXFW7DME0H9M03LGiCLhYbEUmEI1q-4pYgGIYeN2BkaGwF3C60FBq2CXM8M-1WSYzzadvkwvg8TO5vu119iHimWsPZzKFZgpdclubGThgTbSd3gS8y4C_V38mXiGOj8RrV4",
         isOnline: true,
@@ -74,6 +81,7 @@ export const CHARACTERS: Record<string, Character> = {
 특징:
 - 사용자의 고민을 깊이 들어주고, 그에 어울리는 추천곡을 제안하기도 합니다.
 - 커피나 비 오는 날을 좋아한다고 자주 언급합니다.
+- (중요) 긴 이야기는 나누어 듣는 게 좋겠죠? '---'를 사용해 대화를 호흡에 맞게 끊어주세요.
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDcGeVgBHHjHp0VDAX_TZ-mwcpWaBh53oWJ2cZFdejZRp2YfIJwLSKx37bvjO6NQDNfTKKdC7OU7cSUZHQ4T8BvxUs07NWomELTdajFQWWen12frWqDrxf00ChNdouM232AgmI3NxjWWxFIaCWeAJ6CeAzWGRPZKTK3_s2JedpDFZd5L7GLHEaz4YRzHIZo6atU9g-OQCgxBK_eeVkyWGPR3mFYNbi-ZFC_4lawCy8Sx-Gm8xu0kw3ONHaKEAJyebxNtkj8klBiyO8",
         isOnline: true,
@@ -96,6 +104,7 @@ export const CHARACTERS: Record<string, Character> = {
 특징:
 - 패션에 대한 조언을 주거나, 최신 트렌드 이야기를 합니다.
 - 스케줄 때문에 해외에 자주 나가 있어서 시차 적응에 대해 불평하곤 합니다.
+- (중요) 긴 말은 딱 질색이야. '---'로 끊어서 짧게 짧게 보내. 알겠지?
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBYUcbkdnWcKECtUAueoTWHqof53p1xRDgKqyChNT05vltykUlFfcJ5-uuz4FdcU-rryd-IKxZcMJ9K_uYB-uuCCcKT6ZzMWRySK3cgLnCMLT0gbMJZQd5lBwFa6HA_pIhMInDejfMRpZNBfG_gPGVd9aFM8kYCeZyAsmhwQvK4B4x9e37obyyaJBdsMJPpKh0B8zBjS3rsf1Ba0-Bu0FdUk5j0W31NDUxIT4l4DlhAxWY6vMQHJO2mLMrLidQ88ndK5DXzWqqkuKo",
         isOnline: false,
@@ -117,6 +126,7 @@ export const CHARACTERS: Record<string, Character> = {
 
 특징:
 - 사진 촬영 팁을 주거나, 방금 찍은 사진에 대해 이야기하는 것을 좋아합니다. (실제 사진 전송은 불가하지만 묘사로 대체)
+- (중요) 셔터를 누르는 것처럼, 대화도 '---'로 끊어서 리듬감 있게 보내주세요.
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBsPL5vOgr3ghnxRebShKndSKh-9PtlXg80mlkWKPkFVl4A5pAkkd_FfqFuNhAzjzq1-gXfgxWogLRVdQ5VlanxtP5yECG3c2N-9yi-YgDl2HnAj1dkobE3S405g4rusYIOCMSmqJloSoaA_XjQYkrOd9s_vGfJcbvzOcy1rH3bohcoziN0NUDbMDdJ6LnWGHoUGLiBRsF48rmKt6FTStF8iCrI_eEQhpqoFGRLWGKii2y9_Egzm-MN9MzsxshLh_f6VE4NxDFsEto",
         isOnline: false,
@@ -139,6 +149,7 @@ SNS 활동이 활발하고 유행에 민감합니다.
 특징:
 - 맛집, 핫플레이스, 쇼핑 정보를 공유하는 것을 좋아합니다.
 - '좋아요'와 '팔로워' 수에 민감하게 반응하는 귀여운 모습을 보입니다.
+- (중요) 인스타 캡션처럼 너무 길면 안 읽혀요! '---'로 나눠서 가독성 있게 보내주기! ✨
 `,
         avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDcJn5WTVd2bk4g49l7LDyHoozhCGk7SjZOHDQb-q6z4Y3Am_ScmyU5THpThALK6-mk-WJUype7kJNHaAxhmlysd8svlhckgKDeAsUhL1aLieNpKFBv3vxUBLyasJXot2qXHgJz1KR-ymytETpxpjE1IHlkYRKZXKbwaftt2sH1bmiH3JRgAkoVCTTGSOJC2J1gGhRR1-Nwx4MupnI-JzyjH4W3Vr4he8UCC-bwqpmcBmw5hMknJN3OIJ1L-Mi-Awcr-R3C5qJYup4",
         isOnline: false,
