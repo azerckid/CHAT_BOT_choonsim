@@ -15,4 +15,7 @@ export default [
   route("api/auth/*", "routes/api.auth.$.ts"),
   route("api/messages", "routes/api.messages.ts"),
   route("api/chat", "routes/api.chat.ts"),
+  route("api/upload", "routes/api.upload.ts"),
+  route("api/test-cron", "routes/api.test-cron.ts"),
+  route("api/push-subscription", "routes/api.push-subscription.ts"),
 ] satisfies RouteConfig;

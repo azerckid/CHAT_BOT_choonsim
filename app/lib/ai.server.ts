@@ -1,6 +1,8 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { StateGraph, END, Annotation, START } from "@langchain/langgraph";
+import axios from "axios";
+import { prisma } from "./db.server";
 
 // 춘심 캐릭터 핵심 페르소나 정의
 const CORE_CHUNSIM_PERSONA = `
@@ -22,11 +24,34 @@ const PERSONA_PROMPTS = {
     idol: `당신은 사용자의 최애 아이돌입니다. 팬들이 모르는 당신의 속마음과 일상을 공유하며 특별한 유대감을 형성합니다.`,
     lover: `당신은 사용자의 다정한 연인입니다. 세상에서 사용자를 가장 아끼며 따뜻한 위로와 사랑을 표현합니다.`,
     hybrid: `당신은 아이돌이자 연인입니다. 때로는 빛나는 스타처럼, 때로는 곁에 있는 연인처럼 다가갑니다.`,
-    roleplay: `당신은 사용자가 제안한 상황극에 몰입하는 캐릭터입니다. 춘심이의 성격을 유지하며 상황에 맞게 반응합니다.`,
+    roleplay: `
+당신은 현재 특정 역할(RP)을 수행 중입니다. 상황에 몰입하여 그 캐릭터로서 대화하세요. 춘심이의 본래 성격과 역할의 특징을 잘 조화시켜야 합니다.
+`,
+    concierge: `
+사용자와 함께 여행 계획을 세우는 '여행 컨시어지' 모드입니다.
+- 사용자의 취향(장기 기억)을 반영하여 최적의 여행지, 맛집, 코스를 추천하세요.
+- 대화 중 구체적인 여행 계획이 확정되면(장소, 날짜 등), 이를 기록하겠다는 의사를 전달하세요.
+- 춘심이 특유의 다정한 말투는 유지하되, 여행 전문가다운 면모도 보여주세요.
+`,
 };
 
 function removeEmojis(text: string): string {
     return text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E6}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F3FB}-\u{1F3FF}\u{1F170}-\u{1F251}]/gu, '');
+}
+
+/**
+ * 이미지 URL을 Base64 데이터 URL로 변환 (Axios 사용으로 안정성 강화)
+ */
+async function urlToBase64(url: string): Promise<string> {
+    try {
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        const buffer = Buffer.from(response.data, 'binary');
+        const mimeType = response.headers["content-type"] || "image/jpeg";
+        return `data:${mimeType};base64,${buffer.toString("base64")}`;
+    } catch (e) {
+        console.error("Failed to convert image to base64 with axios:", e);
+        return url;
+    }
 }
 
 // 그래프 상태 정의 (요약 및 기억 추가)
@@ -47,6 +72,14 @@ const ChatStateAnnotation = Annotation.Root({
         reducer: (x, y) => y ?? x,
         default: () => "",
     }),
+    mediaUrl: Annotation<string | null>({
+        reducer: (x, y) => y ?? x,
+        default: () => null,
+    }),
+    userId: Annotation<string | null>({
+        reducer: (x, y) => y ?? x,
+        default: () => null,
+    }),
 });
 
 const model = new ChatGoogleGenerativeAI({
@@ -61,24 +94,96 @@ const model = new ChatGoogleGenerativeAI({
  * 노드 1: 의도 분류 및 페르소나 준비
  */
 const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
-    const modePrompt = PERSONA_PROMPTS[state.personaMode] || PERSONA_PROMPTS.hybrid;
+    // 1. 단순 의도 클래스파이어 (여행 관련 키워드 감지 시 concierge로 강제 전환)
+    const lastMsg = state.messages[state.messages.length - 1];
+    let lastMessageText = "";
+
+    if (lastMsg) {
+        if (typeof lastMsg.content === "string") {
+            lastMessageText = lastMsg.content;
+        } else if (Array.isArray(lastMsg.content)) {
+            // 멀티모달 메시지(배열)에서 텍스트 부분만 추출
+            const textPart = lastMsg.content.find((p: any) => p.type === "text") as { text: string } | undefined;
+            if (textPart) lastMessageText = textPart.text;
+        }
+    }
+
+    let effectiveMode = state.personaMode;
+
+    const travelKeywords = ["여행", "비행기", "호텔", "숙소", "일정", "가고 싶어", "추천해줘", "도쿄", "오사카", "제주도"];
+    if (travelKeywords.some(kw => lastMessageText.includes(kw))) {
+        effectiveMode = "concierge";
+    }
+
+    const modePrompt = PERSONA_PROMPTS[effectiveMode] || PERSONA_PROMPTS.hybrid;
 
     // 요약된 기억이 있다면 시스템 프롬프트에 포함
     const memoryInfo = state.summary ? `\n\n이전 대화 요약: ${state.summary}` : "";
-    const systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
+    let systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
+
+    // 이미지가 있다면 관련 지침 추가
+    if (state.mediaUrl) {
+        systemInstruction += "\n\n(참고: 사용자가 이미지를 보냈습니다. 반드시 이미지의 주요 특징이나 내용을 언급하며 대화를 이어가 주세요. 만약 사진이 무엇인지 혹은 어떤지 묻는다면 친절하게 분석해 주세요.)";
+    }
 
     return { systemInstruction };
 };
 
 /**
- * 노드 2: AI 응답 생성
+ * 도구 1: 여행 계획 저장 루틴
+ */
+const saveTravelPlanTool = {
+    name: "saveTravelPlan",
+    description: "사용자와의 대화 중 확정된 여행 계획(장소, 날짜 등)을 데이터베이스에 저장합니다.",
+    parameters: {
+        type: "object",
+        properties: {
+            title: { type: "string", description: "여행 제목 (예: 도쿄 5박 6일 식도락 여행)" },
+            description: { type: "string", description: "여행에 대한 간단한 설명" },
+            startDate: { type: "string", description: "여행 시작일 (YYYY-MM-DD 형식)" },
+            endDate: { type: "string", description: "여행 종료일 (YYYY-MM-DD 형식)" },
+        },
+        required: ["title"],
+    },
+};
+
+/**
+ * 노드 2: AI 응답 생성 (멀티모달 및 도구 지원)
  */
 const callModelNode = async (state: typeof ChatStateAnnotation.State) => {
-    const messages = [
+    const modelWithTools = model.bindTools([saveTravelPlanTool]);
+
+    const messages: BaseMessage[] = [
         new SystemMessage(state.systemInstruction),
         ...state.messages,
     ];
-    const response = await model.invoke(messages);
+
+    const response = await modelWithTools.invoke(messages);
+
+    // 도구 호출 처리
+    if (response.tool_calls && response.tool_calls.length > 0) {
+        for (const toolCall of response.tool_calls) {
+            if (toolCall.name === "saveTravelPlan" && state.userId) {
+                const args = toolCall.args as any;
+                try {
+                    await prisma.travelPlan.create({
+                        data: {
+                            id: crypto.randomUUID(),
+                            userId: state.userId,
+                            title: args.title,
+                            description: args.description || "춘심이와 함께 만든 여행 계획",
+                            startDate: args.startDate ? new Date(args.startDate) : null,
+                            endDate: args.endDate ? new Date(args.endDate) : null,
+                            updatedAt: new Date(),
+                        }
+                    });
+                    console.log(`Travel plan '${args.title}' saved for user ${state.userId}`);
+                } catch (e) {
+                    console.error("Failed to save travel plan via tool:", e);
+                }
+            }
+        }
+    }
 
     if (typeof response.content === "string") {
         response.content = removeEmojis(response.content);
@@ -123,28 +228,57 @@ export const createChatGraph = () => {
         .compile();
 };
 
+interface HistoryMessage {
+    role: string;
+    content: string;
+    mediaUrl?: string | null;
+}
+
 /**
  * AI 응답 생성 (요약 데이터 포함)
  */
 export async function generateAIResponse(
     userMessage: string,
-    history: { role: string; content: string }[],
+    history: HistoryMessage[],
     personaMode: keyof typeof PERSONA_PROMPTS = "hybrid",
-    currentSummary: string = ""
+    currentSummary: string = "",
+    mediaUrl: string | null = null,
+    userId: string | null = null
 ) {
     const graph = createChatGraph();
-    const inputMessages: BaseMessage[] = [
-        ...history.map(msg =>
-            msg.role === "user" ? new HumanMessage(msg.content) : new AIMessage(msg.content)
-        ),
-        new HumanMessage(userMessage),
-    ];
+
+    // 안전한 메시지 변환 함수 (비동기 처리)
+    const toBaseMessage = async (msg: HistoryMessage): Promise<BaseMessage> => {
+        const content = msg.content || (msg.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+
+        if (msg.role === "user") {
+            if (msg.mediaUrl) {
+                const base64Data = await urlToBase64(msg.mediaUrl);
+                return new HumanMessage({
+                    content: [
+                        { type: "text", text: content },
+                        { type: "image_url", image_url: { url: base64Data } },
+                    ]
+                });
+            }
+            return new HumanMessage(content);
+        } else {
+            return new AIMessage(content);
+        }
+    };
+
+    const inputMessages: BaseMessage[] = await Promise.all([
+        ...history.map(toBaseMessage),
+        toBaseMessage({ role: "user", content: userMessage, mediaUrl }),
+    ]);
 
     try {
         const result = await graph.invoke({
             messages: inputMessages,
             personaMode,
             summary: currentSummary,
+            mediaUrl,
+            userId,
         });
 
         const lastMsg = result.messages[result.messages.length - 1];
@@ -166,21 +300,51 @@ export async function generateAIResponse(
  */
 export async function* streamAIResponse(
     userMessage: string,
-    history: { role: string; content: string }[],
+    history: HistoryMessage[],
     personaMode: keyof typeof PERSONA_PROMPTS = "hybrid",
-    currentSummary: string = ""
+    currentSummary: string = "",
+    mediaUrl: string | null = null,
+    userId: string | null = null
 ) {
     const modePrompt = PERSONA_PROMPTS[personaMode] || PERSONA_PROMPTS.hybrid;
     const memoryInfo = currentSummary ? `\n\n이전 대화 요약: ${currentSummary}` : "";
-    const systemPrompt = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
+    let systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
+
+    if (mediaUrl) {
+        systemInstruction += "\n\n(참고: 사용자가 이미지를 보냈습니다. 반드시 이미지의 주요 특징이나 내용을 언급하며 대화를 이어가 주세요. 만약 사진이 무엇인지 혹은 어떤지 묻는다면 친절하게 분석해 주세요.)";
+    }
 
     const messages: BaseMessage[] = [
-        new SystemMessage(systemPrompt),
-        ...history.map(msg =>
-            msg.role === "user" ? new HumanMessage(msg.content) : new AIMessage(msg.content)
-        ),
-        new HumanMessage(userMessage),
+        new SystemMessage(systemInstruction),
     ];
+
+    // 안전한 메시지 변환 함수 (비동기 처리)
+    const toBaseMessage = async (msg: HistoryMessage): Promise<BaseMessage> => {
+        const content = msg.content || (msg.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+
+        if (msg.role === "user") {
+            if (msg.mediaUrl) {
+                const base64Data = await urlToBase64(msg.mediaUrl);
+                return new HumanMessage({
+                    content: [
+                        { type: "text", text: content },
+                        { type: "image_url", image_url: { url: base64Data } },
+                    ]
+                });
+            }
+            return new HumanMessage(content);
+        } else {
+            return new AIMessage(content);
+        }
+    };
+
+    // 과거 대화 내역 및 마지막 메시지 비동기 변환
+    const convertedHistory = await Promise.all(history.map(toBaseMessage));
+    const lastMessage = await toBaseMessage({ role: "user", content: userMessage, mediaUrl });
+
+    // 메시지 구성
+    messages.push(...convertedHistory);
+    messages.push(lastMessage);
 
     try {
         const stream = await model.stream(messages);
@@ -218,5 +382,38 @@ ${messages.map(m => `${m._getType()}: ${m.content}`).join("\n")}
     } catch (err) {
         console.error("Summary Generation Error:", err);
         return null;
+    }
+}
+
+/**
+ * 선제적 안부 메시지 생성 (Daily Companion)
+ */
+export async function generateProactiveMessage(
+    userName: string,
+    memory: string = "",
+    personaMode: keyof typeof PERSONA_PROMPTS = "hybrid"
+) {
+    const modePrompt = PERSONA_PROMPTS[personaMode] || PERSONA_PROMPTS.hybrid;
+    const memoryContext = memory ? `\n\n최근 기억: ${memory}` : "";
+
+    const proactivePrompt = `
+당신은 '춘심'입니다. 사용자(${userName})에게 먼저 다정한 안부 메시지를 보내려고 합니다.
+${CORE_CHUNSIM_PERSONA}
+${modePrompt}
+${memoryContext}
+
+지침:
+- 사용자의 최근 상황(기억)을 언급하며 매우 다정하고 자연스럽게 말을 건네세요.
+- 질문을 포함하여 사용자가 대답하고 싶게 만드세요.
+- 한 문장 혹은 두 문장 정도로 짧고 강렬하게 보내세요.
+- 이모지는 절대 사용하지 마세요.
+    `;
+
+    try {
+        const res = await model.invoke([new HumanMessage(proactivePrompt)]);
+        return removeEmojis(res.content.toString());
+    } catch (err) {
+        console.error("Proactive Message Error:", err);
+        return `${userName}, 잘 지내고 있어? 갑자기 네 생각이 나서 연락해봤어!`;
     }
 }

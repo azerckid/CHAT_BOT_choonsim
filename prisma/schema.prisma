@@ -1,6 +1,5 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -44,7 +43,7 @@ model Conversation {
   title            String
   userId           String?
   createdAt        DateTime           @default(now())
-  updatedAt        DateTime
+  updatedAt        DateTime           @updatedAt
   User             User?              @relation(fields: [userId], references: [id])
   Message          Message[]
   TravelPreference TravelPreference[]
@@ -158,6 +157,8 @@ model Message {
   role           String
   content        String
   conversationId String
+  mediaUrl       String?
+  mediaType      String?
   createdAt      DateTime         @default(now())
   type           String           @default("TEXT")
   senderId       String?
@@ -343,6 +344,8 @@ model User {
   bio                                         String?
   coverImage                                  String?
   isPrivate                                   Boolean?             @default(false)
+  checkInTime                                 String? // "09:00" 형식의 체크인 시간
+  pushSubscription                            String? // 웹 푸시 구독 정보 (JSON)
   Bookmark                                    Bookmark[]
   BookmarkCollection                          BookmarkCollection[]
   Conversation                                Conversation[]

@@ -6,23 +6,25 @@ import { MessageInput } from "~/components/chat/MessageInput";
 import { TypingIndicator } from "~/components/chat/TypingIndicator";
 import { MessageListSkeleton } from "~/components/chat/MessageListSkeleton";
 import { NetworkError } from "~/components/ui/NetworkError";
-import { ApiError } from "~/components/ui/ApiError";
 import { prisma } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { z } from "zod";
+import { toast } from "sonner";
 
-type LoadingState = "idle" | "loading" | "error" | "network-error";
+type LoadingState = "idle" | "loading" | "network-error";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  mediaUrl?: string | null;
   createdAt: string | Date;
 }
 
 const sendSchema = z.object({
-  message: z.string().min(1),
+  message: z.string().optional(),
+  mediaUrl: z.string().url().optional().nullable(),
 });
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -50,10 +52,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (!id) return new Response("Missing ID", { status: 400 });
 
   const formData = await request.formData();
-  const result = sendSchema.safeParse({ message: formData.get("message") });
+  const result = sendSchema.safeParse({
+    message: formData.get("message"),
+    mediaUrl: formData.get("mediaUrl") || null,
+  });
 
-  if (!result.success) {
-    return Response.json({ error: "Message cannot be empty" }, { status: 400 });
+  if (!result.success && !formData.get("mediaUrl")) {
+    return Response.json({ error: "Message or image is required" }, { status: 400 });
   }
 
   // 1. 사용자 메시지 저장
@@ -61,7 +66,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
     data: {
       id: crypto.randomUUID(),
       role: "user",
-      content: result.data.message,
+      content: result.data?.message || "",
+      mediaUrl: result.data?.mediaUrl,
       conversationId: id,
       senderId: session.user.id,
       createdAt: new Date(),
@@ -81,6 +87,7 @@ export default function ChatScreen() {
   const [streamingContent, setStreamingContent] = useState<string>("");
   const [isAiStreaming, setIsAiStreaming] = useState(false);
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
+  const [isOptimisticTyping, setIsOptimisticTyping] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -89,35 +96,38 @@ export default function ChatScreen() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, isOptimisticTyping]);
 
-  // Loader 데이터 변경 시 메시지 리스트 업데이트 (페이지 진입 시)
+  // Loader 데이터 변경 시 메시지 리스트 업데이트
   useEffect(() => {
     setMessages(initialMessages);
+    setIsOptimisticTyping(false);
   }, [initialMessages]);
 
-  const handleSend = async (content: string) => {
+  const handleSend = async (content: string, mediaUrl?: string) => {
     // 1. 사용자 메시지 낙관적 업데이트
     const userMsgId = crypto.randomUUID();
     const newUserMsg: Message = {
       id: userMsgId,
       role: "user",
       content,
+      mediaUrl: mediaUrl || null,
       createdAt: new Date().toISOString(),
     };
     setMessages(prev => [...prev, newUserMsg]);
 
     // 2. DB에 사용자 메시지 저장
     fetcher.submit(
-      { message: content },
+      { message: content, mediaUrl: mediaUrl || "" },
       { method: "post" }
     );
 
-    // 3. AI 스트리밍 요청 처리 루틴 시작
-    startAiStreaming(content);
+    // 3. AI 스트리밍 요청 처리 루틴 시작 (낙관적 타이핑 포함)
+    setIsOptimisticTyping(true);
+    startAiStreaming(content, mediaUrl);
   };
 
-  const startAiStreaming = async (userMessage: string) => {
+  const startAiStreaming = async (userMessage: string, mediaUrl?: string) => {
     setIsAiStreaming(true);
     setStreamingContent("");
 
@@ -125,10 +135,12 @@ export default function ChatScreen() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage, conversationId }),
+        body: JSON.stringify({ message: userMessage, conversationId, mediaUrl }),
       });
 
       if (!response.ok) throw new Error("AI 응답 요청 실패");
+
+      setIsOptimisticTyping(false); // 응답 시작되면 낙관적 타이핑 해제 (스트리밍 버블이 대신함)
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
@@ -151,7 +163,6 @@ export default function ChatScreen() {
                   setStreamingContent(prev => prev + data.text);
                 }
                 if (data.done) {
-                  // 스트리밍 완료 시 최종 메시지를 리스트에 추가하고 스트리밍 상태 해제
                   const finalAiMsg: Message = {
                     id: data.messageId || crypto.randomUUID(),
                     role: "assistant",
@@ -163,7 +174,7 @@ export default function ChatScreen() {
                   setIsAiStreaming(false);
                 }
               } catch (e) {
-                // 파싱 에러 무시 (완성되지 않은 JSON chunk 처리 등)
+                // Ignore parse errors
               }
             }
           }
@@ -171,8 +182,21 @@ export default function ChatScreen() {
       }
     } catch (err) {
       console.error("Streaming error:", err);
+      toast.error("답변을 가져오는 중 오류가 발생했습니다.");
       setIsAiStreaming(false);
-      setLoadingState("error");
+      setIsOptimisticTyping(false);
+
+      // 중간에 끊겼다면 현재까지의 내용이라도 유지
+      if (streamingContent) {
+        const partialMsg: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: streamingContent,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, partialMsg]);
+        setStreamingContent("");
+      }
     }
   };
 
@@ -191,14 +215,14 @@ export default function ChatScreen() {
       <ChatHeader
         characterName={characterName}
         isOnline={true}
-        statusText="Online now"
+        statusText="Active Now"
         onBack={handleBack}
         onMenuClick={handleMenuClick}
       />
 
       <main
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-6 relative no-scrollbar scroll-smooth"
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-4 relative no-scrollbar scroll-smooth"
         style={{
           background: "radial-gradient(circle at 50% 50%, rgba(238, 43, 140, 0.05) 0%, transparent 100%)",
         }}
@@ -207,11 +231,9 @@ export default function ChatScreen() {
           <MessageListSkeleton />
         ) : loadingState === "network-error" ? (
           <NetworkError onRetry={handleRetry} />
-        ) : loadingState === "error" ? (
-          <ApiError onRetry={handleRetry} />
         ) : (
           <>
-            {messages.length === 0 && !isAiStreaming && (
+            {messages.length === 0 && !isAiStreaming && !isOptimisticTyping && (
               <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                 <p className="text-sm text-slate-500">대화가 없습니다. 먼저 인사를 건네보세요!</p>
               </div>
@@ -221,14 +243,15 @@ export default function ChatScreen() {
               <MessageBubble
                 key={msg.id}
                 sender={msg.role === "user" ? "user" : "ai"}
-                senderName={msg.role === "user" ? user.name : characterName}
+                senderName={msg.role === "user" ? user?.name : characterName}
                 content={msg.content}
+                mediaUrl={msg.mediaUrl || undefined}
                 avatarUrl={msg.role === "assistant" ? avatarUrl : undefined}
                 timestamp={new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               />
             ))}
 
-            {isAiStreaming && (
+            {(isAiStreaming || isOptimisticTyping) && (
               <>
                 {streamingContent ? (
                   <MessageBubble
@@ -240,7 +263,7 @@ export default function ChatScreen() {
                     isStreaming={true}
                   />
                 ) : (
-                  <div className="flex justify-start ml-14 -mt-4">
+                  <div className="flex justify-start ml-14 -mt-2">
                     <TypingIndicator />
                   </div>
                 )}
@@ -252,7 +275,7 @@ export default function ChatScreen() {
         )}
       </main>
 
-      <MessageInput onSend={handleSend} disabled={isAiStreaming} />
+      <MessageInput onSend={handleSend} disabled={isAiStreaming || isOptimisticTyping} />
     </div>
   );
 }

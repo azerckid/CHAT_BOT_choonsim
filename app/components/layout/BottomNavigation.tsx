@@ -14,7 +14,10 @@ const navItems: NavItem[] = [
   { path: "/profile", icon: "person", label: "Profile" },
 ];
 
+import { usePushNotifications } from "~/hooks/usePushNotifications";
+
 export function BottomNavigation() {
+  usePushNotifications();
   const location = useLocation();
   const currentPath = location.pathname;
 

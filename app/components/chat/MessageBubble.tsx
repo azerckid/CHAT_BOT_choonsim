@@ -1,14 +1,15 @@
 import { cn } from "~/lib/utils";
 
 interface MessageBubbleProps {
-  content: string;
   sender: "user" | "ai";
-  senderName?: string;
-  timestamp?: string;
+  senderName: string;
+  content: string;
   avatarUrl?: string;
+  timestamp: string;
+  isStreaming?: boolean;
+  mediaUrl?: string;
   showAvatar?: boolean;
   className?: string;
-  isStreaming?: boolean;
 }
 
 export function MessageBubble({
@@ -20,6 +21,7 @@ export function MessageBubble({
   showAvatar = true,
   className,
   isStreaming = false,
+  mediaUrl,
 }: MessageBubbleProps) {
   const isUser = sender === "user";
 
@@ -30,6 +32,11 @@ export function MessageBubble({
           <span className="material-symbols-outlined text-[18px]">favorite</span>
         </button>
         <div className="flex flex-col gap-1 items-end max-w-[75%] order-2">
+          {mediaUrl && (
+            <div className="mb-2 rounded-xl overflow-hidden shadow-lg border-2 border-primary/20 max-w-sm">
+              <img src={mediaUrl} alt="User shared" className="w-full h-auto max-h-60 object-cover" />
+            </div>
+          )}
           <div className="px-5 py-3 bg-primary text-white rounded-2xl rounded-tr-sm shadow-md shadow-primary/20 text-[15px] leading-relaxed">
             {content}
           </div>
@@ -64,12 +71,22 @@ export function MessageBubble({
             {senderName}
           </span>
         )}
+        {mediaUrl && (
+          <div className="mb-2 rounded-xl overflow-hidden shadow-lg border border-white/10 max-w-sm">
+            <img src={mediaUrl} alt="AI shared" className="w-full h-auto max-h-60 object-cover" />
+          </div>
+        )}
         <div className="px-5 py-3 bg-white dark:bg-surface-dark rounded-2xl rounded-tl-sm text-slate-800 dark:text-gray-100 shadow-sm text-[15px] leading-relaxed relative">
           {content}
           {isStreaming && (
             <span className="inline-block w-1.5 h-4 ml-1 bg-primary animate-pulse align-middle" />
           )}
         </div>
+        {timestamp && (
+          <span className="text-[11px] text-gray-400 dark:text-white/30 ml-1">
+            {timestamp}
+          </span>
+        )}
       </div>
       <button className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary p-1">
         <span className="material-symbols-outlined text-[18px]">favorite</span>
@@ -77,4 +94,3 @@ export function MessageBubble({
     </div>
   );
 }
-

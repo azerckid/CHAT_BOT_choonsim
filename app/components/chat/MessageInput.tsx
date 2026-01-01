@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { cn } from "~/lib/utils";
 
 interface MessageInputProps {
-  onSend?: (message: string) => void;
+  onSend?: (message: string, mediaUrl?: string) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -15,11 +15,51 @@ export function MessageInput({
   className,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
-    if (message.trim() && !disabled && onSend) {
-      onSend(message.trim());
+    if ((message.trim() || uploadedUrl) && !disabled && !isUploading && onSend) {
+      onSend(message.trim(), uploadedUrl || undefined);
       setMessage("");
+      setPreviewUrl(null);
+      setUploadedUrl(null);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 1. Show preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // 2. Upload to server
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+      const data = await response.json();
+      setUploadedUrl(data.url);
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("이미지 업로드에 실패했습니다.");
+      setPreviewUrl(null);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -30,6 +70,12 @@ export function MessageInput({
     }
   };
 
+  const removePreview = () => {
+    setPreviewUrl(null);
+    setUploadedUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   return (
     <footer
       className={cn(
@@ -37,10 +83,39 @@ export function MessageInput({
         className
       )}
     >
+      {previewUrl && (
+        <div className="px-4 py-2 flex items-center gap-3">
+          <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-primary shadow-lg group">
+            <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+            {isUploading && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              </div>
+            )}
+            <button
+              onClick={removePreview}
+              className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          </div>
+          <span className="text-xs text-gray-400">이미지가 업로드되었습니다</span>
+        </div>
+      )}
+
       <div className="flex items-end gap-2 p-2">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept="image/*"
+          className="hidden"
+        />
         <button
           type="button"
-          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary transition-colors shrink-0"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={disabled || isUploading}
+          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary transition-colors shrink-0 disabled:opacity-50"
         >
           <span className="material-symbols-outlined text-[28px]">add_circle</span>
         </button>
@@ -64,10 +139,10 @@ export function MessageInput({
         <button
           type="button"
           onClick={handleSend}
-          disabled={!message.trim() || disabled}
+          disabled={(!message.trim() && !uploadedUrl) || disabled || isUploading}
           className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {disabled ? (
+          {disabled || isUploading ? (
             <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
             <span className="material-symbols-outlined text-[20px] ml-0.5">send</span>
@@ -77,4 +152,3 @@ export function MessageInput({
     </footer>
   );
 }
-

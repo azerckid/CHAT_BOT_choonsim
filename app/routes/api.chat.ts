@@ -6,9 +6,13 @@ import { streamAIResponse, generateSummary } from "~/lib/ai.server";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 
 const chatSchema = z.object({
-    message: z.string().min(1),
+    message: z.string().optional().default(""),
     conversationId: z.string().uuid(),
     personality: z.enum(["idol", "lover", "hybrid", "roleplay"]).optional(),
+    mediaUrl: z.string().optional().nullable().transform(val => val === "" ? null : val),
+}).refine(data => data.message || data.mediaUrl, {
+    message: "Message or media is required",
+    path: ["message"],
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -28,7 +32,7 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: result.error.flatten() }, { status: 400 });
     }
 
-    const { message, conversationId } = result.data;
+    const { message, conversationId, mediaUrl } = result.data;
 
     // 1. 대화 내역 및 사용자 정보 조회
     const [history, user] = await Promise.all([
@@ -58,9 +62,11 @@ export async function action({ request }: ActionFunctionArgs) {
         }
     }
 
+    // 멀티모달 히스토리 구성
     const formattedHistory = history.reverse().map(msg => ({
         role: msg.role,
         content: msg.content,
+        mediaUrl: msg.mediaUrl,
     }));
 
     // SSE 스트리밍 설정
@@ -70,8 +76,8 @@ export async function action({ request }: ActionFunctionArgs) {
             let fullContent = "";
 
             try {
-                // 스트리밍 실행 (기존 기억 포함)
-                for await (const chunk of streamAIResponse(message, formattedHistory, personality, memory)) {
+                // 스트리밍 실행 (기존 기억 및 미디어 포함)
+                for await (const chunk of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id)) {
                     fullContent += chunk;
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
                 }
@@ -88,11 +94,15 @@ export async function action({ request }: ActionFunctionArgs) {
                     },
                 });
 
-                // 대화 요약 고도화 (3.3.4): 일정 수 이상의 메시지가 쌓이면 요약본 갱신
+                // 대화 요약 고도화
                 if (history.length >= 8) {
+                    // 요약용 메시지 리스트도 멀티모달 고려 (단순화하여 텍스트만 전달하거나 Placeholder 사용)
                     const allMessagesForSummary: BaseMessage[] = [
-                        ...formattedHistory.map(h => h.role === "user" ? new HumanMessage(h.content) : new AIMessage(h.content)),
-                        new HumanMessage(message),
+                        ...formattedHistory.map(h => {
+                            const content = h.content || (h.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+                            return h.role === "user" ? new HumanMessage(content) : new AIMessage(content);
+                        }),
+                        new HumanMessage(message || (mediaUrl ? "이 사진(그림)을 확인해줘." : " ")),
                         new AIMessage(fullContent)
                     ];
 
