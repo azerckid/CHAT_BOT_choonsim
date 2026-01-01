@@ -6,6 +6,7 @@ import { MessageInput } from "~/components/chat/MessageInput";
 import { TypingIndicator } from "~/components/chat/TypingIndicator";
 import { MessageListSkeleton } from "~/components/chat/MessageListSkeleton";
 import { NetworkError } from "~/components/ui/NetworkError";
+import { LoadingSpinner } from "~/components/ui/LoadingSpinner";
 import { prisma } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
@@ -116,6 +117,7 @@ export default function ChatScreen() {
   const [isOptimisticTyping, setIsOptimisticTyping] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -245,6 +247,7 @@ export default function ChatScreen() {
   const handleBack = () => navigate(-1);
 
   const handleDeleteConversation = async (resetMemory = false) => {
+    setIsDeleting(true);
     try {
       const response = await fetch("/api/chat/delete", {
         method: "POST",
@@ -267,6 +270,8 @@ export default function ChatScreen() {
     } catch (err) {
       console.error("Delete error:", err);
       toast.error("삭제 중 오류가 발생했습니다.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -357,9 +362,17 @@ export default function ChatScreen() {
             <AlertDialogCancel>취소</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleDeleteConversation(false)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              삭제하기
+              {isDeleting ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  삭제 중...
+                </>
+              ) : (
+                "삭제하기"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -376,8 +389,19 @@ export default function ChatScreen() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDeleteConversation(true)}>
-              초기화하기
+            <AlertDialogAction 
+              onClick={() => handleDeleteConversation(true)}
+              disabled={isDeleting}
+              className="disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeleting ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  초기화 중...
+                </>
+              ) : (
+                "초기화하기"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

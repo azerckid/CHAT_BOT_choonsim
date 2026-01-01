@@ -115,10 +115,12 @@ export async function action({ request }: ActionFunctionArgs) {
                         ? extractPhotoMarker(part, characterId) 
                         : { content: part, photoUrl: null };
 
-                    // 한 글자씩 스트리밍
+                    // 한 글자씩 스트리밍 (랜덤 딜레이로 자연스러운 타이핑 효과)
                     for (const char of cleanedContent) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: char })}\n\n`));
-                        await new Promise(resolve => setTimeout(resolve, 50)); // 50ms 딜레이
+                        // 50ms~200ms 사이 랜덤 딜레이 (사람처럼 자연스러운 타이핑)
+                        const randomDelay = Math.floor(Math.random() * (200 - 50 + 1)) + 50;
+                        await new Promise(resolve => setTimeout(resolve, randomDelay));
                     }
 
                     // 메시지 저장 및 완료 신호
