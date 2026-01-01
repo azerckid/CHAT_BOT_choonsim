@@ -1,4 +1,4 @@
-import { ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { prisma } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
