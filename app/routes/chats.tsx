@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { ChatListItem } from "~/components/chat/ChatListItem";
 import { OnlineIdolList } from "~/components/chat/OnlineIdolList";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
@@ -7,11 +7,40 @@ import { ChatListSkeleton } from "~/components/chat/ChatListSkeleton";
 import { NetworkError } from "~/components/ui/NetworkError";
 import { ApiError } from "~/components/ui/ApiError";
 import { cn } from "~/lib/utils";
+import { prisma } from "~/lib/db.server";
+import { auth } from "~/lib/auth.server";
+import type { LoaderFunctionArgs } from "react-router";
 
 type LoadingState = "idle" | "loading" | "error" | "network-error";
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) {
+    // Redirect to login if not authenticated
+    throw new Response(null, {
+      status: 302,
+      headers: { Location: "/login" },
+    });
+  }
+
+  const conversations = await prisma.conversation.findMany({
+    where: { userId: session.user.id },
+    include: {
+      Message: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+
+  return Response.json({ conversations });
+}
+
 export default function ChatListScreen() {
+  const { conversations } = useLoaderData<typeof loader>() as { conversations: any[] };
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
+
 
   const handleRetry = () => {
     setLoadingState("loading");
@@ -177,8 +206,30 @@ export default function ChatListScreen() {
           <NetworkError onRetry={handleRetry} />
         ) : loadingState === "error" ? (
           <ApiError onRetry={handleRetry} />
+        ) : conversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-primary text-3xl">chat_bubble</span>
+            </div>
+            <h3 className="text-lg font-bold mb-1">새로운 대화를 시작해보세요!</h3>
+            <p className="text-sm text-slate-500">춘심이가 당신의 연락을 기다리고 있어요.</p>
+          </div>
         ) : (
-          chats.map((chat) => <ChatListItem key={chat.id} {...chat} />)
+          conversations.map((chat: any) => {
+            const lastMsg = chat.Message?.[0];
+            return (
+              <ChatListItem
+                key={chat.id}
+                id={chat.id}
+                name={chat.title || "춘심"}
+                lastMessage={lastMsg?.content || "대화를 시작해보세요"}
+                timestamp={lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                avatarUrl="https://lh3.googleusercontent.com/aida-public/AB6AXuA8XkiSD530UZKl37CoghVbq1qhTYUznUuQFA8dC8rGZe9VuKJsQzUHPgEOQJgupAoHDwO_ZIMC3G_bFGNvaHQ6PSySe2kGq-OJg-IHNH36ByOLEdNchZk1bnNuAxFmnVtxRjKZ5r3Ig5IyQz_moPPFVxD9suAIS4970ggd9cHE5tiLupgMBUCcvc_nJZxpSztEWzQ8QH_JoQ88WdEig0P_Jnj66eHhxORy45NPUNxo-32nkwobvofGqKLRQ2xyrx2QdJZPnhDk4UA"
+                isRead={lastMsg ? lastMsg.read : true}
+                isOnline={true}
+              />
+            );
+          })
         )}
       </main>
 

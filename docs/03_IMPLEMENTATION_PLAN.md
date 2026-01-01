@@ -209,26 +209,25 @@
 ### 2.2 인증 시스템
 
 #### 2.2.1 Better Auth 설정
-- [ ] Better Auth 초기화
-- [ ] X(Twitter) OAuth Provider 설정
-- [ ] 세션 관리 설정
-- [ ] 환경 변수 설정
+- [x] Better Auth 초기화 (`auth.server.ts`)
+- [x] Provider 설정 (Google 연동 완료, Kakao 준비)
+- [x] 세션 관리 설정 (Prisma 어댑터 연동)
+- [x] 환경 변수 설정 완료
 
-#### 2.2.2 인증 API 라우트
-- [ ] 로그인 엔드포인트
-- [ ] 로그아웃 엔드포인트
-- [ ] 세션 확인 엔드포인트
-- [ ] 사용자 정보 조회
+#### 2.2.2 인증 API 라위트 및 UI 연동
+- [x] 로그인 엔드포인트 (`api.auth.$.ts`)
+- [x] 로그아웃 엔드포인트
+- [x] 세션 확인 엔드포인트
+- [x] 로그인/회원가입 UI 연동 (`login.tsx`, `signup.tsx`)
 
 ### 2.3 API 라우트 구현
 
-#### 2.3.1 메시지 API
-- [ ] `GET /api/messages` - 메시지 조회
-  - 페이징 처리
-  - 컨버세이션별 필터링
-- [ ] `POST /api/messages` - 메시지 생성
-  - 사용자 메시지 저장
-  - Zod 스키마 검증
+#### 2.3.1 Message & Chat API
+- [x] `GET /api/messages` - 메시지 조회 (`api.messages.ts`)
+- [x] `POST /api/messages` - 메시지 저장 (`api.messages.ts`)
+- [x] `POST /api/chat` - AI 응답 생성 (Phase 3 연동 준비 완료)
+- [x] React Router Loader/Action 연동 (`chats.tsx`, `chat.$id.tsx`)
+- [x] Zod 스키마 검증
 
 #### 2.3.2 채팅 API
 - [ ] `POST /api/chat` - AI 응답 생성
@@ -263,6 +262,7 @@
   - 아이돌 모드 프롬프트
   - 애인 모드 프롬프트
   - 하이브리드 모드 프롬프트
+  - 롤플레잉 모드 프롬프트
 
 #### 3.1.3 컨텍스트 관리
 - [ ] 대화 히스토리 로드
@@ -314,6 +314,7 @@
 - [ ] 아이돌 모드 워크플로우
 - [ ] 애인 모드 워크플로우
 - [ ] 하이브리드 모드 워크플로우
+- [ ] 롤플레잉 모드 워크플로우
 - [ ] 모드 전환 로직 구현
 
 #### 3.3.4 상태 관리 및 지속성

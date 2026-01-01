@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLoaderData } from "react-router";
+import { prisma } from "~/lib/db.server";
+import { auth } from "~/lib/auth.server";
+import { signOut } from "~/lib/auth-client";
+import type { LoaderFunctionArgs } from "react-router";
 import { SettingsItem } from "~/components/settings/SettingsItem";
 import { SettingsToggle } from "~/components/settings/SettingsToggle";
 import {
@@ -14,7 +18,21 @@ import {
 import { Button } from "~/components/ui/button";
 import { toast } from "sonner";
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) {
+    throw new Response(null, { status: 302, headers: { Location: "/login" } });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+  });
+
+  return Response.json({ user });
+}
+
 export default function SettingsScreen() {
+  const { user } = useLoaderData<typeof loader>() as { user: any };
   const navigate = useNavigate();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
@@ -22,11 +40,19 @@ export default function SettingsScreen() {
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
 
-  const handleLogout = () => {
-    // TODO: 로그아웃 로직 구현 (Phase 2)
-    toast.success("로그아웃되었습니다");
-    setLogoutDialogOpen(false);
-    // navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("로그아웃되었습니다");
+            navigate("/login");
+          },
+        },
+      });
+    } catch (err) {
+      toast.error("로그아웃 중 오류가 발생했습니다");
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -59,8 +85,7 @@ export default function SettingsScreen() {
               <div
                 className="bg-center bg-no-repeat bg-cover rounded-full h-16 w-16 ring-2 ring-primary ring-offset-2 ring-offset-background-light dark:ring-offset-background-dark"
                 style={{
-                  backgroundImage:
-                    'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCOz-ycctcRpqXk1y01dxqgp0snDjlfF-joCqG0CVQPw5ohSzu3AvTGunT5CJLn6jmmUrArbyvkZSfww_OY_DP6G1W69xzLPTJTsc3r4Cmmd_Y5upAGheZxCFXb-xlEiEMfR-C-lpw_3w8__RfjC2KevhMzQ8yYvdGnQgQpeQO8AoXgoQbbTmgFbxUFXr44lp-xfW1fL6RQTF-TkByk5PyDtvGVJ8H67dkeCltLiiTpvG9jjjrCReyH8mEAkCAm8q3TqLOz2S-vAWk")',
+                  backgroundImage: `url(${user?.image || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCOz-ycctcRpqXk1y01dxqgp0snDjlfF-joCqG0CVQPw5ohSzu3AvTGunT5CJLn6jmmUrArbyvkZSfww_OY_DP6G1W69xzLPTJTsc3r4Cmmd_Y5upAGheZxCFXb-xlEiEMfR-C-lpw_3w8__RfjC2KevhMzQ8yYvdGnQgQpeQO8AoXgoQbbTmgFbxUFXr44lp-xfW1fL6RQTF-TkByk5PyDtvGVJ8H67dkeCltLiiTpvG9jjjrCReyH8mEAkCAm8q3TqLOz2S-vAWk'})`,
                 }}
               />
               <div className="absolute bottom-0 right-0 bg-primary rounded-full p-1 border border-white dark:border-background-dark flex items-center justify-center">
@@ -71,10 +96,10 @@ export default function SettingsScreen() {
             </div>
             <div className="flex flex-col justify-center flex-1 min-w-0">
               <p className="text-slate-900 dark:text-white text-lg font-bold leading-tight truncate">
-                박지민
+                {user?.name || "사용자"}
               </p>
               <p className="text-primary text-sm font-medium leading-normal truncate">
-                VVIP 팬 멤버십
+                {user?.id?.includes('-') ? "VVIP 팬 멤버십" : "Basic Member"}
               </p>
             </div>
             <button className="shrink-0 text-slate-400 dark:text-slate-500">

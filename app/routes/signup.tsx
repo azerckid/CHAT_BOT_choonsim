@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { SignUpForm } from "~/components/auth/SignUpForm";
+import { signUp } from "~/lib/auth-client";
 
 export default function SignUpScreen() {
   const navigate = useNavigate();
@@ -12,14 +13,19 @@ export default function SignUpScreen() {
     setError(null);
 
     try {
-      // TODO: Better Auth 연동 (Phase 2)
-      console.log("Sign up attempt:", { email, nickname });
+      const { data, error: signUpError } = await signUp.email({
+        email,
+        password,
+        name: nickname,
+        callbackURL: "/onboarding",
+      });
 
-      // 임시: 성공 시 온보딩 화면으로 이동
-      setTimeout(() => {
-        setIsLoading(false);
-        navigate("/onboarding");
-      }, 1000);
+      if (signUpError) {
+        throw new Error(signUpError.message || "회원가입에 실패했습니다.");
+      }
+
+      setIsLoading(false);
+      navigate("/onboarding");
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");

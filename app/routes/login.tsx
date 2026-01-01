@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { LoginForm } from "~/components/auth/LoginForm";
+import { signIn } from "~/lib/auth-client";
 
 export default function LoginScreen() {
   const navigate = useNavigate();
@@ -12,14 +13,18 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      // TODO: Better Auth 연동 (Phase 2)
-      console.log("Login attempt:", email);
+      const { data, error: signInError } = await signIn.email({
+        email,
+        password,
+        callbackURL: "/onboarding",
+      });
 
-      // 임시: 성공 시 온보딩 또는 채팅 화면으로 이동
-      setTimeout(() => {
-        setIsLoading(false);
-        navigate("/onboarding");
-      }, 1000);
+      if (signInError) {
+        throw new Error(signInError.message || "로그인에 실패했습니다.");
+      }
+
+      setIsLoading(false);
+      navigate("/onboarding");
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
@@ -31,19 +36,15 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      // TODO: Better Auth OAuth 연동 (Phase 2)
-      console.log("Social login:", provider);
+      // Better Auth 1.x social login
+      const { data, error: socialError } = await signIn.social({
+        provider: provider as any,
+        callbackURL: "/onboarding",
+      });
 
-      if (provider === "x") {
-        // X(Twitter) OAuth는 Phase 2에서 구현
-        // navigate("/auth/x/callback");
+      if (socialError) {
+        throw new Error(socialError.message || "소셜 로그인에 실패했습니다.");
       }
-
-      // 임시: 성공 시 온보딩 또는 채팅 화면으로 이동
-      setTimeout(() => {
-        setIsLoading(false);
-        navigate("/onboarding");
-      }, 1000);
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Social login failed. Please try again.");

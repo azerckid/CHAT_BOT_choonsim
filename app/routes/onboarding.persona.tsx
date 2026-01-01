@@ -1,8 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { useNavigate, useFetcher } from "react-router";
 import { cn } from "~/lib/utils";
+import { prisma } from "~/lib/db.server";
+import { auth } from "~/lib/auth.server";
+import type { ActionFunctionArgs } from "react-router";
 
-type PersonaMode = "idol" | "lover" | "hybrid";
+type PersonaMode = "idol" | "lover" | "hybrid" | "roleplay";
 
 interface PersonaOption {
   id: PersonaMode;
@@ -38,12 +41,53 @@ const personaOptions: PersonaOption[] = [
     icon: "auto_awesome",
     gradient: "from-purple-500/20 to-pink-500/20",
   },
+  {
+    id: "roleplay",
+    title: "롤플레잉 모드",
+    description: "특정 상황이나 역할을 설정해 상황극을 즐깁니다",
+    example: "지금은 우리가 무인도에 표류한 상황이야! 어떡하지? 😱",
+    icon: "theater_comedy",
+    gradient: "from-green-500/20 to-teal-500/20",
+  },
 ];
+
+export async function action({ request }: ActionFunctionArgs) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) return new Response("Unauthorized", { status: 401 });
+
+  const formData = await request.formData();
+  const mode = formData.get("mode") as PersonaMode;
+
+  if (!mode) return new Response("Missing mode", { status: 400 });
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { bio: JSON.stringify({ personaMode: mode }) },
+  });
+
+  const existingConv = await prisma.conversation.findFirst({
+    where: { userId: session.user.id, title: "춘심" },
+  });
+
+  if (!existingConv) {
+    await prisma.conversation.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId: session.user.id,
+        title: "춘심",
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  return Response.json({ success: true });
+}
 
 export default function PersonaSelectionScreen() {
   const navigate = useNavigate();
+  const fetcher = useFetcher();
   const [selectedMode, setSelectedMode] = useState<PersonaMode | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmitting = fetcher.state !== "idle";
 
   const handleSelect = (mode: PersonaMode) => {
     setSelectedMode(mode);
@@ -52,22 +96,19 @@ export default function PersonaSelectionScreen() {
   const handleConfirm = async () => {
     if (!selectedMode) return;
 
-    setIsSubmitting(true);
-    
-    try {
-      // TODO: 페르소나 모드 저장 (Phase 2)
-      console.log("Selected persona mode:", selectedMode);
-      
-      // 임시: 성공 시 채팅 화면으로 이동
-      setTimeout(() => {
-        setIsSubmitting(false);
-        navigate("/chats");
-      }, 500);
-    } catch (err) {
-      setIsSubmitting(false);
-      console.error("Failed to save persona mode:", err);
-    }
+    fetcher.submit(
+      { mode: selectedMode },
+      { method: "post" }
+    );
   };
+
+  // fetcher 성공 시 이동
+  useEffect(() => {
+    if (fetcher.data && (fetcher.data as any).success) {
+      navigate("/chats");
+    }
+  }, [fetcher.data, navigate]);
+
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen flex flex-col overflow-hidden max-w-md mx-auto md:max-w-lg lg:max-w-xl">
