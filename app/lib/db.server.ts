@@ -17,7 +17,8 @@ let prisma: PrismaClient;
 
 if (process.env.NODE_ENV === "production") {
     prisma = new PrismaClient({ adapter });
-    initCronJobs();
+    // Vercel serverless 환경에서는 node-cron이 작동하지 않으므로 크론 잡 비활성화
+    // initCronJobs();
 } else {
     if (!global.__db__) {
         global.__db__ = new PrismaClient({ adapter });
