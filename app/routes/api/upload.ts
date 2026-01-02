@@ -1,9 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { uploadImage } from "~/lib/cloudinary.server";
 import { auth } from "~/lib/auth.server";
-import formidable from "formidable";
-import { IncomingMessage } from "http";
-import fs from "fs/promises";
 
 export async function action({ request }: ActionFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });

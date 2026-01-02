@@ -38,7 +38,7 @@ export default function ProfileScreen() {
         fetchOptions: {
           onSuccess: () => {
             toast.success("로그아웃되었습니다");
-            navigate("/login");
+            navigate("/home");
           },
         },
       });
