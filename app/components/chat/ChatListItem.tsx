@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { cn } from "~/lib/utils";
 
 interface ChatListItemProps {
@@ -28,6 +28,8 @@ export function ChatListItem({
   characterId,
   className,
 }: ChatListItemProps) {
+  const navigate = useNavigate();
+  
   const getMessageTypeIcon = () => {
     switch (messageType) {
       case "voice":
@@ -117,20 +119,24 @@ export function ChatListItem({
         className="flex-1 min-w-0 cursor-pointer"
       >
         <div className="flex justify-between items-baseline mb-0.5">
-          {/* 이름 클릭 시 프로필로 이동 */}
+          {/* 이름 클릭 시 프로필로 이동 - button으로 변경하여 중첩 링크 문제 해결 */}
           {profileLink ? (
-            <Link
-              to={profileLink}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(profileLink);
+              }}
               className={cn(
-                "text-base font-bold truncate block hover:underline",
+                "text-base font-bold truncate block hover:underline text-left bg-transparent border-none p-0 cursor-pointer",
                 isRead
                   ? "text-slate-700 dark:text-gray-200"
                   : "text-slate-900 dark:text-white"
               )}
-              onClick={(e) => e.stopPropagation()}
             >
               {name}
-            </Link>
+            </button>
           ) : (
             <h3
               className={cn(

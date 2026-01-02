@@ -2,8 +2,8 @@
 
 춘심 AI 챗봇 프로젝트의 단계별 구현 계획서입니다.
 
-**최종 업데이트**: 2025.01.XX  
-**현재 진행 상황**: Phase 1 (UI/UX 구현) - 대부분 완료
+**최종 업데이트**: 2026.01.03  
+**현재 진행 상황**: Phase 5 (최적화 및 고도화) - LLM 토큰 사용량 추적 완료 및 버그 수정
 
 ---
 
@@ -428,6 +428,10 @@
   - [x] 한국 시간(Asia/Seoul) 기준 오늘 날짜 계산 (Luxon 사용)
   - [x] 프로필 페이지 UI에 오늘 사용량 카드 추가
   - [x] 총 토큰 수, 메시지 수, 입력/출력 토큰 상세 정보 표시
+- [x] LLM 토큰 사용량 추적 버그 수정 및 개선
+  - [x] usage metadata 추출 로직 개선 (response_metadata, kwargs.usage_metadata, 직접 usage_metadata 경로 확인)
+  - [x] AgentExecution 생성 시 personaMode 변수명 오류 수정 (personality로 변경)
+  - [x] 디버깅 로그 정리
 
 ---
 
@@ -503,6 +507,32 @@
 - `AGENTS.md`: 프로젝트 컨텍스트 및 기술 스택
 - `docs/UI_DESIGN_SYSTEM.md`: 디자인 시스템
 - `docs/DATABASE_SCHEMA.md`: 데이터베이스 스키마 (작성 예정)
+
+---
+
+## 버그 수정 및 개선 사항 (2026.01.03)
+
+### UI/UX 버그 수정
+- [x] ChatListItem 컴포넌트의 중첩된 `<a>` 태그 문제 해결
+  - 문제: HTML에서 `<a>` 태그가 중첩되어 hydration 에러 발생
+  - 해결: 캐릭터 이름 부분의 Link를 button으로 변경하고 useNavigate로 네비게이션 처리
+  - 파일: `app/components/chat/ChatListItem.tsx`
+
+### 소셜 로그인 UI 개선
+- [x] X(트위터) 로고 아이콘 구현
+  - 문제: shadcn/ui와 Material Symbols에 X 로고 아이콘이 없음
+  - 해결: 공식 X 로고 SVG를 인라인으로 구현
+  - 파일: `app/components/auth/LoginForm.tsx`
+
+### LLM 토큰 사용량 추적 개선
+- [x] usage metadata 추출 로직 개선
+  - 문제: 스트리밍 응답에서 usage metadata를 일관되게 추출하지 못함
+  - 해결: response_metadata, kwargs.usage_metadata, 직접 usage_metadata 경로를 모두 확인하도록 수정
+  - 파일: `app/lib/ai.server.ts`
+- [x] AgentExecution 생성 시 변수명 오류 수정
+  - 문제: `personaMode is not defined` 에러 발생
+  - 해결: `personaMode`를 `personality`로 변경 (실제 변수명)
+  - 파일: `app/routes/api/chat/index.ts`
 
 ---
 

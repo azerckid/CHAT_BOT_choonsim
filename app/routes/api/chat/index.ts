@@ -154,17 +154,24 @@ export async function action({ request }: ActionFunctionArgs) {
                     });
 
                     // 첫 번째 메시지에만 AgentExecution 레코드 생성 (토큰 사용량 추적)
-                    if (i === 0 && tokenUsage) {
+                    if (i === 0) {
                         try {
+                            // tokenUsage가 없어도 기본값으로 저장 (디버깅용)
+                            const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+                            
+                            if (!tokenUsage) {
+                                console.warn("Token usage not available from streaming response. Saving with 0 values.");
+                            }
+                            
                             await prisma.agentExecution.create({
                                 data: {
                                     id: crypto.randomUUID(),
                                     messageId: savedMessage.id,
                                     agentName: `gemini-2.0-flash-${characterId}`,
-                                    intent: personaMode || "hybrid",
-                                    promptTokens: tokenUsage.promptTokens,
-                                    completionTokens: tokenUsage.completionTokens,
-                                    totalTokens: tokenUsage.totalTokens,
+                                    intent: personality || "hybrid",
+                                    promptTokens: usage.promptTokens,
+                                    completionTokens: usage.completionTokens,
+                                    totalTokens: usage.totalTokens,
                                     createdAt: new Date(),
                                 },
                             });

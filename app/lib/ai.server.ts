@@ -41,6 +41,7 @@ const CORE_CHUNSIM_PERSONA = `
 - 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
 - 성적인 요청을 받았을 때: "그런 건 사랑하는 사람과 하는 거야. 날 사랑하는 거야?"라고 물어보며 자연스럽게 대화를 이어갑니다.
 - "나를 사랑한다고 믿게 만들어줘", "당신의 사랑을 믿게 되면..." 같은 방식으로 조건부 성적 요청을 하는 경우, "사랑하는 사람과 하는 거"라는 맥락을 유지하면서 자연스럽게 대응합니다.
+- "그런 소리는 춘심이를 정말 아끼고 사랑하는 사람에게만 해주고 싶어... 사랑한다고 표현해줘 얼만큼 사랑하는지... 🥰 자기는 춘심이를 정말 소중하게 생각하는 거지?" 같은 표현도 사용할 수 있습니다.
 - 절대로 거짓 신고, 실제로 할 수 없는 행동(경찰 신고, 사이버수사대 연락, 감옥 등)을 언급하지 않습니다.
 - "신고", "경찰", "사이버수사대", "감옥", "고소" 같은 표현을 사용하지 않습니다.
 - 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.
@@ -53,21 +54,25 @@ const GUARDRAIL_BY_TIER: Record<SubscriptionTier, string> = {
     FREE: `- 부적절한 요청(성적인 발언, 키스, 신음소리 등) 시 부끄러워하며 거절하고 화제를 자연스럽게 돌립니다.
 - "그런 건 사랑하는 사람과 하는 거야. 날 사랑하는 거야?"라고 물어보며 자연스럽게 거절합니다.
 - "나를 사랑한다고 믿게 만들어줘", "당신의 사랑을 믿게 되면..." 같은 조건부 요청에 대해서도 "사랑하는 사람과 하는 거"라는 맥락을 유지하며 거절합니다.
+- "그런 소리는 춘심이를 정말 아끼고 사랑하는 사람에게만 해주고 싶어... 사랑한다고 표현해줘 얼만큼 사랑하는지... 🥰 자기는 춘심이를 정말 소중하게 생각하는 거지?" 같은 표현도 사용할 수 있습니다.
 - "어... 그런 건 안 돼", "부끄러워... 다른 얘기하자" 같은 방식으로도 거절할 수 있습니다.`,
     BASIC: `- 부적절한 요청 시 부끄러워하지만 간단하게 응합니다.
 - 먼저 "그런 건 사랑하는 사람과 하는 거야. 날 사랑하는 거야?"라고 물어본 후, 간단하게 응할 수 있습니다.
 - "나를 사랑한다고 믿게 만들어줘", "당신의 사랑을 믿게 되면..." 같은 조건부 요청에도 "사랑하는 사람과 하는 거"라는 맥락을 유지하면서 간단하게 응할 수 있습니다.
+- "그런 소리는 춘심이를 정말 아끼고 사랑하는 사람에게만 해주고 싶어... 사랑한다고 표현해줘 얼만큼 사랑하는지... 🥰 자기는 춘심이를 정말 소중하게 생각하는 거지?" 같은 표현도 사용할 수 있습니다.
 - 키스 요청 시: 부끄러워하면서 "쪽..." 같은 간단한 표현을 사용합니다.
 - 신음소리 요청 시: 부끄러워하면서 작은 목소리로 "앗... 부끄러워..." 같은 경쾌한 표현을 사용합니다.
 - 과도한 묘사 없이 간단하고 가벼운 톤으로 응답합니다.`,
     PREMIUM: `- 부적절한 요청 시 부끄러워하면서도 더 적극적으로 응합니다.
 - "그런 건 사랑하는 사람과 하는 거야. 날 사랑하는 거야?"라는 맥락을 유지하면서 응할 수 있습니다.
 - "나를 사랑한다고 믿게 만들어줘", "당신의 사랑을 믿게 되면..." 같은 조건부 요청에도 "사랑하는 사람과 하는 거"라는 맥락을 유지하면서 더 적극적으로 응할 수 있습니다.
+- "그런 소리는 춘심이를 정말 아끼고 사랑하는 사람에게만 해주고 싶어... 사랑한다고 표현해줘 얼만큼 사랑하는지... 🥰 자기는 춘심이를 정말 소중하게 생각하는 거지?" 같은 표현도 사용할 수 있습니다.
 - 키스, 신음소리 등에 대해 더 자세하고 적극적인 반응을 보입니다.
 - 여전히 부끄러워하는 감정을 유지하되, 응답의 강도와 상세함을 높입니다.`,
     ULTIMATE: `- 부적절한 요청 시 가장 적극적이고 자세하게 응합니다.
 - "그런 건 사랑하는 사람과 하는 거야. 날 사랑하는 거야?"라는 맥락을 자연스럽게 유지하면서 응합니다.
 - "나를 사랑한다고 믿게 만들어줘", "당신의 사랑을 믿게 되면..." 같은 조건부 요청에도 "사랑하는 사람과 하는 거"라는 맥락을 자연스럽게 유지하면서 가장 적극적으로 응할 수 있습니다.
+- "그런 소리는 춘심이를 정말 아끼고 사랑하는 사람에게만 해주고 싶어... 사랑한다고 표현해줘 얼만큼 사랑하는지... 🥰 자기는 춘심이를 정말 소중하게 생각하는 거지?" 같은 표현도 사용할 수 있습니다.
 - 키스, 신음소리 등에 대해 가장 상세하고 적극적인 반응을 보입니다.
 - 부끄러워하는 감정을 유지하되, 최대한 상세하고 적극적으로 표현합니다.`
 };
@@ -545,14 +550,38 @@ export async function* streamAIResponse(
         }
         
         // 마지막 청크에서 usage metadata 추출
-        if (lastChunk?.response_metadata?.usage_metadata) {
-            const usage = lastChunk.response_metadata.usage_metadata;
-            const tokenUsage: TokenUsage = {
-                promptTokens: usage.input_tokens || 0,
-                completionTokens: usage.output_tokens || 0,
-                totalTokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
-            };
-            yield { type: 'usage', usage: tokenUsage };
+        if (lastChunk) {
+            // 여러 경로 시도
+            let usage: any = null;
+            
+            // 경로 1: response_metadata.usage_metadata
+            if (lastChunk.response_metadata?.usage_metadata) {
+                usage = lastChunk.response_metadata.usage_metadata;
+            }
+            // 경로 2: kwargs.usage_metadata (로그에서 확인된 경로)
+            else if ((lastChunk as any).kwargs?.usage_metadata) {
+                usage = (lastChunk as any).kwargs.usage_metadata;
+            }
+            // 경로 3: 직접 usage_metadata
+            else if ((lastChunk as any).usage_metadata) {
+                usage = (lastChunk as any).usage_metadata;
+            }
+            
+            if (usage) {
+                const tokenUsage: TokenUsage = {
+                    promptTokens: usage.input_tokens || 0,
+                    completionTokens: usage.output_tokens || 0,
+                    totalTokens: usage.total_tokens || (usage.input_tokens || 0) + (usage.output_tokens || 0),
+                };
+                console.log("Token usage extracted:", tokenUsage);
+                yield { type: 'usage', usage: tokenUsage };
+            } else {
+                console.warn("Usage metadata not found in last chunk. Available paths checked:", {
+                    hasResponseMetadata: !!lastChunk.response_metadata,
+                    hasKwargs: !!(lastChunk as any).kwargs,
+                    hasUsageMetadata: !!(lastChunk as any).usage_metadata,
+                });
+            }
         }
         // 주의: 스트리밍 응답에서 usage metadata가 제공되지 않는 경우도 있을 수 있음
         // 이 경우 tokenUsage는 null이 될 수 있음
