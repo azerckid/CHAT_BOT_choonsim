@@ -1,24 +1,52 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
+/**
+ * React Router v7 라우트 설정
+ * 
+ * 주의사항:
+ * - 더 구체적인 라우트를 일반적인 라우트보다 먼저 등록해야 합니다.
+ *   예: `profile/edit`은 `profile`보다 먼저 등록해야 합니다.
+ * - OAuth 콜백 라우트는 Better Auth의 내부 경로와 매핑하기 위해 별도 파일이 필요합니다.
+ *   (자세한 내용은 AGENTS.md의 "Authentication & Routing Setup" 섹션 참조)
+ */
 export default [
+  // 인덱스 라우트
   index("routes/index.tsx"),
+
+  // 인증 및 온보딩
   route("home", "routes/home.tsx"),
   route("login", "routes/login.tsx"),
   route("signup", "routes/signup.tsx"),
-  route("onboarding", "routes/onboarding.tsx"),
-  route("onboarding/persona", "routes/onboarding.persona.tsx"),
-  route("chats", "routes/chats.tsx"),
-  route("chat/:id", "routes/chat.$id.tsx"),
-  route("fandom", "routes/fandom.tsx"),
-  route("profile", "routes/profile.tsx"),
-  route("settings", "routes/settings.tsx"),
-  route("character/:id", "routes/character.$id.tsx"),
+  route("onboarding/persona", "routes/onboarding/persona.tsx"),
+  route("onboarding", "routes/onboarding/index.tsx"),
 
-  // API Routes
+  // 채팅
+  route("chat/:id", "routes/chat/$id.tsx"),
+  route("chats", "routes/chat/index.tsx"),
+
+  // 팬덤
+  route("fandom", "routes/fandom.tsx"),
+
+  // 프로필 (구체적인 라우트를 먼저 등록)
+  route("profile/edit", "routes/profile/edit.tsx"),
+  route("profile/subscription", "routes/profile/subscription.tsx"),
+  route("profile/saved", "routes/profile/saved.tsx"),
+  route("profile", "routes/profile/index.tsx"),
+
+  // 설정
+  route("settings", "routes/settings.tsx"),
+
+  // 캐릭터
+  route("character/:id", "routes/character/$id.tsx"),
+
+  // OAuth 콜백 라우트 (Better Auth와의 경로 매핑을 위한 별도 파일)
+  // AGENTS.md의 "Authentication & Routing Setup" 섹션 참조
   route("auth/google/callback", "routes/auth/google/callback.ts"),
   route("auth/kakao/callback", "routes/auth/kakao/callback.ts"),
   route("auth/twitter/callback", "routes/auth/twitter/callback.ts"),
-  route("auth/*", "routes/api/auth/$.ts"),
+  route("auth/*", "routes/api/auth/$.ts"), // Better Auth의 다른 경로들
+
+  // API 라우트
   route("api/chat", "routes/api/chat/index.ts"),
   route("api/chat/create", "routes/api/chat/create.ts"),
   route("api/chat/delete", "routes/api/chat/delete.ts"),

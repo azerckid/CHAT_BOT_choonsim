@@ -70,6 +70,15 @@ Better Auth는 기본적으로 `/auth/callback/{provider}` 형식의 내부 경�
 - **Search (Optional)**: RAG system with Vector DB (Pinecone, Weaviate, or FAISS) and Embedding models (OpenAI or open-source)
 - **Maps (Travel Blog)**: Google Maps API, Naver Maps API, or Mapbox (for location visualization and travel route mapping)
 
+## 개발 도구 및 리소스
+
+### UI 디자인 및 이미지
+- **Stitch (UI 생성 AI 도구)**: 초기 UI 디자인 및 캐릭터 이미지 생성에 사용
+  - Stitch에서 생성된 이미지는 Google 이미지 호스팅(`lh3.googleusercontent.com/aida-public/...`) URL로 제공됨
+  - 현재 `app/lib/characters.ts` 파일에 이러한 Google URL이 하드코딩되어 있음
+  - **참고**: 향후 프로젝트에서 직접 제작한 이미지를 사용할 예정이므로, Google URL을 Cloudinary로 마이그레이션할 필요는 없음
+  - 이미지 업로드는 `scripts/upload-character-photos.mjs` 스크립트를 통해 Cloudinary에 업로드할 수 있음
+
 ## Code Style & Conventions
 - Use **TypeScript** for all files.
 - Stick to functional components and React Hooks.
