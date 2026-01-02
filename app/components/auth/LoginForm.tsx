@@ -4,7 +4,7 @@ import { cn } from "~/lib/utils";
 
 interface LoginFormProps {
   onSubmit?: (email: string, password: string) => void;
-  onSocialLogin?: (provider: "x" | "google" | "apple" | "kakao") => void;
+  onSocialLogin?: (provider: "twitter" | "google" | "kakao") => void;
   isLoading?: boolean;
   error?: string;
 }
@@ -115,21 +115,21 @@ export function LoginForm({
         <div className="flex items-center justify-center gap-5">
           <button
             type="button"
+            onClick={() => onSocialLogin?.("twitter")}
+            disabled={isLoading}
+            className="w-14 h-14 rounded-full bg-black border border-white/20 flex items-center justify-center hover:bg-gray-900 hover:border-white/30 hover:scale-110 transition-all duration-300 group disabled:opacity-50"
+            title="Login with X (Twitter)"
+          >
+            <span className="material-symbols-outlined text-white group-hover:text-white">close</span>
+          </button>
+          <button
+            type="button"
             onClick={() => onSocialLogin?.("google")}
             disabled={isLoading}
             className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/20 hover:scale-110 transition-all duration-300 group disabled:opacity-50"
             title="Login with Google"
           >
             <span className="material-symbols-outlined text-white/80 group-hover:text-white">language</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onSocialLogin?.("apple")}
-            disabled={isLoading}
-            className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/20 hover:scale-110 transition-all duration-300 group disabled:opacity-50"
-            title="Login with Apple"
-          >
-            <span className="material-symbols-outlined text-white/80 group-hover:text-white">phone_iphone</span>
           </button>
           <button
             type="button"

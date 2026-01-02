@@ -38,3 +38,4 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: "Failed to upload image" }, { status: 500 });
     }
 }
+

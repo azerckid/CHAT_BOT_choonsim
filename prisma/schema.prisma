@@ -404,7 +404,7 @@ model hotel_embeddings {
 model session {
   id        String   @id
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime
   updatedAt DateTime
   ipAddress String?

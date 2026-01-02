@@ -574,6 +574,13 @@
 
 ### 9.1 데이터베이스 스키마 확장
 
+#### 9.1.0 MessageLike 테이블 설계 (완료)
+- [x] MessageLike 테이블 생성
+  - `id`, `messageId`, `userId`, `createdAt`
+  - Message와 User 테이블과의 관계 설정
+  - `messageId`와 `userId`의 복합 유니크 제약 조건으로 중복 좋아요 방지
+  - Turso 데이터베이스에 테이블 생성 완료 (`scripts/create-message-like-table.mjs`)
+
 #### 9.1.1 사용자 통계 및 게임화 필드 추가
 - [ ] User 테이블에 통계 필드 추가
   - `daysTogether`: 함께한 날 수 (계산 필드 또는 캐시 필드)
@@ -663,16 +670,21 @@
   - 크롭 기능 (선택사항)
 
 #### 9.2.3 저장된 순간들 기능
+- [x] MessageLike 테이블 생성 (사용자별 메시지 좋아요 저장)
+  - `id`, `messageId`, `userId`, `createdAt`
+  - `messageId`와 `userId`의 복합 유니크 제약 조건
+- [x] 메시지 좋아요 기능 구현 (채팅 화면에서)
+  - [x] `POST /api/messages/:id/like` API - 좋아요 추가
+  - [x] `DELETE /api/messages/:id/like` API - 좋아요 제거
+  - [x] 좋아요 상태 토글 기능
+  - [x] MessageBubble 컴포넌트에 하트 버튼 및 상태 표시
+  - [x] chat.$id.tsx loader에서 사용자별 좋아요 상태 조회
 - [ ] 저장된 순간들 페이지 UI 구현 (`routes/profile.saved.tsx`)
   - 좋아요한 메시지 목록 표시
   - 좋아요한 이미지 갤러리
   - 삭제 기능
 - [ ] `GET /api/profile/saved` API 구현
-  - 좋아요한 메시지 조회 (Message 테이블에 `isLiked` 필드 추가 또는 별도 테이블)
-- [ ] 메시지 좋아요 기능 구현 (채팅 화면에서)
-  - `POST /api/messages/:id/like` API
-  - 좋아요 상태 토글
-  - UI 업데이트
+  - 좋아요한 메시지 조회 (MessageLike 테이블 기반)
 
 #### 9.2.4 구독 및 결제 관리 기능
 - [x] User 테이블에 `subscriptionTier` 필드 추가 (기본값: "FREE")

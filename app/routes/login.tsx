@@ -31,7 +31,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleSocialLogin = async (provider: "x" | "google" | "apple" | "kakao") => {
+  const handleSocialLogin = async (provider: "twitter" | "google" | "kakao") => {
     setIsLoading(true);
     setError(null);
 

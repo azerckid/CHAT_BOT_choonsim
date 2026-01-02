@@ -8,3 +8,4 @@ export async function action({ request }: ActionFunctionArgs) {
 export async function loader({ request }: LoaderFunctionArgs) {
     return auth.handler(request);
 }
+

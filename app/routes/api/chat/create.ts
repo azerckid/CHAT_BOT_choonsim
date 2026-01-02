@@ -64,3 +64,4 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: "Failed to create chat" }, { status: 500 });
     }
 }
+
