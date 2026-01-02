@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./db.server";
 
 export const auth = betterAuth({
+    baseURL: process.env.BETTER_AUTH_URL,
     basePath: "/auth",
     database: prismaAdapter(prisma, {
         provider: "sqlite",
@@ -26,9 +27,7 @@ export const auth = betterAuth({
                     name: profile.name,
                     email: profile.email,
                     image: profile.picture,
-                    emailVerified: profile.verified_email,
-                    provider: "google",
-                    avatarUrl: profile.picture,
+                    emailVerified: (profile as any).verified_email || false,
                 };
             },
         },
@@ -46,22 +45,22 @@ export const auth = betterAuth({
                             Authorization: `Bearer ${token.accessToken}`,
                         },
                     });
-                    
+
                     if (!response.ok) {
                         throw new Error(`Twitter API error: ${response.status}`);
                     }
-                    
+
                     const data = await response.json();
                     const profile = data.data; // Twitter API v2는 data 필드에 사용자 정보를 반환
-                    
+
                     // Twitter는 이메일을 기본적으로 제공하지 않으므로, username 기반으로 생성
                     const email = profile.email || `${profile.username || profile.id}@twitter.local`;
-                    
+
                     // 프로필 이미지를 더 큰 해상도로 변환
                     const highResImageUrl = profile.profile_image_url
                         ? profile.profile_image_url.replace(/_normal|_bigger|_mini|_400x400/g, "_400x400")
                         : null;
-                    
+
                     return {
                         user: {
                             id: profile.id,
@@ -89,20 +88,21 @@ export const auth = betterAuth({
             },
             mapProfileToUser: (profile) => {
                 // 프로필 이미지를 더 큰 해상도로 변환
-                const highResImageUrl = profile.profile_image_url
-                    ? profile.profile_image_url.replace(/_normal|_bigger|_mini|_400x400/g, "_400x400")
-                    : null;
-                
+                const profileImageUrl = (profile.profile_image_url as string | undefined);
+                const highResImageUrl = profileImageUrl
+                    ? profileImageUrl.replace(/_normal|_bigger|_mini|_400x400/g, "_400x400")
+                    : undefined;
+
                 // getUserInfo에서 이미 변환된 user 객체를 받지만,
                 // 추가 필드(provider, avatarUrl, snsId)를 매핑
+                const name = String(profile.name || profile.username || "Twitter User");
+                const email = String(profile.email || `${profile.username || profile.id}@twitter.local`);
+
                 return {
-                    name: profile.name || profile.username || "Twitter User",
-                    email: profile.email || `${profile.username || profile.id}@twitter.local`,
+                    name,
+                    email,
                     image: highResImageUrl,
                     emailVerified: false,
-                    provider: "twitter",
-                    avatarUrl: highResImageUrl,
-                    snsId: profile.id?.toString() || profile.username,
                 };
             },
         },
@@ -151,13 +151,13 @@ export const auth = betterAuth({
                         const user = await prisma.user.findUnique({
                             where: { id: account.userId },
                         });
-                        
+
                         if (user && account.providerId) {
                             // provider에 따라 다른 처리
                             const updateData: any = {
                                 provider: account.providerId,
                             };
-                            
+
                             // image 필드가 있고, provider와 일치하는 경우에만 avatarUrl 업데이트
                             // Twitter인 경우 image가 Twitter 이미지여야 함
                             if (user.image && account.providerId === "twitter") {
@@ -174,7 +174,7 @@ export const auth = betterAuth({
                                 // 다른 provider인 경우 그대로 사용
                                 updateData.avatarUrl = user.image;
                             }
-                            
+
                             await prisma.user.update({
                                 where: { id: account.userId },
                                 data: updateData,
@@ -193,13 +193,13 @@ export const auth = betterAuth({
                         const user = await prisma.user.findUnique({
                             where: { id: account.userId },
                         });
-                        
+
                         if (user && account.providerId) {
                             // provider에 따라 다른 처리
                             const updateData: any = {
                                 provider: account.providerId,
                             };
-                            
+
                             // image 필드가 있고, provider와 일치하는 경우에만 avatarUrl 업데이트
                             if (user.image && account.providerId === "twitter") {
                                 // image가 Twitter 이미지인지 확인
@@ -215,7 +215,7 @@ export const auth = betterAuth({
                                 // 다른 provider인 경우 그대로 사용
                                 updateData.avatarUrl = user.image;
                             }
-                            
+
                             await prisma.user.update({
                                 where: { id: account.userId },
                                 data: updateData,
