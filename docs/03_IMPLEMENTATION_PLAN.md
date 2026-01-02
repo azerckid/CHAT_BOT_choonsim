@@ -409,6 +409,26 @@
 - [ ] API 응답 시간 측정
 - [ ] 사용자 행동 추적 (선택사항)
 
+#### 5.3.3 LLM 토큰 사용량 추적
+- [x] LangChain ChatGoogleGenerativeAI에서 usage metadata 추출
+  - [x] 스트리밍 응답에서 마지막 청크의 usage 정보 추출
+  - [x] promptTokens, completionTokens, totalTokens 기록
+  - [x] TokenUsage 인터페이스 정의
+  - [x] streamAIResponse 함수 반환 타입 변경 (content/usage 구분)
+- [x] AgentExecution 테이블에 토큰 사용량 저장
+  - [x] streamAIResponse 함수에서 usage 정보 추출 및 반환
+  - [x] api/chat/index.ts에서 첫 번째 메시지 저장 시 AgentExecution 레코드 생성
+- [x] 사용자별 토큰 사용량 집계 API 구현
+  - [x] `GET /api/stats/usage` - 현재 인증된 사용자의 토큰 사용량 통계
+  - [x] 전체 집계 (totalTokens, promptTokens, completionTokens, messageCount)
+  - [x] 일별 집계 (최근 30일)
+  - [x] 월별 집계 (최근 12개월)
+- [x] 프로필 페이지에 오늘의 토큰 사용량 표시
+  - [x] profile.tsx loader에서 오늘 날짜 기준 토큰 사용량 조회
+  - [x] 한국 시간(Asia/Seoul) 기준 오늘 날짜 계산 (Luxon 사용)
+  - [x] 프로필 페이지 UI에 오늘 사용량 카드 추가
+  - [x] 총 토큰 수, 메시지 수, 입력/출력 토큰 상세 정보 표시
+
 ---
 
 ## Phase 6: 테스트

@@ -6,6 +6,7 @@ import { useLoaderData } from "react-router";
 import { useNavigate } from "react-router";
 import { signOut } from "~/lib/auth-client";
 import { toast } from "sonner";
+import { DateTime } from "luxon";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -25,12 +26,99 @@ export async function loader({ request }: LoaderFunctionArgs) {
     hearts: 1200,
   };
 
-  return Response.json({ user, stats });
+  // 오늘의 토큰 사용량 계산
+  let todayUsage = {
+    totalTokens: 0,
+    promptTokens: 0,
+    completionTokens: 0,
+    messageCount: 0,
+  };
+
+  try {
+    // 사용자의 모든 메시지 ID 조회
+    const userConversations = await prisma.conversation.findMany({
+      where: { userId: session.user.id },
+      select: { id: true },
+    });
+
+    if (userConversations.length > 0) {
+      const conversationIds = userConversations.map((c) => c.id);
+      
+      const userMessages = await prisma.message.findMany({
+        where: {
+          conversationId: { in: conversationIds },
+          role: "assistant",
+        },
+        select: { id: true },
+      });
+
+      const messageIds = userMessages.map((m) => m.id);
+
+      if (messageIds.length > 0) {
+        // 오늘 날짜 계산 (한국 시간 기준)
+        // 프로필 페이지 방문 시점까지의 오늘 사용량을 조회
+        const now = DateTime.now().setZone("Asia/Seoul");
+        const todayStart = now.startOf("day").toJSDate();
+        const tomorrowStart = now.plus({ days: 1 }).startOf("day").toJSDate();
+
+        // 오늘 생성된 AgentExecution 조회 (프로필 페이지 방문 시점까지)
+        const todayExecutions = await prisma.agentExecution.findMany({
+          where: {
+            messageId: { in: messageIds },
+            createdAt: {
+              gte: todayStart,
+              lt: tomorrowStart,
+            },
+          },
+          select: {
+            promptTokens: true,
+            completionTokens: true,
+            totalTokens: true,
+          },
+        });
+
+        todayUsage = todayExecutions.reduce(
+          (acc, exec) => ({
+            promptTokens: acc.promptTokens + exec.promptTokens,
+            completionTokens: acc.completionTokens + exec.completionTokens,
+            totalTokens: acc.totalTokens + exec.totalTokens,
+            messageCount: acc.messageCount + 1,
+          }),
+          {
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            messageCount: 0,
+          }
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching today's token usage:", error);
+    // 에러가 발생해도 기본값(0)을 사용하여 계속 진행
+  }
+
+  return Response.json({ user, stats, todayUsage });
 }
 
 export default function ProfileScreen() {
-  const { user, stats } = useLoaderData<typeof loader>() as { user: any; stats: any };
+  const { user, stats, todayUsage } = useLoaderData<typeof loader>() as { 
+    user: any; 
+    stats: any; 
+    todayUsage: { totalTokens: number; promptTokens: number; completionTokens: number; messageCount: number };
+  };
   const navigate = useNavigate();
+
+  // 토큰 수를 읽기 쉬운 형식으로 포맷팅 (예: 1.2K, 5.3M)
+  const formatTokenCount = (count: number): string => {
+    if (count >= 1_000_000) {
+      return `${(count / 1_000_000).toFixed(1)}M`;
+    }
+    if (count >= 1_000) {
+      return `${(count / 1_000).toFixed(1)}K`;
+    }
+    return count.toString();
+  };
 
   const handleLogout = async () => {
     try {
@@ -111,7 +199,7 @@ export default function ProfileScreen() {
         </section>
 
         {/* Stats Dashboard */}
-        <section className="px-4 mb-6">
+        <section className="px-4 mb-6 space-y-4">
           <div className="bg-surface-dark/50 border border-white/5 rounded-2xl p-4 backdrop-blur-sm">
             <div className="grid grid-cols-3 divide-x divide-white/10">
               <div className="flex flex-col items-center gap-1 px-2">
@@ -127,6 +215,46 @@ export default function ProfileScreen() {
                   {stats.hearts >= 1000 ? `${(stats.hearts / 1000).toFixed(1)}k` : stats.hearts}
                 </span>
                 <span className="text-xs text-white/50 font-medium">보유 하트</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 오늘의 토큰 사용량 */}
+          <div className="bg-surface-dark/50 border border-white/5 rounded-2xl p-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white/90">오늘 사용량</h3>
+              <span className="text-xs text-white/50">
+                {new Date().toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-blue-400">speed</span>
+                  <span className="text-lg font-bold text-white tracking-tight">
+                    {formatTokenCount(todayUsage.totalTokens)}
+                  </span>
+                </div>
+                <span className="text-xs text-white/50 font-medium ml-7">총 토큰</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-green-400">chat_bubble</span>
+                  <span className="text-lg font-bold text-white tracking-tight">
+                    {todayUsage.messageCount}
+                  </span>
+                </div>
+                <span className="text-xs text-white/50 font-medium ml-7">메시지 수</span>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-4 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-white/60">입력 토큰</span>
+                <span className="text-white/90 font-medium">{formatTokenCount(todayUsage.promptTokens)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/60">출력 토큰</span>
+                <span className="text-white/90 font-medium">{formatTokenCount(todayUsage.completionTokens)}</span>
               </div>
             </div>
           </div>

@@ -79,8 +79,15 @@ export async function action({ request }: ActionFunctionArgs) {
             try {
                 // 1단계: AI 응답을 먼저 전체 받기 (화면에 표시하지 않음)
                 const subscriptionTier = (user?.subscriptionTier as any) || "FREE";
-                for await (const chunk of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id, characterId, subscriptionTier)) {
-                    fullContent += chunk;
+                let tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
+                let firstMessageId: string | null = null;
+                
+                for await (const item of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id, characterId, subscriptionTier)) {
+                    if (item.type === 'content') {
+                        fullContent += item.content;
+                    } else if (item.type === 'usage') {
+                        tokenUsage = item.usage;
+                    }
                 }
 
                 // 전체 응답에서 사진 마커 먼저 추출 (첫 번째 말풍선에만 포함될 것으로 예상)
@@ -145,6 +152,27 @@ export async function action({ request }: ActionFunctionArgs) {
                             mediaType: (i === 0 && photoUrl) ? "image" : null,
                         },
                     });
+
+                    // 첫 번째 메시지에만 AgentExecution 레코드 생성 (토큰 사용량 추적)
+                    if (i === 0 && tokenUsage) {
+                        try {
+                            await prisma.agentExecution.create({
+                                data: {
+                                    id: crypto.randomUUID(),
+                                    messageId: savedMessage.id,
+                                    agentName: `gemini-2.0-flash-${characterId}`,
+                                    intent: personaMode || "hybrid",
+                                    promptTokens: tokenUsage.promptTokens,
+                                    completionTokens: tokenUsage.completionTokens,
+                                    totalTokens: tokenUsage.totalTokens,
+                                    createdAt: new Date(),
+                                },
+                            });
+                        } catch (executionError) {
+                            // AgentExecution 저장 실패는 로그만 남기고 계속 진행
+                            console.error("Failed to save AgentExecution:", executionError);
+                        }
+                    }
 
                     // 첫 번째 말풍선에만 mediaUrl 포함 (완료된 메시지에 사진 표시용)
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage.id, mediaUrl: (i === 0 && photoUrl) ? photoUrl : null })}\n\n`));

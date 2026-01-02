@@ -27,4 +27,5 @@ export default [
   route("api/upload", "routes/api/upload.ts"),
   route("api/test-cron", "routes/api/test-cron.ts"),
   route("api/push-subscription", "routes/api/push-subscription.ts"),
+  route("api/stats/usage", "routes/api/stats/usage.ts"),
 ] satisfies RouteConfig;

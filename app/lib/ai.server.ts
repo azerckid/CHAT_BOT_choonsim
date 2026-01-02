@@ -437,7 +437,17 @@ export async function generateAIResponse(
 }
 
 /**
+ * 토큰 사용량 정보 타입
+ */
+export interface TokenUsage {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+}
+
+/**
  * 스트리밍 응답 (요약 로직은 단순화하여 적용)
+ * @returns AsyncGenerator<{ type: 'content', content: string } | { type: 'usage', usage: TokenUsage }>
  */
 export async function* streamAIResponse(
     userMessage: string,
@@ -522,15 +532,33 @@ export async function* streamAIResponse(
 
     try {
         const stream = await model.stream(messages);
+        let lastChunk: any = null;
+        
         for await (const chunk of stream) {
             if (chunk.content) {
                 const cleaned = removeEmojis(chunk.content.toString());
-                if (cleaned) yield cleaned;
+                if (cleaned) {
+                    yield { type: 'content', content: cleaned };
+                }
             }
+            lastChunk = chunk; // 마지막 청크 저장 (usage metadata 포함 가능)
         }
+        
+        // 마지막 청크에서 usage metadata 추출
+        if (lastChunk?.response_metadata?.usage_metadata) {
+            const usage = lastChunk.response_metadata.usage_metadata;
+            const tokenUsage: TokenUsage = {
+                promptTokens: usage.input_tokens || 0,
+                completionTokens: usage.output_tokens || 0,
+                totalTokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
+            };
+            yield { type: 'usage', usage: tokenUsage };
+        }
+        // 주의: 스트리밍 응답에서 usage metadata가 제공되지 않는 경우도 있을 수 있음
+        // 이 경우 tokenUsage는 null이 될 수 있음
     } catch (error) {
         console.error("Stream Error:", error);
-        yield "아... 갑자기 머리가 핑 돌아... 미안해, 잠시만 이따가 다시 불러줄래?";
+        yield { type: 'content', content: "아... 갑자기 머리가 핑 돌아... 미안해, 잠시만 이따가 다시 불러줄래?" };
     }
 }
 
