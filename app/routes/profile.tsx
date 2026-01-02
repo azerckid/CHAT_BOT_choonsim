@@ -7,6 +7,7 @@ import { useNavigate } from "react-router";
 import { signOut } from "~/lib/auth-client";
 import { toast } from "sonner";
 import { DateTime } from "luxon";
+import { CHARACTERS } from "~/lib/characters";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -18,12 +19,57 @@ export async function loader({ request }: LoaderFunctionArgs) {
     where: { id: session.user.id },
   });
 
-  // TODO: 실제 통계 데이터 가져오기 (함께한 날, 친밀도, 하트 등)
-  // 현재는 임시 데이터
+  // 함께한 날 계산: 사용자의 첫 번째 대화 시작일부터 오늘까지의 일수
+  let daysTogether = 0;
+  let mainCharacterName = "춘심"; // 기본값
+  try {
+    const firstConversation = await prisma.conversation.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true, characterId: true },
+    });
+
+    if (firstConversation) {
+      const now = DateTime.now().setZone("Asia/Seoul");
+      const firstDay = DateTime.fromJSDate(firstConversation.createdAt).setZone("Asia/Seoul").startOf("day");
+      const today = now.startOf("day");
+      daysTogether = Math.max(0, Math.floor(today.diff(firstDay, "days").days)) + 1; // +1은 시작일 포함
+      
+      // 가장 많이 대화한 캐릭터 찾기
+      const conversations = await prisma.conversation.findMany({
+        where: { userId: session.user.id },
+        select: { characterId: true },
+      });
+      
+      const characterCounts = new Map<string, number>();
+      conversations.forEach(conv => {
+        const charId = conv.characterId || "chunsim";
+        characterCounts.set(charId, (characterCounts.get(charId) || 0) + 1);
+      });
+      
+      let maxCount = 0;
+      let mostUsedCharId = "chunsim";
+      characterCounts.forEach((count, charId) => {
+        if (count > maxCount) {
+          maxCount = count;
+          mostUsedCharId = charId;
+        }
+      });
+      
+      const character = CHARACTERS[mostUsedCharId];
+      if (character) {
+        mainCharacterName = character.name;
+      }
+    }
+  } catch (error) {
+    console.error("Error calculating days together:", error);
+  }
+
+  // 통계 데이터
   const stats = {
-    daysTogether: 34,
-    affinityLevel: 88,
-    hearts: 1200,
+    daysTogether,
+    affinityLevel: 0, // 정책 정해지기 전까지 모두 0레벨
+    hearts: 0, // 아직 하트 판매 기능 없음
   };
 
   // 오늘의 토큰 사용량 계산
@@ -98,14 +144,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // 에러가 발생해도 기본값(0)을 사용하여 계속 진행
   }
 
-  return Response.json({ user, stats, todayUsage });
+  return Response.json({ user, stats, todayUsage, mainCharacterName });
 }
 
 export default function ProfileScreen() {
-  const { user, stats, todayUsage } = useLoaderData<typeof loader>() as { 
+  const { user, stats, todayUsage, mainCharacterName } = useLoaderData<typeof loader>() as { 
     user: any; 
     stats: any; 
     todayUsage: { totalTokens: number; promptTokens: number; completionTokens: number; messageCount: number };
+    mainCharacterName: string;
   };
   const navigate = useNavigate();
 
@@ -181,20 +228,20 @@ export default function ProfileScreen() {
             </h2>
             {/* Badges */}
             <div className="flex flex-wrap gap-2 justify-center items-center mt-2">
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider">
-                <span className="material-symbols-outlined text-[14px]">favorite</span>
-                LUNA's Fan
-              </span>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
-                <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  diamond
-                </span>
-                Lv. 5 Soulmate
-              </span>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-[14px]">favorite</span>
+                      {mainCharacterName}'s Fan
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        diamond
+                      </span>
+                      Lv. {stats.affinityLevel} Soulmate
+                    </span>
             </div>
-            <p className="text-white/60 text-sm mt-3 px-4 line-clamp-2">
-              "오늘도 루나와 함께 힘내자! 🌙✨"
-            </p>
+                  <p className="text-white/60 text-sm mt-3 px-4 line-clamp-2">
+                    "오늘도 {mainCharacterName}와 함께 힘내자! 🌙✨"
+                  </p>
           </div>
         </section>
 

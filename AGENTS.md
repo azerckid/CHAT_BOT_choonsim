@@ -16,6 +16,46 @@ The core target audience consists of the 32,000 X (Twitter) users who currently 
 - Database migration: `npx prisma migrate dev`
 - Database studio: `npx prisma studio`
 
+## Authentication & Routing Setup
+
+### 소셜 로그인 콜백 경로 구조 (React Router v7 + Better Auth)
+
+Better Auth는 기본적으로 `/auth/callback/{provider}` 형식의 내부 경로를 사용하지만, OAuth 제공자(Google, Twitter, Kakao 등)의 리다이렉트 URL은 `/auth/{provider}/callback` 형식으로 설정해야 할 수 있습니다.
+
+이를 해결하기 위해 React Router v7의 `routes.ts` 파일과 `routes` 폴더 구조를 다음과 같이 설정합니다:
+
+1. **`app/routes.ts`에 콜백 라우트 등록:**
+   ```typescript
+   route("auth/google/callback", "routes/auth/google/callback.ts"),
+   route("auth/kakao/callback", "routes/auth/kakao/callback.ts"),
+   route("auth/twitter/callback", "routes/auth/twitter/callback.ts"),
+   route("auth/*", "routes/api/auth/$.ts"), // Better Auth의 다른 경로들
+   ```
+
+2. **`app/routes/auth/{provider}/callback.ts` 파일 생성:**
+   각 콜백 파일은 외부 경로(`/auth/{provider}/callback`)를 Better Auth의 내부 경로(`/auth/callback/{provider}`)로 매핑합니다:
+   ```typescript
+   export async function loader({ request }: LoaderFunctionArgs) {
+       const url = new URL(request.url);
+       url.pathname = "/auth/callback/{provider}"; // Better Auth 내부 경로로 변환
+       const libRequest = new Request(url.toString(), {
+           method: request.method,
+           headers: request.headers,
+       });
+       return auth.handler(libRequest);
+   }
+   ```
+
+3. **환경 변수 설정:**
+   OAuth 제공자의 리다이렉트 URL을 `/auth/{provider}/callback` 형식으로 설정:
+   ```
+   TWITTER_REDIRECT_URL=http://localhost:5173/auth/twitter/callback
+   GOOGLE_REDIRECT_URL=http://localhost:5173/auth/google/callback
+   KAKAO_REDIRECT_URL=http://localhost:5173/auth/kakao/callback
+   ```
+
+**참고**: 이 구조는 React Router v7과 Better Auth를 함께 사용할 때 필요한 패턴이며, 다른 프로젝트에서도 동일한 방식으로 구현할 수 있습니다.
+
 ## Tech Stack
 - **Framework**: React Router v7 (Vite)
 - **Styling**: Tailwind CSS v4, shadcn/ui (Nova Preset)

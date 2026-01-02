@@ -1,5 +1,6 @@
 .DS_Store
 .env
+/.vscode/
 /node_modules/
 
 # React Router
@@ -8,5 +9,5 @@
 
 /generated/prisma
 
-/docs
+/docs/
 
