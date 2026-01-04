@@ -19,7 +19,8 @@ interface TokenTopUpModalProps {
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     trigger?: React.ReactNode;
-    paypalClientId?: string; // Optional since it comes from loader
+    paypalClientId?: string;
+    tossClientKey?: string;
 }
 
 export function TokenTopUpModal({
@@ -27,32 +28,29 @@ export function TokenTopUpModal({
     onOpenChange,
     trigger,
     paypalClientId,
+    tossClientKey,
 }: TokenTopUpModalProps) {
     const [selectedPackageId, setSelectedPackageId] = useState<string>(
         CREDIT_PACKAGES[1].id
     ); // Default to Medium pack
+    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS">("TOSS");
     const fetcher = useFetcher<{ success: boolean; newCredits?: number; error?: string }>();
     const revalidator = useRevalidator();
 
+    const selectedPackage = CREDIT_PACKAGES.find(p => p.id === selectedPackageId) || CREDIT_PACKAGES[1];
+
     // fetcher 결과 모니터링 및 처리
-    // useEffect를 사용하여 렌더링 중 상태 업데이트 방지
     useEffect(() => {
         if (fetcher.data?.success) {
-            toast.success(`Successfully added ${fetcher.data.newCredits} credits!`);
+            toast.success("충전이 완료되었습니다!");
             if (onOpenChange) onOpenChange(false);
-
-            // 명시적 데이터 갱신 (Optional, useFetcher가 자동으로 트리거하지만 확실하게 하기 위함)
             revalidator.revalidate();
-
-            // 성공 후 fetcher 데이터 초기화 등이 필요하다면 여기서 처리 가능
-            // 하지만 useFetcher는 다음 submit까지 데이터를 유지하므로 상관없음
         } else if (fetcher.data?.error) {
             toast.error(fetcher.data.error);
         }
     }, [fetcher.data, onOpenChange, revalidator]);
 
     const handleApprove = async (data: any, actions: any) => {
-        // 캡쳐 API 호출
         const formData = new FormData();
         formData.append("orderId", data.orderID);
         formData.append("packageId", selectedPackageId);
@@ -63,14 +61,38 @@ export function TokenTopUpModal({
         });
     };
 
+    const handleTossPayment = async () => {
+        if (!tossClientKey) {
+            toast.error("토스페이먼츠 설정 오류");
+            return;
+        }
+
+        try {
+            const { loadTossPayments } = await import("@tosspayments/payment-sdk");
+            const tossPayments = await loadTossPayments(tossClientKey);
+
+            // 결제 요청
+            await tossPayments.requestPayment("카드", {
+                amount: selectedPackage.priceKRW,
+                orderId: `order_${Math.random().toString(36).slice(2, 11)}`,
+                orderName: selectedPackage.name,
+                successUrl: `${window.location.origin}/payment/toss/success?packageId=${selectedPackageId}&creditsGranted=${selectedPackage.credits + selectedPackage.bonus}`,
+                failUrl: `${window.location.origin}/profile/subscription?payment=fail`,
+            });
+        } catch (error) {
+            console.error("Toss Payment Error:", error);
+            toast.error("결제 준비 중 오류가 발생했습니다.");
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             {trigger && <DialogTrigger>{trigger}</DialogTrigger>}
             <DialogContent className="sm:max-w-[500px] bg-background-dark border-white/10 text-white p-0 gap-0 overflow-hidden shadow-2xl rounded-3xl">
                 <DialogHeader className="p-6 bg-surface-dark/50 backdrop-blur-md border-b border-white/5">
-                    <DialogTitle className="text-xl font-bold tracking-tight text-white">Top Up Credits</DialogTitle>
+                    <DialogTitle className="text-xl font-bold tracking-tight text-white">Credit Top Up</DialogTitle>
                     <DialogDescription className="text-white/50 text-sm">
-                        AI 캐릭터와 대화하기 위한 크레딧을 충전하세요.
+                        AI 캐릭터와 더 즐겁게 대화하기 위해 크레딧을 충전하세요.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -109,28 +131,48 @@ export function TokenTopUpModal({
                                 <div className="text-right">
                                     <div className="flex items-baseline justify-end gap-1">
                                         <span className="text-xl font-bold text-white tracking-tight">
-                                            {pkg.credits.toLocaleString()}
+                                            {(pkg.credits + pkg.bonus).toLocaleString()}
                                         </span>
                                         <span className="text-xs text-white/50">C</span>
                                     </div>
                                     <div className="text-sm font-semibold text-white/70">
-                                        ${pkg.price}
+                                        ₩{pkg.priceKRW.toLocaleString()} / ${pkg.price}
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <div className="pt-6">
-                        {/* 결제 섹션: PayPal iframe의 흰색 배경을 자연스럽게 수용하기 위해 Light Card 스타일 적용 */}
-                        <div className="bg-white rounded-2xl p-4 shadow-sm">
-                            {paypalClientId ? (
-                                <PayPalScriptProvider options={{
-                                    clientId: paypalClientId,
-                                    currency: "USD",
-                                    intent: "capture",
-                                }}>
-                                    <div className="relative z-0">
+                    <div className="space-y-4">
+                        <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10">
+                            <button
+                                onClick={() => setPaymentMethod("TOSS")}
+                                className={cn(
+                                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                    paymentMethod === "TOSS" ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white"
+                                )}
+                            >
+                                국내 결제 (토스/카드)
+                            </button>
+                            <button
+                                onClick={() => setPaymentMethod("PAYPAL")}
+                                className={cn(
+                                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                    paymentMethod === "PAYPAL" ? "bg-[#ffc439] text-[#003087] shadow-lg" : "text-white/50 hover:text-white"
+                                )}
+                            >
+                                Global (PayPal)
+                            </button>
+                        </div>
+
+                        <div className="bg-white rounded-2xl p-4 shadow-sm min-h-[100px] flex flex-col justify-center">
+                            {paymentMethod === "PAYPAL" ? (
+                                paypalClientId ? (
+                                    <PayPalScriptProvider options={{
+                                        clientId: paypalClientId,
+                                        currency: "USD",
+                                        intent: "capture",
+                                    }}>
                                         <PayPalButtons
                                             style={{
                                                 layout: "vertical",
@@ -140,44 +182,34 @@ export function TokenTopUpModal({
                                                 color: "gold",
                                                 label: "pay"
                                             }}
-                                            className="relative z-0"
                                             forceReRender={[selectedPackageId]}
                                             createOrder={async (data, actions) => {
                                                 const response = await fetch("/api/payment/create-order", {
                                                     method: "POST",
-                                                    headers: {
-                                                        "Content-Type": "application/x-www-form-urlencoded",
-                                                    },
-                                                    body: new URLSearchParams({
-                                                        packageId: selectedPackageId
-                                                    })
+                                                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                                                    body: new URLSearchParams({ packageId: selectedPackageId })
                                                 });
                                                 const result = await response.json();
-                                                if (result.error) {
-                                                    toast.error(result.error);
-                                                    throw new Error(result.error);
-                                                }
+                                                if (result.error) throw new Error(result.error);
                                                 return result.orderId;
                                             }}
                                             onApprove={handleApprove}
-                                            onCancel={() => {
-                                                toast.info("결제가 취소되었습니다.");
-                                            }}
-                                            onError={(err) => {
-                                                console.error("PayPal Error:", err);
-                                                toast.error("Payment failed. Please try again.");
-                                            }}
                                         />
-                                    </div>
-                                </PayPalScriptProvider>
+                                    </PayPalScriptProvider>
+                                ) : (
+                                    <div className="text-center text-red-500 py-4 text-xs font-bold">PayPal Client ID 없음</div>
+                                )
                             ) : (
-                                <div className="text-center text-red-500 py-4 font-bold">
-                                    PayPal 설정 오류: Client ID를 찾을 수 없습니다.
-                                </div>
+                                <Button
+                                    onClick={handleTossPayment}
+                                    className="w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined">payments</span>
+                                    토스로 결제하기
+                                </Button>
                             )}
                             <p className="text-center text-[10px] text-slate-400 mt-3 px-1">
-                                결제 시 서비스 이용약관 및 환불 정책에 동의하게 됩니다.
-                                <br />Sandbox 환경에서는 실제 비용이 청구되지 않습니다.
+                                결제 시 이용약관에 동의하게 됩니다.
                             </p>
                         </div>
                     </div>

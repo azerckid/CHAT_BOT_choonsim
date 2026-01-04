@@ -24,9 +24,12 @@
 
   /* 다크 모드 (Stitch Dark) */
   --color-background-dark: #221019;
-  --color-surface-dark: #2d1b24; /* 캐릭터 프로필 카드용 (HTML: #2d1b24) */
-  --color-surface-dark-input: #331926; /* 로그인/회원가입 입력 필드용 (HTML: #331926) */
-  --color-surface-highlight: #482336; /* 회원 프로필 하이라이트용 (HTML: #482336) */
+  --color-surface-dark: #2d1b24;
+  /* 캐릭터 프로필 카드용 (HTML: #2d1b24) */
+  --color-surface-dark-input: #331926;
+  /* 로그인/회원가입 입력 필드용 (HTML: #331926) */
+  --color-surface-highlight: #482336;
+  /* 회원 프로필 하이라이트용 (HTML: #482336) */
   --color-border-pink: #67324d;
   --color-text-muted: #c992ad;
 
@@ -276,6 +279,20 @@ body {
   animation: pulse-glow 3s infinite;
 }
 
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
 @keyframes pulse-slow {
 
   0%,
@@ -362,11 +379,13 @@ body {
     background: rgba(255, 255, 255, 0.3);
   }
 }
+
 /* PayPal iFrame Dark Mode Force Fix */
 iframe[name^="zoid-paypal-buttons"] {
-    background: transparent !important;
-    background-color: transparent !important; 
+  background: transparent !important;
+  background-color: transparent !important;
 }
+
 .paypal-buttons-context-iframe {
-    background: transparent !important;
+  background: transparent !important;
 }

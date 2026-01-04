@@ -86,6 +86,7 @@ export const CREDIT_PACKAGES = [
     {
         id: "credit_pack_small",
         price: 5.00,
+        priceKRW: 6900,
         credits: 5000,
         bonus: 0,
         name: "Starter Pack",
@@ -94,24 +95,27 @@ export const CREDIT_PACKAGES = [
     {
         id: "credit_pack_medium",
         price: 10.00,
+        priceKRW: 13900,
         credits: 12000,
-        bonus: 2000, // 20% Bonus
+        bonus: 2000,
         name: "Value Pack",
         isPopular: true
     },
     {
         id: "credit_pack_large",
         price: 20.00,
+        priceKRW: 27900,
         credits: 26000,
-        bonus: 6000, // 30% Bonus
+        bonus: 6000,
         name: "Pro Pack",
         isPopular: false
     },
     {
         id: "credit_pack_mega",
         price: 50.00,
+        priceKRW: 69000,
         credits: 70000,
-        bonus: 20000, // 40% Bonus
+        bonus: 20000,
         name: "Mega Pack",
         isPopular: false
     }

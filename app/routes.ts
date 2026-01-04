@@ -62,4 +62,6 @@ export default [
   route("api/payment/activate-subscription", "routes/api.payment.activate-subscription.ts"),
   route("api/webhooks/paypal", "routes/api.webhooks.paypal.ts"),
   route("api/payment/cancel-subscription", "routes/api.payment.cancel-subscription.ts"),
+  route("api/payment/toss-confirm", "routes/api.payment.toss.confirm.ts"),
+  route("payment/toss/success", "routes/payment.toss.success.tsx"),
 ] satisfies RouteConfig;

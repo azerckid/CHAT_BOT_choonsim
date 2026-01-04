@@ -49,8 +49,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
   ]);
 
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+  const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-  return Response.json({ user, payments, paypalClientId });
+  return Response.json({ user, payments, paypalClientId, tossClientKey });
 }
 
 type LoaderData = {
@@ -63,10 +64,11 @@ type LoaderData = {
   } | null;
   payments: Payment[]; // Prisma Client에서 가져온 Payment 타입 사용
   paypalClientId?: string;
+  tossClientKey?: string;
 };
 
 export default function SubscriptionManagementPage() {
-  const { user, payments, paypalClientId } = useLoaderData<typeof loader>() as unknown as LoaderData;
+  const { user, payments, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as unknown as LoaderData;
   const navigate = useNavigate();
   const fetcher = useFetcher<{ success: boolean; error?: string }>();
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
@@ -254,6 +256,7 @@ export default function SubscriptionManagementPage() {
         open={isTopUpModalOpen}
         onOpenChange={setIsTopUpModalOpen}
         paypalClientId={paypalClientId}
+        tossClientKey={tossClientKey}
       />
     </div>
   );

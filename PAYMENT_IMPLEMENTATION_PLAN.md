@@ -345,7 +345,7 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
         - `GET /api/payment/history`
         - 사용자별 결제 내역 조회 (페이지네이션 지원)
 
-### Phase 5: Toss Payments Integration (KR Local) - 신규 추가
+### Phase 5: Toss Payments Integration (KR Local) - **COMPLETED (완료)**
 
 한국 사용자를 위한 토스페이먼츠 연동 단계입니다.
 
