@@ -60,4 +60,5 @@ export default [
   route("api/payment/capture-order", "routes/api.payment.capture-order.ts"),
   route("pricing", "routes/pricing.tsx"),
   route("api/payment/activate-subscription", "routes/api.payment.activate-subscription.ts"),
+  route("api/webhooks/paypal", "routes/api.webhooks.paypal.ts"),
 ] satisfies RouteConfig;

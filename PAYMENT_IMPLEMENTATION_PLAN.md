@@ -202,7 +202,7 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
 
 ## 5. 구현 단계 (Implementation Steps)
 
-### Phase 1: 설정 및 스키마 업데이트
+### Phase 1: 설정 및 스키마 업데이트 ✅ (완료)
 1.  **PayPal Developer 계정 생성**: 
     - [PayPal Developer Dashboard](https://developer.paypal.com/)에서 계정 생성
     - Sandbox 앱 생성 및 Client ID, Secret Key 발급
@@ -218,7 +218,7 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
     - 마이그레이션 실행: `npx prisma migrate dev --name add_payment_system`
 5.  **구독 플랜 상수 파일 생성**: `app/lib/subscription-plans.ts` 생성
 
-### Phase 2: 단건 결제 (토큰 충전) 구현
+### Phase 2: 단건 결제 (토큰 충전) 구현 ✅ (완료)
 구독보다 구현이 단순한 단건 결제부터 시작하여 결제 파이프라인을 검증합니다.
 
 1.  **Backend API** (React Router v7 파일 구조):
@@ -246,33 +246,31 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
         - `onError`, `onCancel`: 에러 처리 및 Toast 알림
     *   결제 성공 후 사용자 크레딧 실시간 업데이트 (React Router의 `useRevalidator` 사용)
 
-### Phase 3: 정기 구독 (Subscription) 구현
-1.  **PayPal Product & Plan 생성**: 
+### Phase 3: 정기 구독 (Subscription) 구현 (진행 중 90%)
+1.  **PayPal Product & Plan 생성**: ✅ (완료)
     *   PayPal 대시보드에서 Product 및 Billing Plan 생성
     *   또는 스크립트로 자동 생성 (`scripts/create-paypal-plans.mjs`)
     *   각 Tier별로 별도의 Plan 생성 (BASIC, PREMIUM, ULTIMATE)
 
 2.  **Backend API**:
-    *   `app/routes/api/payment/create-subscription.ts`:
-        - `POST /api/payment/create-subscription`
-        - 구독 생성 (클라이언트에서 요청)
-        - Zod 스키마로 요청 검증 (`{ tier: "BASIC" | "PREMIUM" | "ULTIMATE" }`)
-        - PayPal API로 구독 생성 후 `subscriptionId` 반환
-    *   `app/routes/api/payment/cancel-subscription.ts`:
+    *   `app/routes/api/payment/create-subscription.ts`: ✅ (완료 - activate로 대체)
+        - `POST /api/payment/create-subscription` (클라이언트 JS SDK 사용으로 대체됨)
+        - `POST /api/payment/activate-subscription`: 구독 승인 및 DB 업데이트 구현 완료
+    *   `app/routes/api/payment/cancel-subscription.ts`: (예정)
         - `POST /api/payment/cancel-subscription`
         - 구독 취소 처리
         - PayPal API로 구독 취소 요청
         - `User.subscriptionStatus`를 "CANCELLED"로 업데이트
         - `User.subscriptionTier`는 만료일(`currentPeriodEnd`)까지 유지
 
-3.  **Frontend**:
+3.  **Frontend**: ✅ (완료)
     *   가격 정책 페이지 (`app/routes/pricing.tsx`) UI 구현:
-        - 각 Tier별 Pricing Card 컴포넌트
+        - 각 Tier별 Pricing Card 컴포넌트 (Stitch Design 적용)
         - 현재 구독 상태 표시
         - 업그레이드/다운그레이드 버튼
     *   구독 버튼 연동:
         - `PayPalButtons`의 `createSubscription` 핸들러 사용
-        - 구독 승인 시 `/api/payment/create-subscription` 호출
+        - 구독 승인 시 `/api/payment/activate-subscription` 호출
         - 성공 시 Toast 알림 및 페이지 리다이렉트
 
 4.  **구독 갱신 로직**:
