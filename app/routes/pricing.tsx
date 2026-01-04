@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { type LoaderFunctionArgs, useLoaderData, useNavigate } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { prisma } from "~/lib/db.server";
@@ -52,6 +52,14 @@ export default function PricingPage() {
     const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS">("TOSS");
     const fetcher = useFetcher<{ success: boolean; error?: string }>();
 
+    // 지역 기반 자동 결제 수단 선택 (Phase 8)
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.navigator) {
+            const isKorean = window.navigator.language.startsWith("ko");
+            setPaymentMethod(isKorean ? "TOSS" : "PAYPAL");
+        }
+    }, []);
+
     const plans = Object.values(SUBSCRIPTION_PLANS).filter(p => p.tier !== "FREE");
 
     const getPlanIcon = (tier: string) => {
@@ -101,7 +109,7 @@ export default function PricingPage() {
                 orderId: `sub_${selectedPlan.tier.toLowerCase()}_${Math.random().toString(36).slice(2, 11)}`,
                 orderName: `${selectedPlan.name} 멤버십 (1개월)`,
                 successUrl: `${window.location.origin}/payment/toss/success?type=SUBSCRIPTION&tier=${selectedPlan.tier}&amount=${selectedPlan.monthlyPriceKRW}`,
-                failUrl: `${window.location.origin}/pricing?payment=fail`,
+                failUrl: `${window.location.origin}/payment/toss/fail`,
             });
         } catch (error) {
             console.error("Toss Subscription Error:", error);
@@ -295,6 +303,13 @@ export default function PricingPage() {
                                                 });
                                             }}
                                             onApprove={handleApproveSubscription}
+                                            onCancel={() => {
+                                                toast.info("결제가 취소되었습니다.");
+                                            }}
+                                            onError={(err) => {
+                                                console.error("PayPal Error:", err);
+                                                toast.error("결제 처리 중 오류가 발생했습니다.");
+                                            }}
                                         />
                                     </PayPalScriptProvider>
                                 ) : (

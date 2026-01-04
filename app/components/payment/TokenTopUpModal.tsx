@@ -39,6 +39,14 @@ export function TokenTopUpModal({
 
     const selectedPackage = CREDIT_PACKAGES.find(p => p.id === selectedPackageId) || CREDIT_PACKAGES[1];
 
+    // 지역 기반 자동 결제 수단 선택 (Phase 8)
+    useEffect(() => {
+        if (typeof window !== "undefined" && window.navigator) {
+            const isKorean = window.navigator.language.startsWith("ko");
+            setPaymentMethod(isKorean ? "TOSS" : "PAYPAL");
+        }
+    }, []);
+
     // fetcher 결과 모니터링 및 처리
     useEffect(() => {
         if (fetcher.data?.success) {
@@ -76,8 +84,8 @@ export function TokenTopUpModal({
                 amount: selectedPackage.priceKRW,
                 orderId: `order_${Math.random().toString(36).slice(2, 11)}`,
                 orderName: selectedPackage.name,
-                successUrl: `${window.location.origin}/payment/toss/success?packageId=${selectedPackageId}&creditsGranted=${selectedPackage.credits + selectedPackage.bonus}`,
-                failUrl: `${window.location.origin}/profile/subscription?payment=fail`,
+                successUrl: `${window.location.origin}/payment/toss/success?creditsGranted=${selectedPackage.credits + selectedPackage.bonus}&packageId=${selectedPackage.id}&amount=${selectedPackage.priceKRW}`,
+                failUrl: `${window.location.origin}/payment/toss/fail`,
             });
         } catch (error) {
             console.error("Toss Payment Error:", error);
@@ -194,6 +202,13 @@ export function TokenTopUpModal({
                                                 return result.orderId;
                                             }}
                                             onApprove={handleApprove}
+                                            onCancel={() => {
+                                                toast.info("결제가 취소되었습니다.");
+                                            }}
+                                            onError={(err) => {
+                                                console.error("PayPal Error:", err);
+                                                toast.error("결제 처리 중 오류가 발생했습니다.");
+                                            }}
                                         />
                                     </PayPalScriptProvider>
                                 ) : (

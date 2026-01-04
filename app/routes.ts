@@ -64,4 +64,5 @@ export default [
   route("api/payment/cancel-subscription", "routes/api.payment.cancel-subscription.ts"),
   route("api/payment/toss-confirm", "routes/api.payment.toss.confirm.ts"),
   route("payment/toss/success", "routes/payment.toss.success.tsx"),
+  route("payment/toss/fail", "routes/payment.toss.fail.tsx"),
 ] satisfies RouteConfig;

@@ -371,6 +371,31 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
     *   원화(KRW) 가격 정책 도입 및 표시 로직 완성
     *   Prisma 데이터 무결성 보장을 위한 싱글톤 패턴 적용 및 트랜잭션 처리 완성
 
+### Phase 7: Exception Handling & Fail Page - **IN PROGRESS (진행 중)**
+
+결제 실패 상황에 대한 사용자 경험을 고도화합니다.
+
+1.  [ ] **Toss 전용 실패 페이지 (`app/routes/payment.toss.fail.tsx`)**:
+    *   토스에서 전달하는 `code`, `message`를 파싱하여 사용자 친화적인 메시지로 변환.
+    *   한도 초과, 잔액 부족 등 주요 에러에 대한 안내 문구 세분화.
+    *   '다시 시도하기' 및 '고객센터 문의' 버튼 구현.
+
+2.  [ ] **Global 실패 처리 로직**:
+    *   PayPal 취소/에러 시 기존 Toast 알림 외에 필요 시 전용 실패 안내 UI 검토.
+
+### Phase 8: Locale-based Auto Selection - **PLANNED (계획됨)**
+
+사용자의 지역 정보를 기반으로 최적의 결제 수단을 자동으로 제안합니다.
+
+1.  [ ] **지역 감지 로직**:
+    *   `navigator.language`가 `ko`로 시작하는지 확인.
+    *   필요 시 IP 기반 Geo-location API 연동 검토.
+
+2.  [ ] **탭 자동 전환**:
+    *   한국 유저: '국내 결제 (토스)'를 기본 활성 탭으로 설정.
+    *   해외 유저: 'Global (PayPal)'을 기본 활성 탭으로 설정.
+    *   선택된 통화에 따라 가격 표시 방식(KRW/USD) 자동 동기화.
+
 
 ---
 
