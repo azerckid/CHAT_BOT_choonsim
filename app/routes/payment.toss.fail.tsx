@@ -56,7 +56,7 @@ export default function TossFailPage() {
                             다시 시도하기
                         </button>
                         <button
-                            onClick={() => navigate("/profile/subscription")}
+                            onClick={() => navigate("/profile/subscription", { replace: true })}
                             className="w-full py-4 bg-white/5 hover:bg-white/10 text-white/80 rounded-2xl font-bold text-sm transition-all"
                         >
                             구독 관리로 돌아가기

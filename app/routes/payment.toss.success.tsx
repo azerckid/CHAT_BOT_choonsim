@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { redirect, useLoaderData } from "react-router";
+import { redirect, useNavigate, useLoaderData } from "react-router";
 import { requireUserId } from "~/lib/auth.server";
 import { confirmTossPayment, processSuccessfulTossPayment } from "~/lib/toss.server";
 import { useEffect } from "react";
@@ -46,7 +46,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function TossSuccessPage() {
-    const data = useLoaderData<typeof loader>();
+    const data = useLoaderData<typeof loader>() as any;
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (data.success) {
@@ -57,11 +58,11 @@ export default function TossSuccessPage() {
             }
             // 2~3초 후 이동
             const timer = setTimeout(() => {
-                window.location.href = data.type === "SUBSCRIPTION" ? "/pricing" : "/profile/subscription";
+                navigate(data.type === "SUBSCRIPTION" ? "/pricing" : "/profile/subscription", { replace: true });
             }, 2000);
             return () => clearTimeout(timer);
         }
-    }, [data]);
+    }, [data, navigate]);
 
     return (
         <div className="min-h-screen bg-background-dark flex items-center justify-center p-4">
@@ -74,7 +75,7 @@ export default function TossSuccessPage() {
                         <h1 className="text-xl font-bold text-white">결제 처리 실패</h1>
                         <p className="text-white/60 text-sm">{data.error}</p>
                         <button
-                            onClick={() => window.location.href = "/profile/subscription"}
+                            onClick={() => navigate("/profile/subscription", { replace: true })}
                             className="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-colors"
                         >
                             돌아가기

@@ -78,9 +78,15 @@ export default function SubscriptionManagementPage() {
   const tier = user?.subscriptionTier || "FREE";
 
   // 날짜 포맷팅
-  const formatDate = (dateString: string | Date | null) => {
-    if (!dateString) return "-";
-    return DateTime.fromISO(dateString.toString()).setLocale('ko').toFormat('yyyy. MM. dd');
+  const formatDate = (dateValue: string | Date | null) => {
+    if (!dateValue) return "-";
+    let dt;
+    if (dateValue instanceof Date) {
+      dt = DateTime.fromJSDate(dateValue);
+    } else {
+      dt = DateTime.fromISO(dateValue.toString());
+    }
+    return dt.isValid ? dt.setLocale('ko').toFormat('yyyy. MM. dd') : "-";
   };
 
   const handleCancelSubscription = () => {
