@@ -140,13 +140,13 @@ export default function SubscriptionManagementPage() {
                     <p className="text-sm text-white/50">
                       보유 크레딧: <span className="text-primary font-bold">{user?.credits.toLocaleString()}</span>
                     </p>
-                    <button
+                    <div
                       onClick={() => setIsTopUpModalOpen(true)}
-                      className="px-2 py-0.5 rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-bold border border-primary/20 transition-colors flex items-center gap-1 cursor-pointer z-20 relative"
+                      className="inline-flex items-center justify-center gap-0.5 px-2 rounded-full bg-primary hover:bg-primary/90 text-white text-[12px] font-extrabold tracking-tight transition-colors cursor-pointer z-20 relative shadow-lg shadow-primary/25 leading-none"
                     >
-                      <span className="material-symbols-outlined text-[10px]">bolt</span>
-                      충전
-                    </button>
+                      <span className="material-symbols-outlined text-[12px] leading-none">bolt</span>
+                      <span>충전</span>
+                    </div>
                   </div>
                 </div>
                 <div className="size-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
@@ -160,7 +160,7 @@ export default function SubscriptionManagementPage() {
 
               <div className="flex justify-between items-center text-sm">
                 <span className="text-white/60">다음 결제일 (만료일)</span>
-                <span className="text-white font-medium">{formatDate(user?.currentPeriodEnd)}</span>
+                <span className="text-white font-medium">{formatDate(user?.currentPeriodEnd ?? null)}</span>
               </div>
 
               <div className="flex gap-2 mt-2">
@@ -175,7 +175,7 @@ export default function SubscriptionManagementPage() {
                 {/* Cancel Subscription Button (Only if Active) */}
                 {isActive && (
                   <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                    <AlertDialogTrigger>
                       <button className="px-4 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-medium transition-colors border border-red-500/20 cursor-pointer relative z-20">
                         구독 해지
                       </button>

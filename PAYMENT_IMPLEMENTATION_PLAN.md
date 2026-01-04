@@ -279,13 +279,14 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
     *   구독 플랜에 따라 월별 크레딧 지급
     *   `User.credits` 증가 및 `currentPeriodEnd` 업데이트
 
-### Phase 4: Webhook 및 사후 관리
-1.  **Webhook Endpoint**: `app/routes/api/webhooks/paypal.ts` 생성
+### Phase 4: Webhook 및 사후 관리 (완료)
+
+1.  [x] **Webhook Endpoint**: `app/routes/api/webhooks/paypal.ts` 생성
     *   `POST /api/webhooks/paypal`
     *   PayPal Webhook 서명 검증 (보안 필수)
     *   이벤트 타입별 분기 처리
 
-2.  **이벤트 처리**:
+2.  [x] **이벤트 처리**:
     *   `PAYMENT.SALE.COMPLETED`: 
         - 단건 결제 성공 -> `Payment` 레코드 생성 및 `User.credits` 증가
         - 트랜잭션으로 처리하여 정합성 보장
@@ -303,7 +304,7 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
         - 구독 정지 (결제 실패 등) -> `User.subscriptionStatus = "SUSPENDED"`
         - 사용자에게 알림 (이메일 또는 푸시 알림)
 
-3.  **Token Usage Logic** (`app/lib/ai.server.ts` 연동):
+3.  [x] **Token Usage Logic** (`app/lib/ai.server.ts` 연동):
     *   `generateAIResponse` 및 `streamAIResponse` 함수 호출 전 크레딧 확인
     *   `app/routes/api/messages/index.ts`에서 메시지 생성 시:
         ```typescript
@@ -335,7 +336,7 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
         - 프론트엔드에서 Toast 알림 및 토큰 충전 모달 표시
         - `MessageInput` 컴포넌트에 크레딧 부족 상태 표시
 
-4.  **결제 내역 조회**:
+4.  [x] **결제 내역 조회**:
     *   `app/routes/profile/subscription.tsx` 페이지 구현:
         - 현재 구독 상태 표시
         - 결제 내역 리스트 (`Payment` 모델 조회)
