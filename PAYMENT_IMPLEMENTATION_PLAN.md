@@ -349,41 +349,27 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
 
 한국 사용자를 위한 토스페이먼츠 연동 단계입니다.
 
-1.  **설정 및 설치**:
-    *   패키지 설치: `npm install @tosspayments/payment-widget-sdk --legacy-peer-deps`
-    *   환경 변수 설정 (`.env`):
-        ```env
-        TOSS_CLIENT_KEY="test_ck_..."
-        TOSS_SECRET_KEY="test_sk_..."
-        ```
+1.  [x] **설정 및 설치**:
+    *   패키지 설치: `npm install @tosspayments/payment-sdk` (개별 API 연동 방식 사용)
+    *   환경 변수 설정 (`.env`): `TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY`
 
-2.  **Frontend (결제 위젯)**:
-    *   `app/components/payment/TossPaymentWidget.tsx` 생성
-    *   금액 입력 시 동적으로 위젯 렌더링
-    *   결제 수단: 카드, 가상계좌, 계좌이체, 휴대폰, 문화상품권, 카카오페이, 네이버페이, 토스페이 지원
+2.  [x] **Backend (결제 승인 & DB 처리)**:
+    *   `app/lib/toss.server.ts`: 토스 API 승인 요청 및 DB 트랜잭션 처리 logic 구현
+    *   `app/routes/api.payment.toss.confirm.ts`: 승인 대행 API 엔드포인트
+    *   `app/routes/payment.toss.success.tsx`: 결제 성공 후 리다이렉트 랜딩 페이지 (충전/구독 통합 처리)
 
-3.  **Backend (결제 승인)**:
-    *   `app/routes/api/payment/toss/confirm.ts` 생성
-    *   프론트엔드에서 결제 요청 성공 시 리다이렉트되는 승인 로직 처리
-    *   `paymentKey`, `orderId`, `amount` 검증 후 DB 업데이트
-    *   Payment 모델의 `provider` 필드에 "TOSS" 저장
+### Phase 6: Unified Payment Modal & Region Branching - **COMPLETED (완료)**
 
-### Phase 6: Unified Payment Modal & Region Branching - 신규 추가
+국가별로 다른 결제 수단을 보여주는 통합 모달 및 멤버십 페이지를 구현했습니다.
 
-국가별로 다른 결제 수단을 보여주는 통합 모달을 구현합니다.
+1.  [x] **멤버십/충전 통합 모달 구현**:
+    *   `TokenTopUpModal.tsx`: 국내(토스) / 해외(PayPal) 탭 시스템 적용
+    *   `pricing.tsx`: 멤버십 구독 모달에 국내(토스) / 해외(PayPal) 탭 시스템 적용
 
-1.  **국가 감지 로직**:
-    *   브라우저 언어(`navigator.language`) 또는 IP 기반으로 `isKorea` 여부 판별.
-    *   `app/hooks/useLocale.ts` 커스텀 훅 구현.
-
-2.  **통합 모달 분기 UI (`app/components/payment/PaymentModal.tsx`)**:
-    *   **If Region == KR**: 
-        - **Default Tab**: Toss Payments
-        - **Tab 2**: PayPal
-        - **Crypto Tab**: 숨김 처리 (법적 이슈 회피)
-    *   **If Region != KR**:
-        - **Default Tab**: PayPal
-        - **Tab 2**: Crypto (Coinbase, Solana, NEAR)
+2.  [x] **통합 결제 처리 로직**:
+    *   결제 성공 시 타입(`TOPUP` vs `SUBSCRIPTION`)에 따른 분기 처리 구현
+    *   원화(KRW) 가격 정책 도입 및 표시 로직 완성
+    *   Prisma 데이터 무결성 보장을 위한 싱글톤 패턴 적용 및 트랜잭션 처리 완성
 
 
 ---

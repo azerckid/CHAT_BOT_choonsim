@@ -8,6 +8,7 @@ import { cn } from "~/lib/utils";
 import { toast } from "sonner";
 import { useFetcher } from "react-router";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import { Button } from "~/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -28,15 +29,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+    const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-    return Response.json({ user, paypalClientId });
+    return Response.json({ user, paypalClientId, tossClientKey });
 }
 
+type PricingLoaderData = {
+    user: {
+        subscriptionTier: string | null;
+        subscriptionStatus: string | null;
+        email: string | null;
+    } | null;
+    paypalClientId?: string;
+    tossClientKey?: string;
+};
+
 export default function PricingPage() {
-    const { user, paypalClientId } = useLoaderData<typeof loader>();
+    const { user, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as unknown as PricingLoaderData;
     const navigate = useNavigate();
     const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS">("TOSS");
     const fetcher = useFetcher<{ success: boolean; error?: string }>();
 
     const plans = Object.values(SUBSCRIPTION_PLANS).filter(p => p.tier !== "FREE");
@@ -51,10 +64,6 @@ export default function PricingPage() {
     };
 
     const handlePlanClick = (plan: SubscriptionPlan) => {
-        if (!paypalClientId) {
-            toast.error("결제 시스템 점검 중입니다. (Client ID Missing)");
-            return;
-        }
         if (user?.subscriptionTier === plan.tier) {
             return;
         }
@@ -75,6 +84,31 @@ export default function PricingPage() {
         });
     };
 
+    const handleTossSubscription = async () => {
+        if (!tossClientKey || !selectedPlan) {
+            toast.error("토스페이먼츠 설정 오류");
+            return;
+        }
+
+        try {
+            const { loadTossPayments } = await import("@tosspayments/payment-sdk");
+            const tossPayments = await loadTossPayments(tossClientKey);
+
+            // 정기결제를 위한 빌링키 발급 또는 첫 달 결제 요청
+            // 여기서는 심플하게 첫 달 결제로 진행 (성공 시 서버에서 정기 결제 등록 로직 필요)
+            await tossPayments.requestPayment("카드", {
+                amount: selectedPlan.monthlyPriceKRW,
+                orderId: `sub_${selectedPlan.tier.toLowerCase()}_${Math.random().toString(36).slice(2, 11)}`,
+                orderName: `${selectedPlan.name} 멤버십 (1개월)`,
+                successUrl: `${window.location.origin}/payment/toss/success?type=SUBSCRIPTION&tier=${selectedPlan.tier}&amount=${selectedPlan.monthlyPriceKRW}`,
+                failUrl: `${window.location.origin}/pricing?payment=fail`,
+            });
+        } catch (error) {
+            console.error("Toss Subscription Error:", error);
+            toast.error("결제 준비 중 오류가 발생했습니다.");
+        }
+    };
+
     if (fetcher.data?.success && isModalOpen) {
         setIsModalOpen(false);
         toast.success("구독이 활성화되었습니다! 환영합니다.");
@@ -87,7 +121,7 @@ export default function PricingPage() {
         <div className="min-h-screen bg-[#0B0A10] text-foreground flex flex-col relative overflow-hidden">
             {/* Ambient Background Glows */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
-            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] translate-x-1/2 translate-y-1/2 opacity-50 pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[120px] translate-x-1/2 -translate-y-1/2 opacity-50 pointer-events-none" />
 
             {/* Header */}
             <header className="sticky top-0 z-50 bg-[#0B0A10]/80 backdrop-blur-md border-b border-white/5 px-4 h-16 flex items-center justify-between max-w-md mx-auto w-full">
@@ -207,50 +241,81 @@ export default function PricingPage() {
                                 {selectedPlan?.name}
                             </DialogTitle>
                             <DialogDescription className="text-white/60 font-medium pt-2">
-                                <span className="text-primary text-lg font-bold">${selectedPlan?.monthlyPrice}</span> / month
+                                {paymentMethod === "TOSS" ? (
+                                    <><span className="text-primary text-lg font-bold">₩{selectedPlan?.monthlyPriceKRW.toLocaleString()}</span> / 월</>
+                                ) : (
+                                    <><span className="text-primary text-lg font-bold">${selectedPlan?.monthlyPrice}</span> / month</>
+                                )}
                             </DialogDescription>
                         </div>
                     </DialogHeader>
 
-                    <div className="p-6 bg-white space-y-4">
-                        {paypalClientId && selectedPlan?.paypalPlanId ? (
-                            <PayPalScriptProvider options={{
-                                clientId: paypalClientId,
-                                vault: true,
-                                intent: "subscription"
-                            }}>
-                                <div className="space-y-4">
-                                    <PayPalButtons
-                                        style={{
-                                            layout: "vertical",
-                                            color: "black",
-                                            shape: "rect",
-                                            label: "subscribe",
-                                            height: 48
-                                        }}
-                                        createSubscription={(data, actions) => {
-                                            return actions.subscription.create({
-                                                plan_id: selectedPlan.paypalPlanId!,
-                                            });
-                                        }}
-                                        onApprove={handleApproveSubscription}
-                                        onCancel={() => toast.info("Payment cancelled")}
-                                        onError={(err) => {
-                                            console.error("PayPal Subscription Error:", err);
-                                            toast.error("Subscription failed.");
-                                        }}
-                                    />
-                                    <p className="text-[10px] text-slate-400 text-center leading-tight">
-                                        By subscribing, you agree to our Terms of Service.
-                                        <br />You can cancel anytime.
-                                    </p>
-                                </div>
-                            </PayPalScriptProvider>
-                        ) : (
-                            <div className="text-red-500 text-center text-sm font-bold py-4">
-                                System Config Error (Missing Plan ID)
-                            </div>
-                        )}
+                    <div className="p-6 space-y-4">
+                        <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10">
+                            <button
+                                onClick={() => setPaymentMethod("TOSS")}
+                                className={cn(
+                                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                    paymentMethod === "TOSS" ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white"
+                                )}
+                            >
+                                국내 결제 (토스)
+                            </button>
+                            <button
+                                onClick={() => setPaymentMethod("PAYPAL")}
+                                className={cn(
+                                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                    paymentMethod === "PAYPAL" ? "bg-[#ffc439] text-[#003087] shadow-lg" : "text-white/50 hover:text-white"
+                                )}
+                            >
+                                Global (PayPal)
+                            </button>
+                        </div>
+
+                        <div className="bg-white rounded-2xl p-4 shadow-sm min-h-[100px] flex flex-col justify-center">
+                            {paymentMethod === "PAYPAL" ? (
+                                paypalClientId && selectedPlan?.paypalPlanId ? (
+                                    <PayPalScriptProvider options={{
+                                        clientId: paypalClientId,
+                                        vault: true,
+                                        intent: "subscription"
+                                    }}>
+                                        <PayPalButtons
+                                            style={{
+                                                layout: "vertical",
+                                                color: "black",
+                                                shape: "rect",
+                                                label: "subscribe",
+                                                height: 48
+                                            }}
+                                            forceReRender={[selectedPlan?.tier]}
+                                            createSubscription={(data, actions) => {
+                                                return actions.subscription.create({
+                                                    plan_id: selectedPlan!.paypalPlanId!,
+                                                });
+                                            }}
+                                            onApprove={handleApproveSubscription}
+                                        />
+                                    </PayPalScriptProvider>
+                                ) : (
+                                    <div className="text-red-500 text-center text-xs font-bold py-4 italic">
+                                        PayPal Config Error
+                                    </div>
+                                )
+                            ) : (
+                                <Button
+                                    onClick={handleTossSubscription}
+                                    className="w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                                >
+                                    <span className="material-symbols-outlined">payments</span>
+                                    멤버십 시작하기
+                                </Button>
+                            )}
+                            <p className="text-[10px] text-slate-400 text-center mt-3 px-1 leading-tight">
+                                결제 시 이용약관에 동의하게 됩니다.
+                                <br />언제든지 해지할 수 있습니다.
+                            </p>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

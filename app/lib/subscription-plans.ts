@@ -8,6 +8,7 @@ export interface SubscriptionPlan {
     tier: "FREE" | "BASIC" | "PREMIUM" | "ULTIMATE";
     name: string;
     monthlyPrice: number;
+    monthlyPriceKRW: number;
     creditsPerMonth: number;
     aiModel: string;
     features: string[];
@@ -20,6 +21,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         tier: "FREE",
         name: "Free Starter",
         monthlyPrice: 0,
+        monthlyPriceKRW: 0,
         creditsPerMonth: 1500, // 일 50회 * 30일
         aiModel: "gemini-2.0-flash-exp",
         features: [
@@ -34,6 +36,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         tier: "BASIC",
         name: "Basic Fan",
         monthlyPrice: 4.99,
+        monthlyPriceKRW: 6900,
         creditsPerMonth: 2000,
         aiModel: "gemini-2.0-flash-exp",
         features: [
@@ -49,6 +52,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         tier: "PREMIUM",
         name: "Premium Lover",
         monthlyPrice: 14.99,
+        monthlyPriceKRW: 19900,
         creditsPerMonth: 10000,
         aiModel: "gpt-4o", // 예시: UI 표시용
         features: [
@@ -65,6 +69,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         tier: "ULTIMATE",
         name: "Ultimate Soulmate",
         monthlyPrice: 29.99,
+        monthlyPriceKRW: 39900,
         creditsPerMonth: 30000, // FUP 적용 (사실상 무제한급)
         aiModel: "gpt-4o",
         features: [

@@ -15,10 +15,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const paymentKey = url.searchParams.get("paymentKey");
     const orderId = url.searchParams.get("orderId");
     const amount = Number(url.searchParams.get("amount"));
-    const creditsGranted = Number(url.searchParams.get("creditsGranted"));
-    const packageId = url.searchParams.get("packageId");
 
-    if (!paymentKey || !orderId || !amount || !creditsGranted) {
+    // Type checking (TOPUP vs SUBSCRIPTION)
+    const type = url.searchParams.get("type") || "TOPUP";
+    const creditsGranted = Number(url.searchParams.get("creditsGranted"));
+    const tier = url.searchParams.get("tier"); // For Subscription
+
+    if (!paymentKey || !orderId || !amount) {
         return { error: "Missing required payment information" };
     }
 
@@ -26,10 +29,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
         // 1. 토스 승인
         const paymentData = await confirmTossPayment(paymentKey, orderId, amount);
 
-        // 2. DB 처리
-        await processSuccessfulTossPayment(userId, paymentData, creditsGranted);
+        // 2. DB 처리 (구분)
+        if (type === "SUBSCRIPTION" && tier) {
+            await import("~/lib/toss.server").then(m => m.processSuccessfulTossSubscription(userId, paymentData, tier));
+            return { success: true, type: "SUBSCRIPTION", tier };
+        } else if (creditsGranted) {
+            await processSuccessfulTossPayment(userId, paymentData, creditsGranted);
+            return { success: true, type: "TOPUP", creditsGranted };
+        }
 
-        return { success: true, creditsGranted };
+        return { error: "Invalid payment type or missing data" };
     } catch (error: any) {
         console.error("Toss Success Loader Error:", error);
         return { error: error.message || "결제 승인 처리 중 오류가 발생했습니다." };
@@ -41,10 +50,14 @@ export default function TossSuccessPage() {
 
     useEffect(() => {
         if (data.success) {
-            toast.success(`${data.creditsGranted} 크레딧이 충전되었습니다!`);
-            // 3초 후 이동
+            if (data.type === "SUBSCRIPTION") {
+                toast.success(`${data.tier} 멤버십 구독이 시작되었습니다!`);
+            } else {
+                toast.success(`${data.creditsGranted} 크레딧이 충전되었습니다!`);
+            }
+            // 2~3초 후 이동
             const timer = setTimeout(() => {
-                window.location.href = "/profile/subscription";
+                window.location.href = data.type === "SUBSCRIPTION" ? "/pricing" : "/profile/subscription";
             }, 2000);
             return () => clearTimeout(timer);
         }

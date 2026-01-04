@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "~/lib/db.server";
 
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
-const prisma = new PrismaClient();
 
 /**
  * 토스페이먼츠 결제 승인 요청
@@ -65,6 +64,48 @@ export async function processSuccessfulTossPayment(
                 provider: "TOSS",
                 type: "TOPUP",
                 creditsGranted,
+            },
+        });
+
+        return { user: updatedUser, payment };
+    });
+}
+
+/**
+ * 멤버십 구독 처리 (토스 결제 완료 후)
+ */
+export async function processSuccessfulTossSubscription(
+    userId: string,
+    paymentData: any,
+    tier: string
+) {
+    return await prisma.$transaction(async (tx) => {
+        // 1. 유저 구독 정보 업데이트
+        const updatedUser = await tx.user.update({
+            where: { id: userId },
+            data: {
+                subscriptionTier: tier,
+                subscriptionStatus: "ACTIVE",
+            },
+        });
+
+        // 2. 결제 로그 기록
+        const payment = await tx.payment.create({
+            data: {
+                userId,
+                transactionId: paymentData.orderId,
+                paymentKey: paymentData.paymentKey,
+                amount: paymentData.totalAmount,
+                currency: "KRW",
+                status: "COMPLETED",
+                provider: "TOSS",
+                type: "SUBSCRIPTION",
+                description: `${tier} Membership Subscription`,
+                metadata: JSON.stringify({
+                    paymentData,
+                    tier,
+                    activatedAt: new Array().toString() // Simple timestamp placeholder if needed
+                }),
             },
         });
 
