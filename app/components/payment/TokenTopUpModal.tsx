@@ -36,6 +36,7 @@ export function TokenTopUpModal({
     const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS">("TOSS");
     const fetcher = useFetcher<{ success: boolean; newCredits?: number; error?: string }>();
     const revalidator = useRevalidator();
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const selectedPackage = CREDIT_PACKAGES.find(p => p.id === selectedPackageId) || CREDIT_PACKAGES[1];
 
@@ -70,19 +71,24 @@ export function TokenTopUpModal({
     };
 
     const handleTossPayment = async () => {
-        if (!tossClientKey) {
-            toast.error("토스페이먼츠 설정 오류");
+        if (!tossClientKey || isProcessing) {
+            if (!tossClientKey) toast.error("토스페이먼츠 설정 오류");
             return;
         }
+
+        setIsProcessing(true);
 
         try {
             const { loadTossPayments } = await import("@tosspayments/payment-sdk");
             const tossPayments = await loadTossPayments(tossClientKey);
 
+            // 유니크한 orderId 생성을 위해 타임스탬프 활용
+            const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
             // 결제 요청
             await tossPayments.requestPayment("카드", {
                 amount: selectedPackage.priceKRW,
-                orderId: `order_${Math.random().toString(36).slice(2, 11)}`,
+                orderId: orderId,
                 orderName: selectedPackage.name,
                 successUrl: `${window.location.origin}/payment/toss/success?creditsGranted=${selectedPackage.credits + selectedPackage.bonus}&packageId=${selectedPackage.id}&amount=${selectedPackage.priceKRW}`,
                 failUrl: `${window.location.origin}/payment/toss/fail`,
@@ -90,6 +96,7 @@ export function TokenTopUpModal({
         } catch (error) {
             console.error("Toss Payment Error:", error);
             toast.error("결제 준비 중 오류가 발생했습니다.");
+            setIsProcessing(false);
         }
     };
 
@@ -217,10 +224,20 @@ export function TokenTopUpModal({
                             ) : (
                                 <Button
                                     onClick={handleTossPayment}
-                                    className="w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                                    disabled={isProcessing}
+                                    className={cn(
+                                        "w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all",
+                                        isProcessing && "opacity-70 cursor-not-allowed"
+                                    )}
                                 >
-                                    <span className="material-symbols-outlined">payments</span>
-                                    토스로 결제하기
+                                    {isProcessing ? (
+                                        <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined text-[20px]">payments</span>
+                                            토스로 결제하기
+                                        </>
+                                    )}
                                 </Button>
                             )}
                             <p className="text-center text-[10px] text-slate-400 mt-3 px-1">

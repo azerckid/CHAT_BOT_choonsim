@@ -51,6 +51,7 @@ export default function PricingPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS">("TOSS");
     const fetcher = useFetcher<{ success: boolean; error?: string }>();
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // 지역 기반 자동 결제 수단 선택 (Phase 8)
     useEffect(() => {
@@ -93,20 +94,24 @@ export default function PricingPage() {
     };
 
     const handleTossSubscription = async () => {
-        if (!tossClientKey || !selectedPlan) {
-            toast.error("토스페이먼츠 설정 오류");
+        if (!tossClientKey || !selectedPlan || isProcessing) {
+            if (!tossClientKey) toast.error("토스페이먼츠 설정 오류");
             return;
         }
+
+        setIsProcessing(true);
 
         try {
             const { loadTossPayments } = await import("@tosspayments/payment-sdk");
             const tossPayments = await loadTossPayments(tossClientKey);
 
+            // 유니크한 orderId 생성을 위해 타임스탬프 활용
+            const orderId = `sub_${selectedPlan.tier.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
             // 정기결제를 위한 빌링키 발급 또는 첫 달 결제 요청
-            // 여기서는 심플하게 첫 달 결제로 진행 (성공 시 서버에서 정기 결제 등록 로직 필요)
             await tossPayments.requestPayment("카드", {
                 amount: selectedPlan.monthlyPriceKRW,
-                orderId: `sub_${selectedPlan.tier.toLowerCase()}_${Math.random().toString(36).slice(2, 11)}`,
+                orderId: orderId,
                 orderName: `${selectedPlan.name} 멤버십 (1개월)`,
                 successUrl: `${window.location.origin}/payment/toss/success?type=SUBSCRIPTION&tier=${selectedPlan.tier}&amount=${selectedPlan.monthlyPriceKRW}`,
                 failUrl: `${window.location.origin}/payment/toss/fail`,
@@ -114,6 +119,7 @@ export default function PricingPage() {
         } catch (error) {
             console.error("Toss Subscription Error:", error);
             toast.error("결제 준비 중 오류가 발생했습니다.");
+            setIsProcessing(false);
         }
     };
 
@@ -320,10 +326,20 @@ export default function PricingPage() {
                             ) : (
                                 <Button
                                     onClick={handleTossSubscription}
-                                    className="w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                                    disabled={isProcessing}
+                                    className={cn(
+                                        "w-full h-12 bg-[#3182f6] hover:bg-[#1b64da] text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-all",
+                                        isProcessing && "opacity-70 cursor-not-allowed"
+                                    )}
                                 >
-                                    <span className="material-symbols-outlined">payments</span>
-                                    멤버십 시작하기
+                                    {isProcessing ? (
+                                        <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined text-[20px]">payments</span>
+                                            멤버십 시작하기
+                                        </>
+                                    )}
                                 </Button>
                             )}
                             <p className="text-[10px] text-slate-400 text-center mt-3 px-1 leading-tight">
