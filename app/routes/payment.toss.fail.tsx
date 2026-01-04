@@ -6,6 +6,9 @@ export default function TossFailPage() {
 
     const code = searchParams.get("code");
     const message = searchParams.get("message");
+    const from = searchParams.get("from"); // 'topup' or 'subscription'
+
+    const returnUrl = from === "subscription" ? "/pricing" : "/profile/subscription";
 
     // 토스 에러 코드별 사용자 친화적 메시지 매핑
     const getFriendlyMessage = (code: string | null) => {
@@ -50,7 +53,7 @@ export default function TossFailPage() {
 
                     <div className="grid grid-cols-1 gap-3 pt-4">
                         <button
-                            onClick={() => window.history.back()}
+                            onClick={() => navigate(returnUrl, { replace: true })}
                             className="w-full py-4 bg-primary text-[#0B0A10] rounded-2xl font-black uppercase text-sm shadow-[0_4px_20px_rgba(255,0,255,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all"
                         >
                             다시 시도하기
