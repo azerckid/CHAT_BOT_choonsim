@@ -12,6 +12,25 @@
 - **AI Integration**: Google Gemini API with LangGraph
 - **Current Status**: User 모델에 `subscriptionTier` 필드가 이미 존재 (기본값: "FREE")
 
+## 1.1 규제 대응 및 전략 수정 (Legal & Strategy Update)
+
+**[중요] 한국 법적 규제(VASP) 대응을 위한 결제 전략 수정**
+한국 내에서 암호화폐 결제 서비스를 제공하기 위해서는 **가상자산사업자(VASP) 신고**가 법적 필수 요건입니다. 현재 상황에서 VASP 신고 없이 서비스를 오픈하면 법적 리스크가 발생할 수 있습니다.
+
+따라서 다음과 같이 **국가별 이원화 결제 전략(Dual Payment Strategy)**을 채택합니다:
+
+1.  **한국 사용자 (KR)**
+    *   **Main**: **Toss Payments** (신용카드, 계좌이체, 카카오페이 등 내수 최적화)
+    *   **Sub**: PayPal (선택사항)
+    *   **Crypto**: **비노출 (Hidden)** - 법적 리스크 해소 전까지 제공하지 않음.
+
+2.  **글로벌 사용자 (Global)**
+    *   **Main**: **PayPal** (전 세계용)
+    *   **Crypto**: **Coinbase Commerce**, **Solana Pay**, **NEAR Protocol** 적극 활용
+
+이 전략에 따라 구현 계획에 **Toss Payments 연동 (Phase 5)**과 **국가별 분기 처리 (Phase 6)**가 추가되었습니다.
+
+
 ## 2. 비즈니스 모델 및 요구사항 (Requirements)
 
 ### 2.1 결제 모델 구성
@@ -151,6 +170,8 @@ export const SUBSCRIPTION_PLANS = {
 *   **@paypal/react-paypal-js** (최신 버전): PayPal 공식 React 래퍼 라이브러리. 스크립트 로드 및 버튼 렌더링을 쉽게 처리.
 *   **UI Components**: 기존 디자인 시스템(Tailwind CSS v4, shadcn/ui Nova Preset)을 활용한 Pricing Card 및 결제 모달.
 *   **Toast 알림**: Sonner (shadcn/ui)를 사용하여 결제 성공/실패 피드백 제공.
+*   **Toss Payments SDK**: `@tosspayments/payment-widget-sdk` (한국 사용자용 결제 위젯)
+
 
 ### Backend (React Router v7)
 *   **@paypal/checkout-server-sdk** (최신 버전): 서버 사이드에서 결제 유효성 검증 및 Webhook 처리.
@@ -324,6 +345,47 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
     *   `app/routes/api/payment/history.ts`:
         - `GET /api/payment/history`
         - 사용자별 결제 내역 조회 (페이지네이션 지원)
+
+### Phase 5: Toss Payments Integration (KR Local) - 신규 추가
+
+한국 사용자를 위한 토스페이먼츠 연동 단계입니다.
+
+1.  **설정 및 설치**:
+    *   패키지 설치: `npm install @tosspayments/payment-widget-sdk --legacy-peer-deps`
+    *   환경 변수 설정 (`.env`):
+        ```env
+        TOSS_CLIENT_KEY="test_ck_..."
+        TOSS_SECRET_KEY="test_sk_..."
+        ```
+
+2.  **Frontend (결제 위젯)**:
+    *   `app/components/payment/TossPaymentWidget.tsx` 생성
+    *   금액 입력 시 동적으로 위젯 렌더링
+    *   결제 수단: 카드, 가상계좌, 계좌이체, 휴대폰, 문화상품권, 카카오페이, 네이버페이, 토스페이 지원
+
+3.  **Backend (결제 승인)**:
+    *   `app/routes/api/payment/toss/confirm.ts` 생성
+    *   프론트엔드에서 결제 요청 성공 시 리다이렉트되는 승인 로직 처리
+    *   `paymentKey`, `orderId`, `amount` 검증 후 DB 업데이트
+    *   Payment 모델의 `provider` 필드에 "TOSS" 저장
+
+### Phase 6: Unified Payment Modal & Region Branching - 신규 추가
+
+국가별로 다른 결제 수단을 보여주는 통합 모달을 구현합니다.
+
+1.  **국가 감지 로직**:
+    *   브라우저 언어(`navigator.language`) 또는 IP 기반으로 `isKorea` 여부 판별.
+    *   `app/hooks/useLocale.ts` 커스텀 훅 구현.
+
+2.  **통합 모달 분기 UI (`app/components/payment/PaymentModal.tsx`)**:
+    *   **If Region == KR**: 
+        - **Default Tab**: Toss Payments
+        - **Tab 2**: PayPal
+        - **Crypto Tab**: 숨김 처리 (법적 이슈 회피)
+    *   **If Region != KR**:
+        - **Default Tab**: PayPal
+        - **Tab 2**: Crypto (Coinbase, Solana, NEAR)
+
 
 ---
 
