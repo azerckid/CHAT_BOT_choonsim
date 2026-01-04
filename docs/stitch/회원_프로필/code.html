@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>마이페이지 - AI Idol Chat</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Sans+KR:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#ee2b8c",
+                "primary-dark": "#d11f76",
+                "secondary": "#c992ad",
+                "background-light": "#f8f6f7",
+                "background-dark": "#221019", // Deep wine-tinted dark
+                "surface-dark": "#2d1622", // Slightly lighter for cards
+                "surface-highlight": "#482336",
+              },
+              fontFamily: {
+                "display": ["Plus Jakarta Sans", "Noto Sans KR", "sans-serif"],
+                "body": ["Noto Sans KR", "sans-serif"],
+              },
+              borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        .glass-effect {
+            background: rgba(34, 16, 25, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #fff 0%, #ee2b8c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        /* Hide scrollbar for clean look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white antialiased overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto shadow-2xl overflow-hidden bg-background-light dark:bg-background-dark">
+<!-- Background Decoration -->
+<div class="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-primary/20 via-primary/5 to-transparent pointer-events-none z-0"></div>
+<!-- Top App Bar -->
+<header class="sticky top-0 z-50 glass-effect border-b border-white/5 px-4 h-14 flex items-center justify-between">
+<button class="flex items-center justify-center text-white/80 hover:text-primary transition-colors size-10 rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined !text-[24px]">arrow_back_ios_new</span>
+</button>
+<h1 class="text-base font-bold tracking-tight text-white/90">마이페이지</h1>
+<button class="flex items-center justify-center text-white/80 hover:text-primary transition-colors size-10 rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined !text-[24px]">settings</span>
+</button>
+</header>
+<main class="flex-1 flex flex-col z-10 pb-24">
+<!-- Profile Header -->
+<section class="flex flex-col items-center pt-8 pb-6 px-6">
+<div class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-tr from-primary to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+<div class="relative w-28 h-28 rounded-full p-[3px] bg-background-dark">
+<div class="w-full h-full rounded-full bg-cover bg-center overflow-hidden border-2 border-surface-highlight" data-alt="User profile picture of a young man" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCutVt4neD3mw-fGim_WdODfouQz3b0aaqpPfx1sNTt8N75jfKec3kNioEoZugl2D0eqVP5833PF21_hTqlDz38aVNUICprwHAM45vTdJeUPcA0mj_wzSgkMVSzYiv-RCJhNyAAZ0RlWSJQxzSa8Mi-yYPu-czB9WEbQsDFEjcAQwezmcZqtAbSB5bwyRhTTfr1y2rrxDHIFNN2G2fVmkHcCWo7uvVNjtAehxS8fgGKMbJgQ59q1ClGgD--3EuZR6f_esg0NbdGCao');"></div>
+<!-- Edit Badge -->
+<button class="absolute bottom-0 right-0 p-2 bg-surface-highlight border-4 border-background-dark rounded-full text-white hover:bg-primary transition-colors shadow-lg">
+<span class="material-symbols-outlined !text-[16px] block">edit</span>
+</button>
+</div>
+</div>
+<div class="mt-4 text-center">
+<h2 class="text-2xl font-bold tracking-tight text-white mb-1">강민수</h2>
+<!-- Badges -->
+<div class="flex flex-wrap gap-2 justify-center items-center mt-2">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined !text-[14px]">favorite</span>
+                            LUNA's Fan
+                        </span>
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined !text-[14px] filled">diamond</span>
+                            Lv. 5 Soulmate
+                        </span>
+</div>
+<p class="text-white/60 text-sm mt-3 px-4 line-clamp-2">
+                        "오늘도 루나와 함께 힘내자! 🌙✨"
+                    </p>
+</div>
+</section>
+<!-- Stats Dashboard -->
+<section class="px-4 mb-6">
+<div class="bg-surface-dark/50 border border-white/5 rounded-2xl p-4 backdrop-blur-sm">
+<div class="grid grid-cols-3 divide-x divide-white/10">
+<div class="flex flex-col items-center gap-1 px-2">
+<span class="text-2xl font-bold text-white tracking-tight">34일</span>
+<span class="text-xs text-white/50 font-medium">함께한 날</span>
+</div>
+<div class="flex flex-col items-center gap-1 px-2">
+<span class="text-2xl font-bold text-primary tracking-tight">Lv.88</span>
+<span class="text-xs text-white/50 font-medium">친밀도</span>
+</div>
+<div class="flex flex-col items-center gap-1 px-2">
+<span class="text-2xl font-bold text-white tracking-tight">1.2k</span>
+<span class="text-xs text-white/50 font-medium">보유 하트</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Account Management Section -->
+<div class="px-4 space-y-6">
+<!-- Group 1: Account & Payment -->
+<div>
+<h3 class="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 ml-2">계정 관리</h3>
+<div class="bg-surface-dark border border-white/5 rounded-2xl overflow-hidden">
+<!-- List Item -->
+<button class="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left">
+<div class="flex items-center justify-center shrink-0 size-10 rounded-xl bg-purple-500/20 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">badge</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-base font-semibold text-white truncate">프로필 수정</p>
+<p class="text-xs text-white/50 truncate">닉네임, 상태메시지 변경</p>
+</div>
+<span class="material-symbols-outlined text-white/30">chevron_right</span>
+</button>
+<div class="h-px bg-white/5 mx-4"></div>
+<!-- List Item -->
+<button class="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left">
+<div class="flex items-center justify-center shrink-0 size-10 rounded-xl bg-primary/20 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">credit_card</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-base font-semibold text-white truncate">구독 및 결제 관리</p>
+<p class="text-xs text-white/50 truncate">Premium 멤버십 관리</p>
+</div>
+<span class="material-symbols-outlined text-white/30">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Group 2: Activity -->
+<div>
+<h3 class="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 ml-2">나의 활동</h3>
+<div class="bg-surface-dark border border-white/5 rounded-2xl overflow-hidden">
+<!-- List Item -->
+<button class="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left">
+<div class="flex items-center justify-center shrink-0 size-10 rounded-xl bg-pink-500/20 text-pink-400 group-hover:bg-pink-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">favorite</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-base font-semibold text-white truncate">저장된 순간들</p>
+<p class="text-xs text-white/50 truncate">좋아요한 대화 및 사진</p>
+</div>
+<span class="material-symbols-outlined text-white/30">chevron_right</span>
+</button>
+<div class="h-px bg-white/5 mx-4"></div>
+<!-- List Item -->
+<button class="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left">
+<div class="flex items-center justify-center shrink-0 size-10 rounded-xl bg-blue-500/20 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">history</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-base font-semibold text-white truncate">대화 기록</p>
+<p class="text-xs text-white/50 truncate">지난 대화 다시보기</p>
+</div>
+<span class="material-symbols-outlined text-white/30">chevron_right</span>
+</button>
+<div class="h-px bg-white/5 mx-4"></div>
+<!-- List Item -->
+<button class="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left">
+<div class="flex items-center justify-center shrink-0 size-10 rounded-xl bg-teal-500/20 text-teal-400 group-hover:bg-teal-500 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-base font-semibold text-white truncate">알림 설정</p>
+<p class="text-xs text-white/50 truncate">캐릭터 메시지 알림</p>
+</div>
+<span class="material-symbols-outlined text-white/30">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Logout Button -->
+<button class="w-full py-4 text-center text-sm font-medium text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                    로그아웃
+                </button>
+</div>
+</main>
+<!-- Bottom Navigation (Sticky) -->
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#221019]/90 backdrop-blur-lg border-t border-white/10 max-w-md mx-auto">
+<div class="flex justify-around items-center h-[72px] pb-4 px-2">
+<a class="flex flex-col items-center justify-center w-16 h-full gap-1 text-white/50 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined !text-[26px]">chat_bubble</span>
+<span class="text-[10px] font-medium">채팅</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-full gap-1 text-white/50 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined !text-[26px]">explore</span>
+<span class="text-[10px] font-medium">탐색</span>
+</a>
+<!-- Main Action Button Floating -->
+<div class="relative -top-5">
+<button class="flex items-center justify-center size-14 rounded-full bg-gradient-to-r from-primary to-purple-600 shadow-lg shadow-primary/30 hover:scale-105 active:scale-95 transition-transform text-white border-4 border-background-dark">
+<span class="material-symbols-outlined !text-[28px]">smart_toy</span>
+</button>
+</div>
+<a class="flex flex-col items-center justify-center w-16 h-full gap-1 text-white/50 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined !text-[26px]">storefront</span>
+<span class="text-[10px] font-medium">상점</span>
+</a>
+<a class="flex flex-col items-center justify-center w-16 h-full gap-1 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined !text-[26px] filled">person</span>
+<span class="text-[10px] font-medium">MY</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

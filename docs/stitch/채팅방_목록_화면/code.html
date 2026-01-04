@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="ko"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AI Idol Chat List</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                "primary": "#ee2b8c",
+                "background-light": "#f8f6f7",
+                "background-dark": "#221019",
+                "surface-dark": "#2d1b24",
+                "text-muted": "#c992ad",
+                },
+                fontFamily: {
+                "display": ["Plus Jakarta Sans", "sans-serif"]
+                },
+                borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "full": "9999px"},
+            },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar hiding for horizontal scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white min-h-screen relative overflow-x-hidden selection:bg-primary selection:text-white pb-24">
+<!-- Top App Bar -->
+<header class="sticky top-0 z-40 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-white/5 px-4 pt-12 pb-3 flex items-center justify-between transition-colors duration-300">
+<div class="flex items-center gap-3">
+<div class="relative">
+<div class="w-10 h-10 rounded-full bg-cover bg-center ring-2 ring-gray-200 dark:ring-white/10" data-alt="User profile avatar close up" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCVl0hrpoB1yOAKpQmi-_0n7ICqjGaew6qKzz_Gn8CbqiQL1TBgAMDihfIzH7NO8Kir1bL6J_gs-qj0PzAlVN-0TM1Py8H0_3TOtix5p0aql-mvaSLfSbA290FDgIwdBcPIYdPe53zzyV5MDn_BXBDETX3SZX_aoWMl3hh_NIS59fdAciuwSHR-AoKLwEeh2jIaNjLb0MTt70Uv5AzH3-4cfSZ7zkxkEY0Pj82wFASAxuhtYWy-IwB4kj9mN8N7xCmOj_sTq6L2f30");'></div>
+<div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background-light dark:border-background-dark"></div>
+</div>
+<h1 class="text-2xl font-bold tracking-tight">Messages</h1>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-2xl text-gray-600 dark:text-text-muted">search</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-2xl text-gray-600 dark:text-text-muted">settings</span>
+</button>
+</div>
+</header>
+<!-- Online Idols (Stories Style) -->
+<section class="pt-6 pb-2">
+<div class="px-4 mb-3 flex items-center justify-between">
+<h2 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-text-muted">Online Now</h2>
+</div>
+<div class="flex overflow-x-auto no-scrollbar px-4 gap-4 pb-4 snap-x">
+<!-- Add New Status -->
+<div class="flex flex-col items-center gap-2 shrink-0 snap-start">
+<div class="w-[72px] h-[72px] rounded-full border-2 border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-3xl text-primary">add</span>
+</div>
+<span class="text-xs font-medium text-center w-16 truncate opacity-60">Add</span>
+</div>
+<!-- Active Idol 1 -->
+<div class="flex flex-col items-center gap-2 shrink-0 snap-start cursor-pointer group">
+<div class="relative p-[3px] rounded-full bg-gradient-to-tr from-primary to-purple-400 group-hover:scale-105 transition-transform duration-300">
+<div class="w-[66px] h-[66px] rounded-full bg-background-light dark:bg-background-dark p-[2px]">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Portrait of Mina smiling brightly" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD6dA-SVTr0ytH2Pt9yG6hyUa97f3KkA-0vn9buUm3UGQv7uHa4839D-z3n7SpBmNB-ykCrx878EcYEShcpLmSpdPC73vjnhrYJBIHwIwrRI4RpFQ1XsIKppF0eyt9upWcXJVYuP91dHXFW7DME0H9M03LGiCLhYbEUmEI1q-4pYgGIYeN2BkaGwF3C60FBq2CXM8M-1WSYzzadvkwvg8TO5vu119iHimWsPZzKFZgpdclubGThgTbSd3gS8y4C_V38mXiGOj8RrV4");'></div>
+</div>
+<div class="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-background-dark rounded-full"></div>
+</div>
+<span class="text-xs font-medium text-center w-16 truncate">Mina</span>
+</div>
+<!-- Active Idol 2 -->
+<div class="flex flex-col items-center gap-2 shrink-0 snap-start cursor-pointer group">
+<div class="relative p-[3px] rounded-full bg-gradient-to-tr from-primary to-purple-400 group-hover:scale-105 transition-transform duration-300">
+<div class="w-[66px] h-[66px] rounded-full bg-background-light dark:bg-background-dark p-[2px]">
+<div class="w-full h-full rounded-full bg-cover bg-center" data-alt="Portrait of Yuna looking elegant" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDcGeVgBHHjHp0VDAX_TZ-mwcpWaBh53oWJ2cZFdejZRp2YfIJwLSKx37bvjO6NQDNfTKKdC7OU7cSUZHQ4T8BvxUs07NWomELTdajFQWWen12frWqDrxf00ChNdouM232AgmI3NxjWWxFIaCWeAJ6CeAzWGRPZKTK3_s2JedpDFZd5L7GLHEaz4YRzHIZo6atU9g-OQCgxBK_eeVkyWGPR3mFYNbi-ZFC_4lawCy8Sx-Gm8xu0kw3ONHaKEAJyebxNtkj8klBiyO8");'></div>
+</div>
+<div class="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-background-dark rounded-full"></div>
+</div>
+<span class="text-xs font-medium text-center w-16 truncate">Yuna</span>
+</div>
+<!-- Idle Idol 1 -->
+<div class="flex flex-col items-center gap-2 shrink-0 snap-start cursor-pointer group">
+<div class="relative p-[3px] rounded-full border-2 border-gray-200 dark:border-white/10 group-hover:border-primary/50 transition-colors">
+<div class="w-[62px] h-[62px] rounded-full bg-background-light dark:bg-background-dark p-[2px]">
+<div class="w-full h-full rounded-full bg-cover bg-center grayscale-[30%]" data-alt="Portrait of Sora winking" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBYUcbkdnWcKECtUAueoTWHqof53p1xRDgKqyChNT05vltykUlFfcJ5-uuz4FdcU-rryd-IKxZcMJ9K_uYB-uuCCcKT6ZzMWRySK3cgLnCMLT0gbMJZQd5lBwFa6HA_pIhMInDejfMRpZNBfG_gPGVd9aFM8kYCeZyAsmhwQvK4B4x9e37obyyaJBdsMJPpKh0B8zBjS3rsf1Ba0-Bu0FdUk5j0W31NDUxIT4l4DlhAxWY6vMQHJO2mLMrLidQ88ndK5DXzWqqkuKo");'></div>
+</div>
+</div>
+<span class="text-xs font-medium text-center w-16 truncate text-gray-500 dark:text-text-muted">Sora</span>
+</div>
+<!-- Idle Idol 2 -->
+<div class="flex flex-col items-center gap-2 shrink-0 snap-start cursor-pointer group">
+<div class="relative p-[3px] rounded-full border-2 border-gray-200 dark:border-white/10 group-hover:border-primary/50 transition-colors">
+<div class="w-[62px] h-[62px] rounded-full bg-background-light dark:bg-background-dark p-[2px]">
+<div class="w-full h-full rounded-full bg-cover bg-center grayscale-[30%]" data-alt="Portrait of Rina with cool sunglasses" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBsPL5vOgr3ghnxRebShKndSKh-9PtlXg80mlkWKPkFVl4A5pAkkd_FfqFuNhAzjzq1-gXfgxWogLRVdQ5VlanxtP5yECG3c2N-9yi-YgDl2HnAj1dkobE3S405g4rusYIOCMSmqJloSoaA_XjQYkrOd9s_vGfJcbvzOcy1rH3bohcoziN0NUDbMDdJ6LnWGHoUGLiBRsF48rmKt6FTStF8iCrI_eEQhpqoFGRLWGKii2y9_Egzm-MN9MzsxshLh_f6VE4NxDFsEto");'></div>
+</div>
+</div>
+<span class="text-xs font-medium text-center w-16 truncate text-gray-500 dark:text-text-muted">Rina</span>
+</div>
+<!-- Idle Idol 3 -->
+<div class="flex flex-col items-center gap-2 shrink-0 snap-start cursor-pointer group">
+<div class="relative p-[3px] rounded-full border-2 border-gray-200 dark:border-white/10 group-hover:border-primary/50 transition-colors">
+<div class="w-[62px] h-[62px] rounded-full bg-background-light dark:bg-background-dark p-[2px]">
+<div class="w-full h-full rounded-full bg-cover bg-center grayscale-[30%]" data-alt="Portrait of Hana holding flowers" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAiCiL8icj8x6dKJLHVARRgW2ecR6c9iPhq5pJhuDoyiXUto2x46i0xibYi2aqJY1KGb_Z0gv3bzl52XxXOXK8LWi3UgHMCcyo6SC8chSm9gXpBc1SWyZJifDGEZQTA4GwDig6rFhShAIROU4xSXp8ZYobyq8-jJ8r7mrmZuJ9ScMAMHN_zjQaicgWKxSxK5_DhYrnqPGVmf3BwyEU30k23n6zt6gxqv0LcJfBJppY7MbAa8sJNvy1yP5Oil2sHJ4SQsZl5fGnkLKI");'></div>
+</div>
+</div>
+<span class="text-xs font-medium text-center w-16 truncate text-gray-500 dark:text-text-muted">Hana</span>
+</div>
+</div>
+</section>
+<!-- Chat List -->
+<main class="mt-2 flex flex-col px-2">
+<!-- Pinned / Favorites Heading -->
+<div class="px-4 py-2">
+<h2 class="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-text-muted">Recent Chats</h2>
+</div>
+<!-- Chat Item 1: Active, Unread -->
+<div class="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-white hover:shadow-sm dark:hover:bg-surface-dark dark:hover:shadow-none transition-all cursor-pointer mb-1">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-xl bg-cover bg-center" data-alt="Portrait of Mina smiling brightly" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBRacfNvd6pod7eV1xa3mAZYSbYZtXrzvxn24bSODGryQiW75cgPFHklL_nmeMh5c88dvNUcdZcnHgZJwjuH_dlpapDVMyfCkoaN-1Cu_Jov3LCZHwCeTDEkeVDEnAIbUDPEwN46C-YlhcWjWaSvO4blYSrynHTb4gS9HHfsbyBHiPv1iIl9rwdAzftzXnqZOYH8dn5RE8BLg290uGmTJCl4-d3rrE8gMthQsl8OrSmhzMwjM2WhfSJKT2V731V8KAZtbU8YZ7ZqM8");'></div>
+<div class="absolute -bottom-1 -right-1 bg-white dark:bg-surface-dark p-[2px] rounded-full">
+<span class="material-symbols-outlined text-sm bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 rounded-full p-0.5" style="font-size: 14px;">mic</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-0.5">
+<h3 class="text-base font-bold text-slate-900 dark:text-white truncate">Mina</h3>
+<span class="text-xs font-medium text-primary">2m ago</span>
+</div>
+<p class="text-sm text-slate-600 dark:text-gray-300 font-medium truncate">Did you eat lunch yet? Don't skip meals! 🍱</p>
+</div>
+<div class="shrink-0 flex flex-col items-end gap-1">
+<div class="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+<span class="text-[10px] font-bold text-white">2</span>
+</div>
+</div>
+</div>
+<!-- Chat Item 2: Unread -->
+<div class="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-white hover:shadow-sm dark:hover:bg-surface-dark dark:hover:shadow-none transition-all cursor-pointer mb-1">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-xl bg-cover bg-center" data-alt="Portrait of Yuna looking elegant" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAdmKt733dYkdgpcx-NaIAieCHmCRhuBpgvQsx_ukXhu5z7-IFkVnCpeGvXxcwSH1tXMObs9sKnkegQYV3RoGMJgvgKU19D5tPaqVNJyBFFv40NHmLmKNXQRpmX9tM2rt0UFxkB-4HO-iGVK1KRH2gn38Z3eWViL7fbo8lRE_f-yXknyI7yJuYlBN6zm6uKU8Is0E5mMbulkpli1VO41shdJoN0G6z_4vy9_Kp6fV3Pt7XHaEvbb03bL19g4F7cGHOwFvIbpeISzbM");'></div>
+<div class="absolute -bottom-1 -right-1 bg-white dark:bg-surface-dark p-[2px] rounded-full">
+<span class="material-symbols-outlined text-sm bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 rounded-full p-0.5" style="font-size: 14px;">music_note</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-0.5">
+<h3 class="text-base font-bold text-slate-900 dark:text-white truncate">Yuna</h3>
+<span class="text-xs font-medium text-gray-500 dark:text-text-muted">1h ago</span>
+</div>
+<p class="text-sm text-slate-500 dark:text-text-muted truncate">I was thinking about our conversation yesterday...</p>
+</div>
+<div class="shrink-0 flex flex-col items-end gap-1">
+<div class="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+<span class="text-[10px] font-bold text-white">1</span>
+</div>
+</div>
+</div>
+<!-- Chat Item 3: Read -->
+<div class="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-white hover:shadow-sm dark:hover:bg-surface-dark dark:hover:shadow-none transition-all cursor-pointer mb-1">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-xl bg-cover bg-center grayscale-[20%]" data-alt="Portrait of Sora winking" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDOjrsEBs9QagTIrlePj-yfRwUWQkABT1anBTpJ99vKy_QXSl-N0mLpvebYh3G5DvoNs3zmv7zoqC08QALWqDrEga-vIb2a5E7QuwiAKqIkH5Adwzdo5kZAbu-llgGt4I96JHqY9g77l4dzx9_AGvjYm79hh9kDYfqDpMQoa6K66JWSSgDqxv2SjZ3KUtUXvrUx8wKsUdjL5wAnpRRnSMzdj8lATKw31fhLHyu2KGH6Yc7aWfth6kuxACuB9yLRH10JcmU0geVyzeo");'></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-0.5">
+<h3 class="text-base font-bold text-slate-700 dark:text-gray-200 truncate">Sora</h3>
+<span class="text-xs font-medium text-gray-400 dark:text-gray-500">Yesterday</span>
+</div>
+<p class="text-sm text-slate-400 dark:text-gray-500 truncate">Thank you for cheering me on! 💖</p>
+</div>
+<div class="shrink-0 flex flex-col items-end gap-1">
+<span class="material-symbols-outlined text-base text-gray-400 dark:text-gray-600">done_all</span>
+</div>
+</div>
+<!-- Chat Item 4: Read -->
+<div class="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-white hover:shadow-sm dark:hover:bg-surface-dark dark:hover:shadow-none transition-all cursor-pointer mb-1">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-xl bg-cover bg-center grayscale-[20%]" data-alt="Portrait of Rina with cool sunglasses" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBiTFT-kf8h6aQdjG-h80WmvT78Y0NC95oxshX_TeF4nKAt9EFtDTQU46bpFRrKV-r_w5Q9FtdENTZFitH73hh27Wm6rR5LG_8TCxuqWAjF6fQg2gSAt4pcALyYH_l7lz38V9ZZ5hlmYh6IJyCO1wJPZZFoM_ZGOmw7utCCp-z7G6IKSSpCraJDhobhpJgl0q59qNjTEausu6Oojvy0ARGb1sHVBHJuYuHj93P1d3UFM7sCLfeYlWjzcH8K2MegHMPQZnFYr56gvwo");'></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-0.5">
+<h3 class="text-base font-bold text-slate-700 dark:text-gray-200 truncate">Rina</h3>
+<span class="text-xs font-medium text-gray-400 dark:text-gray-500">Yesterday</span>
+</div>
+<p class="text-sm text-slate-400 dark:text-gray-500 truncate">Sent a photo 📷</p>
+</div>
+<div class="shrink-0 flex flex-col items-end gap-1">
+<span class="material-symbols-outlined text-base text-gray-400 dark:text-gray-600">done_all</span>
+</div>
+</div>
+<!-- Chat Item 5: Read -->
+<div class="group relative flex items-center gap-4 p-3 rounded-2xl hover:bg-white hover:shadow-sm dark:hover:bg-surface-dark dark:hover:shadow-none transition-all cursor-pointer mb-1">
+<div class="relative shrink-0">
+<div class="w-14 h-14 rounded-xl bg-cover bg-center grayscale-[20%]" data-alt="Portrait of Hana holding flowers" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDcJn5WTVd2bk4g49l7LDyHoozhCGk7SjZOHDQb-q6z4Y3Am_ScmyU5THpThALK6-mk-WJUype7kJNHaAxhmlysd8svlhckgKDeAsUhL1aLieNpKFBv3vxUBLyasJXot2qXHgJz1KR-ymytETpxpjE1IHlkYRKZXKbwaftt2sH1bmiH3JRgAkoVCTTGSOJC2J1gGhRR1-Nwx4MupnI-JzyjH4W3Vr4he8UCC-bwqpmcBmw5hMknJN3OIJ1L-Mi-Awcr-R3C5qJYup4");'></div>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex justify-between items-baseline mb-0.5">
+<h3 class="text-base font-bold text-slate-700 dark:text-gray-200 truncate">Hana</h3>
+<span class="text-xs font-medium text-gray-400 dark:text-gray-500">2 days ago</span>
+</div>
+<p class="text-sm text-slate-400 dark:text-gray-500 truncate">I'll release a new cover song soon...</p>
+</div>
+</div>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-4 z-30 w-14 h-14 bg-primary text-white rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-2xl">add_comment</span>
+</button>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full bg-white/90 dark:bg-background-dark/95 backdrop-blur-lg border-t border-gray-200 dark:border-white/5 pb-5 pt-3 px-6 z-40">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 w-12 group">
+<span class="material-symbols-outlined text-[28px] text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">home</span>
+<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-12 group">
+<span class="material-symbols-outlined text-[28px] text-primary fill-1">chat_bubble</span>
+<span class="text-[10px] font-medium text-primary">Chat</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-12 group">
+<span class="material-symbols-outlined text-[28px] text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">favorite</span>
+<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">Fandom</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-12 group">
+<span class="material-symbols-outlined text-[28px] text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">person</span>
+<span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 group-hover:text-primary transition-colors">Profile</span>
+</button>
+</div>
+</nav>
+<!-- Decorative Bottom Gradient -->
+<div class="pointer-events-none fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent z-10"></div>
+</body></html>

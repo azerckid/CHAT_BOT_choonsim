@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { auth } from "~/lib/auth.server";
 import { prisma } from "~/lib/db.server";
@@ -8,6 +9,7 @@ import { signOut } from "~/lib/auth-client";
 import { toast } from "sonner";
 import { DateTime } from "luxon";
 import { CHARACTERS } from "~/lib/characters";
+import { TokenTopUpModal } from "~/components/payment/TokenTopUpModal";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -34,19 +36,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
       const firstDay = DateTime.fromJSDate(firstConversation.createdAt).setZone("Asia/Seoul").startOf("day");
       const today = now.startOf("day");
       daysTogether = Math.max(0, Math.floor(today.diff(firstDay, "days").days)) + 1; // +1은 시작일 포함
-      
+
       // 가장 많이 대화한 캐릭터 찾기
       const conversations = await prisma.conversation.findMany({
         where: { userId: session.user.id },
         select: { characterId: true },
       });
-      
+
       const characterCounts = new Map<string, number>();
       conversations.forEach(conv => {
         const charId = conv.characterId || "chunsim";
         characterCounts.set(charId, (characterCounts.get(charId) || 0) + 1);
       });
-      
+
       let maxCount = 0;
       let mostUsedCharId = "chunsim";
       characterCounts.forEach((count, charId) => {
@@ -55,7 +57,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
           mostUsedCharId = charId;
         }
       });
-      
+
       const character = CHARACTERS[mostUsedCharId];
       if (character) {
         mainCharacterName = character.name;
@@ -89,7 +91,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     if (userConversations.length > 0) {
       const conversationIds = userConversations.map((c) => c.id);
-      
+
       const userMessages = await prisma.message.findMany({
         where: {
           conversationId: { in: conversationIds },
@@ -123,7 +125,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
           },
         });
 
-        todayUsage = todayExecutions.reduce(
+        todayUsage = todayExecutions.reduce<{
+          promptTokens: number;
+          completionTokens: number;
+          totalTokens: number;
+          messageCount: number;
+        }>(
           (acc, exec) => ({
             promptTokens: acc.promptTokens + exec.promptTokens,
             completionTokens: acc.completionTokens + exec.completionTokens,
@@ -144,17 +151,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // 에러가 발생해도 기본값(0)을 사용하여 계속 진행
   }
 
-  return Response.json({ user, stats, todayUsage, mainCharacterName });
+  const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+
+  return Response.json({ user, stats, todayUsage, mainCharacterName, paypalClientId });
 }
 
 export default function ProfileScreen() {
-  const { user, stats, todayUsage, mainCharacterName } = useLoaderData<typeof loader>() as { 
-    user: any; 
-    stats: any; 
+  const { user, stats, todayUsage, mainCharacterName, paypalClientId } = useLoaderData<typeof loader>() as {
+    user: any;
+    stats: any;
     todayUsage: { totalTokens: number; promptTokens: number; completionTokens: number; messageCount: number };
     mainCharacterName: string;
+    paypalClientId?: string; // Optional because it might not be set in env
   };
   const navigate = useNavigate();
+  const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
 
   // 토큰 수를 읽기 쉬운 형식으로 포맷팅 (예: 1.2K, 5.3M)
   const formatTokenCount = (count: number): string => {
@@ -228,20 +239,20 @@ export default function ProfileScreen() {
             </h2>
             {/* Badges */}
             <div className="flex flex-wrap gap-2 justify-center items-center mt-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-[14px]">favorite</span>
-                      {mainCharacterName}'s Fan
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                        diamond
-                      </span>
-                      Lv. {stats.affinityLevel} Soulmate
-                    </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider">
+                <span className="material-symbols-outlined text-[14px]">favorite</span>
+                {mainCharacterName}'s Fan
+              </span>
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  diamond
+                </span>
+                Lv. {stats.affinityLevel} Soulmate
+              </span>
             </div>
-                  <p className="text-white/60 text-sm mt-3 px-4 line-clamp-2">
-                    "오늘도 {mainCharacterName}와 함께 힘내자! 🌙✨"
-                  </p>
+            <p className="text-white/60 text-sm mt-3 px-4 line-clamp-2">
+              "오늘도 {mainCharacterName}와 함께 힘내자! 🌙✨"
+            </p>
           </div>
         </section>
 
@@ -257,12 +268,18 @@ export default function ProfileScreen() {
                 <span className="text-2xl font-bold text-primary tracking-tight">Lv.{stats.affinityLevel}</span>
                 <span className="text-xs text-white/50 font-medium">친밀도</span>
               </div>
-              <div className="flex flex-col items-center gap-1 px-2">
+              <button
+                onClick={() => setIsTopUpModalOpen(true)}
+                className="flex flex-col items-center gap-1 px-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer py-1 -my-1"
+              >
                 <span className="text-2xl font-bold text-white tracking-tight">
                   {stats.hearts >= 1000 ? `${(stats.hearts / 1000).toFixed(1)}k` : stats.hearts}
                 </span>
-                <span className="text-xs text-white/50 font-medium">보유 하트</span>
-              </div>
+                <span className="text-xs text-white/50 font-medium flex items-center gap-1">
+                  보유 하트
+                  <span className="material-symbols-outlined text-[10px] text-primary">add_circle</span>
+                </span>
+              </button>
             </div>
           </div>
 
@@ -330,15 +347,30 @@ export default function ProfileScreen() {
               <div className="h-px bg-white/5 mx-4" />
               {/* List Item */}
               <button
-                onClick={() => navigate("/profile/subscription")}
+                onClick={() => navigate("/pricing")}
+                className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left"
+              >
+                <div className="flex items-center justify-center shrink-0 size-10 rounded-xl bg-purple-500/20 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined">diamond</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-semibold text-white truncate">멤버십 업그레이드</p>
+                  <p className="text-xs text-white/50 truncate">더 높은 등급의 혜택 받기</p>
+                </div>
+                <span className="material-symbols-outlined text-white/30">chevron_right</span>
+              </button>
+              <div className="h-px bg-white/5 mx-4" />
+              {/* List Item */}
+              <button
+                onClick={() => setIsTopUpModalOpen(true)}
                 className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left"
               >
                 <div className="flex items-center justify-center shrink-0 size-10 rounded-xl bg-primary/20 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                   <span className="material-symbols-outlined">credit_card</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-base font-semibold text-white truncate">구독 및 결제 관리</p>
-                  <p className="text-xs text-white/50 truncate">Premium 멤버십 관리</p>
+                  <p className="text-base font-semibold text-white truncate">충전 및 결제 관리</p>
+                  <p className="text-xs text-white/50 truncate">크레딧 충전 및 사용 내역</p>
                 </div>
                 <span className="material-symbols-outlined text-white/30">chevron_right</span>
               </button>
@@ -407,6 +439,11 @@ export default function ProfileScreen() {
       </main>
 
       <BottomNavigation />
+      <TokenTopUpModal
+        open={isTopUpModalOpen}
+        onOpenChange={setIsTopUpModalOpen}
+        paypalClientId={paypalClientId}
+      />
     </div>
   );
 }

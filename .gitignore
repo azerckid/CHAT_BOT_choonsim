@@ -9,7 +9,7 @@
 
 /generated/prisma
 
-/docs/
+# /docs/
 
 AGENTS.md
 dev.db

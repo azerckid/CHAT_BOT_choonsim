@@ -14,9 +14,9 @@
   --font-display: "Plus Jakarta Sans", "sans-serif";
   --font-body: "Noto Sans KR", "sans-serif";
 
-  /* Stitch 가이드 code.html 기반 정확한 컬러 */
-  --color-primary: #ee2b8c;
-  --color-primary-dark: #d61f7a;
+  /* Stitch 가이드 code.html 및 온라인 레퍼런스 기반 Neon Magenta */
+  --color-primary: #FF00FF;
+  --color-primary-dark: #cc00cc;
 
   /* 라이트 모드 (Stitch Light) */
   --color-background-light: #f8f6f7;
@@ -361,4 +361,12 @@ body {
   .dark ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
   }
+}
+/* PayPal iFrame Dark Mode Force Fix */
+iframe[name^="zoid-paypal-buttons"] {
+    background: transparent !important;
+    background-color: transparent !important; 
+}
+.paypal-buttons-context-iframe {
+    background: transparent !important;
 }

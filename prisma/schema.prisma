@@ -170,6 +170,44 @@ model Message {
   MessageLike    MessageLike[]
 }
 
+model Payment {
+  id             String   @id @default(uuid())
+  userId         String
+  amount         Float
+  currency       String   @default("USD")
+  status         String // PENDING, COMPLETED, FAILED, REFUNDED, CANCELLED, CONFIRMING
+  type           String // SUBSCRIPTION, TOPUP, SUBSCRIPTION_RENEWAL
+  provider       String // "PAYPAL", "TOSS", "COINBASE", "SOLANA", "NEAR"
+  description    String?
+  creditsGranted Int?
+  metadata       String? // JSON string
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Provider Specific Fields
+  transactionId  String? @unique // PayPal/Toss OrderId
+  subscriptionId String? // PayPal Subscription ID
+  paymentKey     String? // Toss Payments Key
+
+  // Crypto Specific Fields
+  txHash         String? @unique // Blockchain transaction hash
+  walletAddress  String? // Sender's wallet address
+  cryptoCurrency String? // e.g., "BTC", "ETH", "SOL", "NEAR"
+  cryptoAmount   Float? // Amount in crypto
+  exchangeRate   Float? // Exchange rate (USD based)
+  blockNumber    String?
+  confirmations  Int?    @default(0)
+  network        String? // "mainnet", "testnet"
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([transactionId])
+  @@index([subscriptionId])
+  @@index([txHash])
+  @@index([provider, status])
+}
+
 model MessageLike {
   id        String   @id @default(uuid())
   messageId String
@@ -342,24 +380,30 @@ model TweetTravelTag {
 }
 
 model User {
-  id                                          String               @id
-  email                                       String
-  password                                    String?
-  name                                        String?
-  image                                       String?
-  provider                                    String               @default("local")
-  snsId                                       String?
-  createdAt                                   DateTime             @default(now())
-  updatedAt                                   DateTime
-  emailVerified                               Boolean              @default(false)
-  avatarUrl                                   String?
-  status                                      String               @default("OFFLINE")
-  bio                                         String?
-  coverImage                                  String?
-  isPrivate                                   Boolean?             @default(false)
-  checkInTime                                 String? // "09:00" 형식의 체크인 시간
-  pushSubscription                            String? // 웹 푸시 구독 정보 (JSON)
-  subscriptionTier                            String?              @default("FREE") // FREE, BASIC, PREMIUM, ULTIMATE
+  id                 String    @id
+  email              String
+  password           String?
+  name               String?
+  image              String?
+  provider           String    @default("local")
+  snsId              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime
+  emailVerified      Boolean   @default(false)
+  avatarUrl          String?
+  status             String    @default("OFFLINE")
+  bio                String?
+  coverImage         String?
+  isPrivate          Boolean?  @default(false)
+  checkInTime        String? // "09:00" 형식의 체크인 시간
+  pushSubscription   String? // 웹 푸시 구독 정보 (JSON)
+  subscriptionTier   String?   @default("FREE") // FREE, BASIC, PREMIUM, ULTIMATE
+  subscriptionStatus String? // ACTIVE, CANCELLED, PAST_DUE, SUSPENDED
+  subscriptionId     String?   @unique // PayPal Subscription ID
+  currentPeriodEnd   DateTime?
+  lastTokenRefillAt  DateTime?
+  credits            Int       @default(100) // 현재 보유 크레딧
+
   Bookmark                                    Bookmark[]
   BookmarkCollection                          BookmarkCollection[]
   Conversation                                Conversation[]
@@ -371,9 +415,11 @@ model User {
   MessageLike                                 MessageLike[]
   Notification_Notification_issuerIdToUser    Notification[]       @relation("Notification_issuerIdToUser")
   Notification_Notification_recipientIdToUser Notification[]       @relation("Notification_recipientIdToUser")
+  Payment                                     Payment[]
   Retweet                                     Retweet[]
-  TravelPlan                                  TravelPlan[]
-  Tweet                                       Tweet[]
+
+  TravelPlan TravelPlan[]
+  Tweet      Tweet[]
 }
 
 model account {

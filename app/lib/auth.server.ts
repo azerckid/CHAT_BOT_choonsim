@@ -229,3 +229,16 @@ export const auth = betterAuth({
         },
     },
 });
+
+export async function requireUserId(request: Request): Promise<string | null> {
+    const session = await auth.api.getSession({
+        headers: request.headers,
+    });
+
+    if (!session || !session.user) {
+        return null;
+    }
+
+    return session.user.id;
+}
+

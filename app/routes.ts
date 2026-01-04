@@ -56,4 +56,8 @@ export default [
   route("api/test-cron", "routes/api/test-cron.ts"),
   route("api/push-subscription", "routes/api/push-subscription.ts"),
   route("api/stats/usage", "routes/api/stats/usage.ts"),
+  route("api/payment/create-order", "routes/api.payment.create-order.ts"),
+  route("api/payment/capture-order", "routes/api.payment.capture-order.ts"),
+  route("pricing", "routes/pricing.tsx"),
+  route("api/payment/activate-subscription", "routes/api.payment.activate-subscription.ts"),
 ] satisfies RouteConfig;
