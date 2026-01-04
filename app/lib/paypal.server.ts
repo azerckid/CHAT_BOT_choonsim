@@ -59,5 +59,30 @@ export async function verifyWebhookSignature(headers: Record<string, string>, bo
     }
 }
 
+// 구독 취소 함수
+export async function cancelPayPalSubscription(subscriptionId: string, reason: string = "User requested cancellation") {
+    // REST API Request for Cancel
+    // POST /v1/billing/subscriptions/{id}/cancel
+    const request = {
+        path: `/v1/billing/subscriptions/${subscriptionId}/cancel`,
+        verb: "POST",
+        body: {
+            reason: reason
+        },
+        headers: {
+            "Content-Type": "application/json"
+        }
+    };
+
+    try {
+        const response = await paypalClient.execute(request);
+        // Successful cancellation returns 204 No Content
+        return response.statusCode === 204;
+    } catch (error) {
+        console.error("Failed to cancel subscription:", error);
+        throw error;
+    }
+}
+
 // export types for convenience
 export { paypal };

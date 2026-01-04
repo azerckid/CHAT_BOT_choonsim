@@ -362,7 +362,7 @@ export default function ProfileScreen() {
               <div className="h-px bg-white/5 mx-4" />
               {/* List Item */}
               <button
-                onClick={() => setIsTopUpModalOpen(true)}
+                onClick={() => navigate("/profile/subscription")}
                 className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left"
               >
                 <div className="flex items-center justify-center shrink-0 size-10 rounded-xl bg-primary/20 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
