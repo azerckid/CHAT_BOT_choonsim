@@ -85,6 +85,9 @@ export function TokenTopUpModal({
             // 유니크한 orderId 생성을 위해 타임스탬프 활용
             const orderId = `order_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
+            // 태블릿/모바일 여부 확인 (스마트 타운 목표 설정)
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
             // 결제 요청
             await tossPayments.requestPayment("카드", {
                 amount: selectedPackage.priceKRW,
@@ -92,6 +95,7 @@ export function TokenTopUpModal({
                 orderName: selectedPackage.name,
                 successUrl: `${window.location.origin}/payment/toss/success?creditsGranted=${selectedPackage.credits + selectedPackage.bonus}&packageId=${selectedPackage.id}&amount=${selectedPackage.priceKRW}`,
                 failUrl: `${window.location.origin}/payment/toss/fail?from=topup`,
+                windowTarget: isMobile ? "self" : undefined,
             });
         } catch (error) {
             console.error("Toss Payment Error:", error);

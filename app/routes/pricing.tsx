@@ -108,6 +108,9 @@ export default function PricingPage() {
             // 유니크한 orderId 생성을 위해 타임스탬프 활용
             const orderId = `sub_${selectedPlan.tier.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
+            // 태블릿/모바일 여부 확인
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
             // 정기결제를 위한 빌링키 발급 또는 첫 달 결제 요청
             await tossPayments.requestPayment("카드", {
                 amount: selectedPlan.monthlyPriceKRW,
@@ -115,6 +118,7 @@ export default function PricingPage() {
                 orderName: `${selectedPlan.name} 멤버십 (1개월)`,
                 successUrl: `${window.location.origin}/payment/toss/success?type=SUBSCRIPTION&tier=${selectedPlan.tier}&amount=${selectedPlan.monthlyPriceKRW}`,
                 failUrl: `${window.location.origin}/payment/toss/fail?from=subscription`,
+                windowTarget: isMobile ? "self" : undefined,
             });
         } catch (error) {
             console.error("Toss Subscription Error:", error);
