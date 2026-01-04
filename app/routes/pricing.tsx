@@ -115,6 +115,7 @@ export default function PricingPage() {
                 orderName: `${selectedPlan.name} 멤버십 (1개월)`,
                 successUrl: `${window.location.origin}/payment/toss/success?type=SUBSCRIPTION&tier=${selectedPlan.tier}&amount=${selectedPlan.monthlyPriceKRW}`,
                 failUrl: `${window.location.origin}/payment/toss/fail`,
+                windowTarget: "self",
             });
         } catch (error) {
             console.error("Toss Subscription Error:", error);

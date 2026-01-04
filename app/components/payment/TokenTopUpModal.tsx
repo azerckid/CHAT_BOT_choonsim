@@ -92,6 +92,7 @@ export function TokenTopUpModal({
                 orderName: selectedPackage.name,
                 successUrl: `${window.location.origin}/payment/toss/success?creditsGranted=${selectedPackage.credits + selectedPackage.bonus}&packageId=${selectedPackage.id}&amount=${selectedPackage.priceKRW}`,
                 failUrl: `${window.location.origin}/payment/toss/fail`,
+                windowTarget: "self",
             });
         } catch (error) {
             console.error("Toss Payment Error:", error);
