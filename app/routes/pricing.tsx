@@ -61,10 +61,11 @@ export default function PricingPage() {
         }
     }, []);
 
-    const plans = Object.values(SUBSCRIPTION_PLANS).filter(p => p.tier !== "FREE");
+    const plans = Object.values(SUBSCRIPTION_PLANS);
 
     const getPlanIcon = (tier: string) => {
         switch (tier) {
+            case "FREE": return "egg";
             case "BASIC": return "bolt";
             case "PREMIUM": return "diamond";
             case "ULTIMATE": return "crown";
@@ -73,7 +74,10 @@ export default function PricingPage() {
     };
 
     const handlePlanClick = (plan: SubscriptionPlan) => {
-        if (user?.subscriptionTier === plan.tier) {
+        if (user?.subscriptionTier === plan.tier || plan.tier === "FREE") {
+            if (plan.tier === "FREE" && user?.subscriptionTier !== "FREE") {
+                toast.info("무료 플랜은 구독 만료 후 자동으로 적용됩니다.");
+            }
             return;
         }
         setSelectedPlan(plan);
@@ -208,7 +212,7 @@ export default function PricingPage() {
                                             <div className="flex items-center gap-2">
                                                 <span className={cn(
                                                     "material-symbols-outlined text-[20px]",
-                                                    isUltimate ? "text-yellow-400" : (isPopular ? "text-primary" : "text-blue-400")
+                                                    isUltimate ? "text-yellow-400" : (isPopular ? "text-primary" : (plan.tier === "FREE" ? "text-slate-400" : "text-blue-400"))
                                                 )}>
                                                     {getPlanIcon(plan.tier)}
                                                 </span>

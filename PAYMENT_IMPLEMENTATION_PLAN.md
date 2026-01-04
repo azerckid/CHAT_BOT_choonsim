@@ -382,6 +382,7 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
         - [x] Implement dynamic `orderId` generation (timestamp based)
         - [x] Add loading state/locking during payment initiation
         - [x] Refine `replace: true` navigation to prevent back-button loops in in-app browsers
+        - [x] Implement "Smart Targeting" (Mobile: `self` vs PC: `popup`) to prevent app termination
 
 ### Phase 9: Mobile UX Optimization (Analysis)
 
@@ -390,11 +391,13 @@ PAYPAL_WEBHOOK_ID=your_webhook_id  # Webhook 서명 검증용
 1. **OrderId Reuse**: Tossing same `orderId` after a cancellation or session expiry.
 2. **Double Initiation**: Multiple triggers of payment SDK during page transitions or double clicks.
 3. **History Stack**: Back button returns to the JS execution point of the previous session, triggering it again.
+4. **App Termination**: In-app browsers (Kakao, Slack) often close the entire webview when a popup-initiated payment is cancelled via the system back button.
 
 **Solution**:
 1. **Dynamic OrderId**: Append `Date.now()` to every `orderId` to ensure a fresh session.
 2. **Action Locking**: Implement `isProcessing` state to disable buttons during SDK handshake.
 3. **Clean Redirection**: Use `replace: true` for all terminal states (Success/Fail) to prune the history stack.
+4. **Smart Targeting**: Detect device via User-Agent. Use `windowTarget: 'self'` for Mobile to keep the session in the same stack, and `undefined` for PC to maintain popup stability.
 
 
 ---
