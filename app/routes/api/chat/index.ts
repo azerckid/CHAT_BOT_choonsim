@@ -77,37 +77,70 @@ export async function action({ request }: ActionFunctionArgs) {
             let fullContent = "";
 
             try {
-                // 1단계: AI 응답을 먼저 전체 받기 (화면에 표시하지 않음)
+                // 1. 크레딧 잔액 확인 (최소 실행 비용)
+                const MIN_REQUIRED_CREDITS = 10;
+                const currentUser = await prisma.user.findUnique({
+                    where: { id: session.user.id },
+                    select: { credits: true }
+                });
+
+                if (!currentUser || currentUser.credits < MIN_REQUIRED_CREDITS) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Insufficient credits", code: 402 })}\n\n`));
+                    controller.close();
+                    return;
+                }
+
+                // 2단계: AI 응답 스트리밍 및 토큰 사용량 집계
+                // ... (기존 스트리밍 로직)
                 const subscriptionTier = (user?.subscriptionTier as any) || "FREE";
                 let tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
                 let firstMessageId: string | null = null;
-                
+
                 for await (const item of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id, characterId, subscriptionTier)) {
                     if (item.type === 'content') {
                         fullContent += item.content;
-                    } else if (item.type === 'usage') {
+                    } else if (item.type === 'usage' && item.usage) {
                         tokenUsage = item.usage;
                     }
                 }
 
+                // ... (사진 처리 및 메시지 분할 로직)
+
+                // 3단계. 토큰 사용량에 따른 크레딧 차감 (스트리밍 완료 후)
+                if (tokenUsage && tokenUsage.totalTokens > 0) {
+                    try {
+                        await prisma.user.update({
+                            where: { id: session.user.id },
+                            data: {
+                                credits: { decrement: tokenUsage.totalTokens }
+                            }
+                        });
+                        console.log(`Deducted ${tokenUsage.totalTokens} credits for user ${session.user.id}`);
+                    } catch (err) {
+                        console.error("Failed to deduct credits:", err);
+                    }
+                }
+
+                // ... (이하 메시지 저장 및 전송 로직)
+
                 // 전체 응답에서 사진 마커 먼저 추출 (첫 번째 말풍선에만 포함될 것으로 예상)
                 const firstPhotoMarker = extractPhotoMarker(fullContent, characterId);
                 const photoUrl = firstPhotoMarker.photoUrl;
-                
+
                 // 사진 마커가 있으면 전체 응답에서 제거
                 const contentWithoutPhotoMarker = photoUrl ? firstPhotoMarker.content : fullContent;
 
                 // 2단계: 전체 응답을 ---로 나누기 (없으면 적당한 길이로 강제로 나누기)
                 let messageParts = contentWithoutPhotoMarker.split('---').map(p => p.trim()).filter(p => p.length > 0);
-                
+
                 // ---가 없거나 하나만 있으면 적당한 길이로 강제로 나누기
                 if (messageParts.length <= 1 && contentWithoutPhotoMarker.length > 100) {
                     const chunkSize = 80; // 한 말풍선당 약 80자
                     messageParts = [];
                     let currentPart = "";
-                    
+
                     const sentences = contentWithoutPhotoMarker.split(/[.!?。！？]\s*/).filter(s => s.trim());
-                    
+
                     for (const sentence of sentences) {
                         if ((currentPart + sentence).length > chunkSize && currentPart) {
                             messageParts.push(currentPart.trim());
@@ -158,11 +191,11 @@ export async function action({ request }: ActionFunctionArgs) {
                         try {
                             // tokenUsage가 없어도 기본값으로 저장 (디버깅용)
                             const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-                            
+
                             if (!tokenUsage) {
                                 console.warn("Token usage not available from streaming response. Saving with 0 values.");
                             }
-                            
+
                             await prisma.agentExecution.create({
                                 data: {
                                     id: crypto.randomUUID(),
@@ -183,7 +216,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
                     // 첫 번째 말풍선에만 mediaUrl 포함 (완료된 메시지에 사진 표시용)
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage.id, mediaUrl: (i === 0 && photoUrl) ? photoUrl : null })}\n\n`));
-                    
+
                     // 다음 말풍선 전에 약간의 딜레이
                     if (i < messageParts.length - 1) {
                         await new Promise(resolve => setTimeout(resolve, 300)); // 말풍선 사이 300ms 딜레이
