@@ -48,6 +48,106 @@ model Conversation {
   User             User?              @relation(fields: [userId], references: [id])
   Message          Message[]
   TravelPreference TravelPreference[]
+  Character        Character?         @relation(fields: [characterId], references: [id])
+}
+
+// ---------------------------------------------------------
+// Character & Gifting System (Phase 1 & 3)
+// ---------------------------------------------------------
+
+model Character {
+  id              String   @id // characterId key (e.g., "chunsim")
+  name            String
+  role            String // "IDOL", "MODEL", "AI" etc.
+  bio             String
+  personaPrompt   String
+  greetingMessage String?
+  isOnline        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  media        CharacterMedia[]
+  stats        CharacterStat?
+  gifts        GiftLog[]
+  Conversation Conversation[]
+}
+
+model CharacterMedia {
+  id          String   @id @default(uuid())
+  characterId String
+  url         String
+  type        String // "AVATAR", "COVER", "NORMAL", "SECRET"
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId, type])
+}
+
+model Item {
+  id           String   @id @default(uuid())
+  name         String // "Heart", "Rose" etc.
+  type         String // "GIFT", "CONSUMABLE"
+  priceCredits Int? // Price in internal credits
+  priceUSD     Float? // Direct purchase price
+  priceKRW     Float?
+  iconUrl      String?
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  UserInventory UserInventory[]
+  GiftLog       GiftLog[]
+
+  @@index([isActive])
+}
+
+model CharacterStat {
+  id                String    @id @default(uuid())
+  characterId       String    @unique
+  totalHearts       Int       @default(0)
+  totalUniqueGivers Int       @default(0)
+  lastGiftAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([totalHearts])
+}
+
+model GiftLog {
+  id            String   @id @default(uuid())
+  fromUserId    String
+  toCharacterId String // String key or Character reference
+  itemId        String
+  amount        Int
+  message       String?
+  createdAt     DateTime @default(now())
+
+  User      User      @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+  Item      Item      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  Character Character @relation(fields: [toCharacterId], references: [id], onDelete: Cascade)
+
+  @@index([fromUserId, createdAt])
+  @@index([toCharacterId, createdAt])
+}
+
+model UserInventory {
+  id        String   @id @default(uuid())
+  userId    String
+  itemId    String
+  quantity  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
 }
 
 model DMConversation {
@@ -206,6 +306,7 @@ model Payment {
   @@index([subscriptionId])
   @@index([txHash])
   @@index([provider, status])
+  @@index([type])
 }
 
 model MessageLike {
@@ -403,6 +504,10 @@ model User {
   currentPeriodEnd   DateTime?
   lastTokenRefillAt  DateTime?
   credits            Int       @default(100) // 현재 보유 크레딧
+  role               String?   @default("USER") // USER, ADMIN
+
+  UserInventory UserInventory[]
+  GiftLog       GiftLog[]
 
   Bookmark                                    Bookmark[]
   BookmarkCollection                          BookmarkCollection[]
