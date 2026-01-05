@@ -23,7 +23,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return Response.json({
             success: true,
-            credits: result.user.credits,
+            credits: result.user?.credits ?? 0,
             message: "결제가 완료되었습니다."
         });
     } catch (error: any) {

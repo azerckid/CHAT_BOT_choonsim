@@ -1,5 +1,17 @@
--- CreateTable
-CREATE TABLE "AgentExecution" (
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE IF NOT EXISTS "_prisma_migrations" (
+    "id"                    TEXT PRIMARY KEY NOT NULL,
+    "checksum"              TEXT NOT NULL,
+    "finished_at"           DATETIME,
+    "migration_name"        TEXT NOT NULL,
+    "logs"                  TEXT,
+    "rolled_back_at"        DATETIME,
+    "started_at"            DATETIME NOT NULL DEFAULT current_timestamp,
+    "applied_steps_count"   INTEGER UNSIGNED NOT NULL DEFAULT 0
+);
+INSERT INTO _prisma_migrations VALUES('0d5bc4da-1e93-48bc-a752-b45711d0e64f','9aaf4797a11e9d72b8ba533e084f4e663f2e250323ca757c06c1de87bbbbc1a4',1767622802892,'20260105142002_update_schema',NULL,NULL,1767622802876,1);
+CREATE TABLE IF NOT EXISTS "AgentExecution" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "messageId" TEXT NOT NULL,
     "agentName" TEXT NOT NULL,
@@ -11,9 +23,7 @@ CREATE TABLE "AgentExecution" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "AgentExecution_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "Message" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Bookmark" (
+CREATE TABLE IF NOT EXISTS "Bookmark" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "tweetId" TEXT NOT NULL,
@@ -22,9 +32,7 @@ CREATE TABLE "Bookmark" (
     CONSTRAINT "Bookmark_tweetId_fkey" FOREIGN KEY ("tweetId") REFERENCES "Tweet" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Bookmark_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "BookmarkCollection" (
+CREATE TABLE IF NOT EXISTS "BookmarkCollection" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -32,9 +40,7 @@ CREATE TABLE "BookmarkCollection" (
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "BookmarkCollection_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Conversation" (
+CREATE TABLE IF NOT EXISTS "Conversation" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "characterId" TEXT NOT NULL DEFAULT 'chunsim',
     "title" TEXT NOT NULL,
@@ -44,9 +50,7 @@ CREATE TABLE "Conversation" (
     CONSTRAINT "Conversation_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "Conversation_characterId_fkey" FOREIGN KEY ("characterId") REFERENCES "Character" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Character" (
+CREATE TABLE IF NOT EXISTS "Character" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "role" TEXT NOT NULL,
@@ -57,9 +61,7 @@ CREATE TABLE "Character" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "CharacterMedia" (
+CREATE TABLE IF NOT EXISTS "CharacterMedia" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "characterId" TEXT NOT NULL,
     "url" TEXT NOT NULL,
@@ -68,9 +70,7 @@ CREATE TABLE "CharacterMedia" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "CharacterMedia_characterId_fkey" FOREIGN KEY ("characterId") REFERENCES "Character" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Item" (
+CREATE TABLE IF NOT EXISTS "Item" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -83,9 +83,7 @@ CREATE TABLE "Item" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "CharacterStat" (
+CREATE TABLE IF NOT EXISTS "CharacterStat" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "characterId" TEXT NOT NULL,
     "totalHearts" INTEGER NOT NULL DEFAULT 0,
@@ -95,9 +93,7 @@ CREATE TABLE "CharacterStat" (
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "CharacterStat_characterId_fkey" FOREIGN KEY ("characterId") REFERENCES "Character" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "GiftLog" (
+CREATE TABLE IF NOT EXISTS "GiftLog" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "fromUserId" TEXT NOT NULL,
     "toCharacterId" TEXT NOT NULL,
@@ -109,9 +105,7 @@ CREATE TABLE "GiftLog" (
     CONSTRAINT "GiftLog_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "GiftLog_toCharacterId_fkey" FOREIGN KEY ("toCharacterId") REFERENCES "Character" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "UserInventory" (
+CREATE TABLE IF NOT EXISTS "UserInventory" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "itemId" TEXT NOT NULL,
@@ -121,9 +115,7 @@ CREATE TABLE "UserInventory" (
     CONSTRAINT "UserInventory_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "UserInventory_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "DMConversation" (
+CREATE TABLE IF NOT EXISTS "DMConversation" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "isGroup" BOOLEAN NOT NULL DEFAULT false,
     "groupName" TEXT,
@@ -132,9 +124,7 @@ CREATE TABLE "DMConversation" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "DMParticipant" (
+CREATE TABLE IF NOT EXISTS "DMParticipant" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "conversationId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -144,9 +134,7 @@ CREATE TABLE "DMParticipant" (
     CONSTRAINT "DMParticipant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "DMParticipant_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "DMConversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "DirectMessage" (
+CREATE TABLE IF NOT EXISTS "DirectMessage" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "conversationId" TEXT NOT NULL,
     "senderId" TEXT NOT NULL,
@@ -161,9 +149,7 @@ CREATE TABLE "DirectMessage" (
     CONSTRAINT "DirectMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "DirectMessage_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "DMConversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "FlightDeal" (
+CREATE TABLE IF NOT EXISTS "FlightDeal" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "origin" TEXT NOT NULL,
     "destination" TEXT NOT NULL,
@@ -178,9 +164,7 @@ CREATE TABLE "FlightDeal" (
     "notified" BOOLEAN NOT NULL DEFAULT false,
     "status" TEXT NOT NULL DEFAULT 'active'
 );
-
--- CreateTable
-CREATE TABLE "Follow" (
+CREATE TABLE IF NOT EXISTS "Follow" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "followerId" TEXT NOT NULL,
     "followingId" TEXT NOT NULL,
@@ -189,9 +173,7 @@ CREATE TABLE "Follow" (
     CONSTRAINT "Follow_followingId_fkey" FOREIGN KEY ("followingId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Follow_followerId_fkey" FOREIGN KEY ("followerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Hotel" (
+CREATE TABLE IF NOT EXISTS "Hotel" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "location" TEXT NOT NULL,
@@ -206,9 +188,7 @@ CREATE TABLE "Hotel" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "Like" (
+CREATE TABLE IF NOT EXISTS "Like" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "tweetId" TEXT NOT NULL,
@@ -216,9 +196,7 @@ CREATE TABLE "Like" (
     CONSTRAINT "Like_tweetId_fkey" FOREIGN KEY ("tweetId") REFERENCES "Tweet" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Like_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Media" (
+CREATE TABLE IF NOT EXISTS "Media" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "tweetId" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -230,9 +208,7 @@ CREATE TABLE "Media" (
     "publicId" TEXT,
     CONSTRAINT "Media_tweetId_fkey" FOREIGN KEY ("tweetId") REFERENCES "Tweet" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Message" (
+CREATE TABLE IF NOT EXISTS "Message" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "role" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -246,9 +222,7 @@ CREATE TABLE "Message" (
     "read" BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT "Message_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Payment" (
+CREATE TABLE IF NOT EXISTS "Payment" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "amount" REAL NOT NULL,
@@ -274,9 +248,7 @@ CREATE TABLE "Payment" (
     "network" TEXT,
     CONSTRAINT "Payment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "MessageLike" (
+CREATE TABLE IF NOT EXISTS "MessageLike" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "messageId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -284,9 +256,7 @@ CREATE TABLE "MessageLike" (
     CONSTRAINT "MessageLike_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "Message" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "MessageLike_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Notification" (
+CREATE TABLE IF NOT EXISTS "Notification" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "recipientId" TEXT NOT NULL,
     "issuerId" TEXT NOT NULL,
@@ -298,9 +268,7 @@ CREATE TABLE "Notification" (
     CONSTRAINT "Notification_issuerId_fkey" FOREIGN KEY ("issuerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Notification_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "PublicTransportRoute" (
+CREATE TABLE IF NOT EXISTS "PublicTransportRoute" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "airportCode" TEXT NOT NULL,
     "airportName" TEXT NOT NULL,
@@ -311,9 +279,7 @@ CREATE TABLE "PublicTransportRoute" (
     "source" TEXT NOT NULL DEFAULT 'manual',
     "verified" BOOLEAN NOT NULL DEFAULT false
 );
-
--- CreateTable
-CREATE TABLE "Retweet" (
+CREATE TABLE IF NOT EXISTS "Retweet" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "tweetId" TEXT NOT NULL,
@@ -321,18 +287,14 @@ CREATE TABLE "Retweet" (
     CONSTRAINT "Retweet_tweetId_fkey" FOREIGN KEY ("tweetId") REFERENCES "Tweet" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Retweet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Room" (
+CREATE TABLE IF NOT EXISTS "Room" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT,
     "type" TEXT NOT NULL DEFAULT 'DIRECT',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "RoomMember" (
+CREATE TABLE IF NOT EXISTS "RoomMember" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "roomId" TEXT NOT NULL,
@@ -340,9 +302,7 @@ CREATE TABLE "RoomMember" (
     "joinedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "RoomMember_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "Room" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "Todo" (
+CREATE TABLE IF NOT EXISTS "Todo" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -351,9 +311,7 @@ CREATE TABLE "Todo" (
     "dueDate" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- CreateTable
-CREATE TABLE "TravelPlan" (
+CREATE TABLE IF NOT EXISTS "TravelPlan" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -365,9 +323,7 @@ CREATE TABLE "TravelPlan" (
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "TravelPlan_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "TravelPlanItem" (
+CREATE TABLE IF NOT EXISTS "TravelPlanItem" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "travelPlanId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -383,26 +339,20 @@ CREATE TABLE "TravelPlanItem" (
     "status" TEXT DEFAULT 'TODO',
     CONSTRAINT "TravelPlanItem_travelPlanId_fkey" FOREIGN KEY ("travelPlanId") REFERENCES "TravelPlan" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "TravelPreference" (
+CREATE TABLE IF NOT EXISTS "TravelPreference" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "conversationId" TEXT NOT NULL,
     "preferences" TEXT NOT NULL DEFAULT '{}',
     CONSTRAINT "TravelPreference_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "Conversation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "TravelTag" (
+CREATE TABLE IF NOT EXISTS "TravelTag" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
     "description" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- CreateTable
-CREATE TABLE "Tweet" (
+CREATE TABLE IF NOT EXISTS "Tweet" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -425,9 +375,7 @@ CREATE TABLE "Tweet" (
     CONSTRAINT "Tweet_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Tweet" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "Tweet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "TweetEmbedding" (
+CREATE TABLE IF NOT EXISTS "TweetEmbedding" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "tweetId" TEXT NOT NULL,
     "vector" BLOB NOT NULL,
@@ -435,9 +383,7 @@ CREATE TABLE "TweetEmbedding" (
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "TweetEmbedding_tweetId_fkey" FOREIGN KEY ("tweetId") REFERENCES "Tweet" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "TweetTravelTag" (
+CREATE TABLE IF NOT EXISTS "TweetTravelTag" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "tweetId" TEXT NOT NULL,
     "travelTagId" TEXT NOT NULL,
@@ -445,9 +391,7 @@ CREATE TABLE "TweetTravelTag" (
     CONSTRAINT "TweetTravelTag_travelTagId_fkey" FOREIGN KEY ("travelTagId") REFERENCES "TravelTag" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "TweetTravelTag_tweetId_fkey" FOREIGN KEY ("tweetId") REFERENCES "Tweet" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "email" TEXT NOT NULL,
     "password" TEXT,
@@ -473,9 +417,7 @@ CREATE TABLE "User" (
     "credits" INTEGER NOT NULL DEFAULT 100,
     "role" TEXT DEFAULT 'USER'
 );
-
--- CreateTable
-CREATE TABLE "account" (
+CREATE TABLE IF NOT EXISTS "account" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "accountId" TEXT NOT NULL,
     "providerId" TEXT NOT NULL,
@@ -490,16 +432,12 @@ CREATE TABLE "account" (
     "createdAt" DATETIME NOT NULL,
     "updatedAt" DATETIME NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "hotel_embeddings" (
+CREATE TABLE IF NOT EXISTS "hotel_embeddings" (
     "content" TEXT,
     "metadata" TEXT,
     "embedding" float32(1536)
 );
-
--- CreateTable
-CREATE TABLE "session" (
+CREATE TABLE IF NOT EXISTS "session" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "expiresAt" DATETIME NOT NULL,
     "token" TEXT NOT NULL,
@@ -509,9 +447,7 @@ CREATE TABLE "session" (
     "userAgent" TEXT,
     "userId" TEXT NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "verification" (
+CREATE TABLE IF NOT EXISTS "verification" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "identifier" TEXT NOT NULL,
     "value" TEXT NOT NULL,
@@ -519,9 +455,7 @@ CREATE TABLE "verification" (
     "createdAt" DATETIME,
     "updatedAt" DATETIME
 );
-
--- CreateTable
-CREATE TABLE "Notice" (
+CREATE TABLE IF NOT EXISTS "Notice" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "title" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -532,9 +466,7 @@ CREATE TABLE "Notice" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "SystemLog" (
+CREATE TABLE IF NOT EXISTS "SystemLog" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "level" TEXT NOT NULL DEFAULT 'INFO',
     "category" TEXT NOT NULL DEFAULT 'SYSTEM',
@@ -543,9 +475,7 @@ CREATE TABLE "SystemLog" (
     "metadata" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
--- CreateTable
-CREATE TABLE "Mission" (
+CREATE TABLE IF NOT EXISTS "Mission" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "title" TEXT NOT NULL,
     "description" TEXT NOT NULL,
@@ -555,9 +485,7 @@ CREATE TABLE "Mission" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
-
--- CreateTable
-CREATE TABLE "UserMission" (
+CREATE TABLE IF NOT EXISTS "UserMission" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "missionId" TEXT NOT NULL,
@@ -567,9 +495,7 @@ CREATE TABLE "UserMission" (
     CONSTRAINT "UserMission_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "UserMission_missionId_fkey" FOREIGN KEY ("missionId") REFERENCES "Mission" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateTable
-CREATE TABLE "FanPost" (
+CREATE TABLE IF NOT EXISTS "FanPost" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -580,65 +506,24 @@ CREATE TABLE "FanPost" (
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "FanPost_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
-
--- CreateIndex
 CREATE INDEX "CharacterMedia_characterId_type_idx" ON "CharacterMedia"("characterId", "type");
-
--- CreateIndex
 CREATE INDEX "Item_isActive_idx" ON "Item"("isActive");
-
--- CreateIndex
 CREATE UNIQUE INDEX "CharacterStat_characterId_key" ON "CharacterStat"("characterId");
-
--- CreateIndex
 CREATE INDEX "CharacterStat_totalHearts_idx" ON "CharacterStat"("totalHearts");
-
--- CreateIndex
 CREATE INDEX "GiftLog_fromUserId_createdAt_idx" ON "GiftLog"("fromUserId", "createdAt");
-
--- CreateIndex
 CREATE INDEX "GiftLog_toCharacterId_createdAt_idx" ON "GiftLog"("toCharacterId", "createdAt");
-
--- CreateIndex
 CREATE UNIQUE INDEX "UserInventory_userId_itemId_key" ON "UserInventory"("userId", "itemId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Payment_transactionId_key" ON "Payment"("transactionId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Payment_txHash_key" ON "Payment"("txHash");
-
--- CreateIndex
 CREATE INDEX "Payment_userId_createdAt_idx" ON "Payment"("userId", "createdAt");
-
--- CreateIndex
 CREATE INDEX "Payment_transactionId_idx" ON "Payment"("transactionId");
-
--- CreateIndex
 CREATE INDEX "Payment_subscriptionId_idx" ON "Payment"("subscriptionId");
-
--- CreateIndex
 CREATE INDEX "Payment_txHash_idx" ON "Payment"("txHash");
-
--- CreateIndex
 CREATE INDEX "Payment_provider_status_idx" ON "Payment"("provider", "status");
-
--- CreateIndex
 CREATE INDEX "Payment_type_idx" ON "Payment"("type");
-
--- CreateIndex
 CREATE UNIQUE INDEX "MessageLike_messageId_userId_key" ON "MessageLike"("messageId", "userId");
-
--- CreateIndex
-Pragma writable_schema=1;
 CREATE UNIQUE INDEX "sqlite_autoindex_TweetEmbedding_2" ON "TweetEmbedding"("tweetId");
-Pragma writable_schema=0;
-
--- CreateIndex
 CREATE UNIQUE INDEX "User_subscriptionId_key" ON "User"("subscriptionId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "session_token_key" ON "session"("token");
-
--- CreateIndex
 CREATE UNIQUE INDEX "UserMission_userId_missionId_key" ON "UserMission"("userId", "missionId");
+COMMIT;

@@ -501,19 +501,19 @@ const users = await db.query.user.findMany({
   - 측정 방법: 프로덕션 환경에서 메모리 프로파일링
 
 #### 4.3 코드 정리
-- [ ] Prisma 관련 패키지 삭제
+- [x] Prisma 관련 패키지 삭제 ✅ (완료)
   - `@prisma/client`
   - `@prisma/adapter-libsql`
   - `prisma` (devDependencies)
-- [ ] Prisma 스키마 파일 제거 (`prisma/schema.prisma`)
-- [ ] Prisma 설정 파일 제거 (`prisma.config.ts`)
-- [ ] `postinstall` 스크립트에서 `prisma generate` 제거
-- [ ] `app/lib/db.server.ts`에서 Prisma 임포트 제거
+- [x] Prisma 스키마 파일 제거 (`prisma/schema.prisma`) ✅ (완료)
+- [x] Prisma 설정 파일 제거 (`prisma.config.ts`) ✅ (완료)
+- [x] `postinstall` 스크립트에서 `prisma generate` 제거 ✅ (완료)
+- [x] `app/lib/db.server.ts`에서 Prisma 임포트 제거 ✅ (완료)
 
 #### 4.4 마이그레이션 관리
-- [ ] `_prisma_migrations` 테이블은 그대로 유지 (히스토리 보존)
-- [ ] 이후 마이그레이션은 Drizzle 기반으로 진행
-- [ ] `drizzle-kit push` 또는 `drizzle-kit migrate` 사용
+- [x] `_prisma_migrations` 테이블은 그대로 유지 (히스토리 보존) ✅ (완료)
+- [x] 이후 마이그레이션은 Drizzle 기반으로 진행 ✅ (완료)
+- [x] `drizzle-kit push` 또는 `drizzle-kit migrate` 사용 ✅ (완료)
 
 ---
 
