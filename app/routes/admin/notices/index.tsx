@@ -5,6 +5,7 @@ import { requireAdmin } from "~/lib/auth.server";
 import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
+import { deleteImage } from "~/lib/cloudinary.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
@@ -33,6 +34,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (intent === "delete") {
         const id = formData.get("id") as string;
+        const notice = await prisma.notice.findUnique({ where: { id } });
+        if (notice?.imageUrl) {
+            await deleteImage(notice.imageUrl);
+        }
         await prisma.notice.delete({ where: { id } });
         return { success: true };
     }

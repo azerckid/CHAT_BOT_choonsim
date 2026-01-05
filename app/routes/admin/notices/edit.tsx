@@ -1,9 +1,11 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, Form, Link, redirect } from "react-router";
+import { useState, useRef } from "react";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
 import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
+import { deleteImage } from "~/lib/cloudinary.server";
 import { z } from "zod";
 
 const noticeSchema = z.object({
@@ -12,6 +14,7 @@ const noticeSchema = z.object({
     type: z.enum(["NOTICE", "NEWS", "EVENT"]),
     isActive: z.boolean().default(true),
     isPinned: z.boolean().default(false),
+    imageUrl: z.string().optional().nullable(),
 });
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -37,11 +40,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
         type: formData.get("type"),
         isActive: formData.get("isActive") === "on",
         isPinned: formData.get("isPinned") === "on",
+        imageUrl: formData.get("imageUrl") as string || null,
     });
 
     if (id === "new" || !id) {
         await prisma.notice.create({ data: validated });
     } else {
+        const oldNotice = await prisma.notice.findUnique({ where: { id } });
+        // 만약 기존 이미지가 있고, 새 이미지가 다르거나 없다면 기존꺼 삭제
+        if (oldNotice?.imageUrl && oldNotice.imageUrl !== validated.imageUrl) {
+            await deleteImage(oldNotice.imageUrl);
+        }
         await prisma.notice.update({
             where: { id },
             data: validated
@@ -54,6 +63,41 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export default function EditNotice() {
     const { notice } = useLoaderData<typeof loader>();
     const isNew = !notice;
+
+    // Image Upload State
+    const [previewUrl, setPreviewUrl] = useState<string | null>(notice?.imageUrl || null);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Preview
+        const reader = new FileReader();
+        reader.onloadend = () => setPreviewUrl(reader.result as string);
+        reader.readAsDataURL(file);
+
+        // Upload
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (!res.ok) throw new Error("Upload failed");
+            const data = await res.json();
+            setPreviewUrl(data.url); // Use the real URL from Cloudinary
+        } catch (err) {
+            console.error("Upload error:", err);
+            alert("이미지 업로드에 실패했습니다.");
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     return (
         <AdminLayout>
@@ -112,6 +156,62 @@ export default function EditNotice() {
                                 className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-6 text-sm font-medium text-white/80 focus:border-primary/50 transition-all leading-relaxed"
                                 required
                             />
+                        </div>
+
+                        {/* Image Upload Section */}
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">Attachment Image</label>
+                            <div className="relative group">
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                    accept="image/*"
+                                    className="hidden"
+                                />
+                                <input type="hidden" name="imageUrl" value={previewUrl || ""} />
+
+                                {previewUrl ? (
+                                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 bg-black/20 group">
+                                        <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all transform hover:scale-110"
+                                            >
+                                                <span className="material-symbols-outlined">edit</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPreviewUrl(null)}
+                                                className="p-3 bg-red-500/20 hover:bg-red-500/40 rounded-full text-red-500 transition-all transform hover:scale-110"
+                                            >
+                                                <span className="material-symbols-outlined">delete</span>
+                                            </button>
+                                        </div>
+                                        {isUploading && (
+                                            <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm flex items-center justify-center">
+                                                <div className="size-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-full aspect-video rounded-2xl border-2 border-dashed border-white/5 bg-white/2 hover:bg-white/5 hover:border-primary/30 transition-all flex flex-col items-center justify-center gap-3 group"
+                                    >
+                                        <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-primary/20 transition-colors">
+                                            <span className="material-symbols-outlined text-white/20 group-hover:text-primary transition-colors text-3xl">add_photo_alternate</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Click to upload image</p>
+                                            <p className="text-[9px] text-white/20 font-bold mt-1">PNG, JPG, GIF up to 10MB</p>
+                                        </div>
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
                         <div className="flex gap-8 px-1">
