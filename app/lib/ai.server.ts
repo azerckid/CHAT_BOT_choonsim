@@ -525,6 +525,11 @@ export async function* streamAIResponse(
     subscriptionTier: SubscriptionTier = "FREE",
     giftContext?: { amount: number; itemId: string; countInSession?: number }
 ) {
+    // 선물하기 상황에서 사용자 메시지가 비어있다면, 시스템 행동 지문(명령어)으로 대체하여 AI가 상황을 명확히 인지하도록 함
+    if (giftContext && !userMessage.trim()) {
+        userMessage = `(시스템: 사용자가 하트 ${giftContext.amount}개를 선물했습니다. 이에 대해 당신의 페르소나와 현재 감정에 맞춰 격렬하게 반응하세요.)`;
+    }
+
     let systemInstruction = "";
 
     if (characterId && characterId !== "chunsim") {
