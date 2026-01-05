@@ -9,7 +9,7 @@ import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
 import { toast } from "sonner";
 import * as schema from "~/db/schema";
-import { eq, desc, and, like } from "drizzle-orm";
+import { eq, desc, and, like, sql, inArray } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -64,19 +64,38 @@ export async function loader({ request }: LoaderFunctionArgs) {
     limit: 20
   });
 
-  // 5. 리더보드 (미션 완료 기준 임시 점수)
-  const topUsers = await db.query.user.findMany({
-    columns: { id: true, name: true, avatarUrl: true, image: true, credits: true },
-    orderBy: [desc(schema.user.credits)],
-    limit: 5
-  });
+  // 5. 리더보드 (누적 하트 기준)
+  const topGivers = await db
+    .select({
+      userId: schema.giftLog.fromUserId,
+      totalHearts: sql<number>`sum(${schema.giftLog.amount})`,
+    })
+    .from(schema.giftLog)
+    .where(eq(schema.giftLog.itemId, "heart"))
+    .groupBy(schema.giftLog.fromUserId)
+    .orderBy(desc(sql`sum(${schema.giftLog.amount})`))
+    .limit(5);
 
-  const leaderboard = topUsers.map((u, i) => ({
-    rank: i + 1,
-    name: u.name || "Anonymous",
-    points: u.credits * 10, // 임시 점수 로직
-    avatar: u.avatarUrl || u.image || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + u.id
-  }));
+  const userIds = topGivers.map((t) => t.userId);
+
+  let users: { id: string; name: string | null; image: string | null; avatarUrl: string | null }[] = [];
+
+  if (userIds.length > 0) {
+    users = await db.query.user.findMany({
+      where: inArray(schema.user.id, userIds),
+      columns: { id: true, name: true, avatarUrl: true, image: true },
+    });
+  }
+
+  const leaderboard = topGivers.map((giver, i) => {
+    const user = users.find((u) => u.id === giver.userId);
+    return {
+      rank: i + 1,
+      name: user?.name || "Anonymous",
+      points: giver.totalHearts, // 실제 하트 수
+      avatar: user?.avatarUrl || user?.image || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + giver.userId,
+    };
+  });
 
   return Response.json({
     user: session.user,

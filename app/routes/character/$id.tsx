@@ -1,28 +1,72 @@
 import { useState } from "react";
-import { useNavigate, useParams } from "react-router";
-import { Link } from "react-router";
+import { useNavigate, useParams, useLoaderData } from "react-router";
 import { cn } from "~/lib/utils";
 import { CHARACTERS } from "~/lib/characters";
+import { db } from "~/lib/db.server";
+import { auth } from "~/lib/auth.server";
+import { eq, and, sql } from "drizzle-orm";
+import * as schema from "~/db/schema";
+import type { LoaderFunctionArgs } from "react-router";
 
 type Tab = "about" | "voice" | "gallery";
+
+export async function loader({ request, params }: LoaderFunctionArgs) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  const userId = session?.user?.id;
+  const characterId = params.id || "chunsim";
+
+  // 1. Character Stats (Global)
+  const stats = await db.query.characterStat.findFirst({
+    where: eq(schema.characterStat.characterId, characterId),
+  });
+
+  // 2. My Contribution (Total Hearts Sent)
+  let myContribution = 0;
+  if (userId) {
+    const result = await db
+      .select({ totalAmount: sql<number>`sum(${schema.giftLog.amount})` })
+      .from(schema.giftLog)
+      .where(and(
+        eq(schema.giftLog.fromUserId, userId),
+        eq(schema.giftLog.toCharacterId, characterId),
+        eq(schema.giftLog.itemId, "heart") // Assuming hearts are the main affinity metric
+      ));
+
+    myContribution = result[0]?.totalAmount || 0;
+  }
+
+  // 3. Affinity Calculation (Simple Logic for V1)
+  // Max affinity 100% reached at 1000 hearts
+  const affinityValue = Math.min(100, Math.floor(myContribution / 10));
+  const fandomLevelValue = Math.floor(Math.sqrt(myContribution)) + 1; // Lv.1 start, Lv.10 at 81 hearts, Lv.30 at 900 hearts
+
+  return {
+    characterId,
+    stats: stats || { totalHearts: 0, totalUniqueGivers: 0 },
+    myContribution,
+    affinityValue,
+    fandomLevelValue,
+  };
+}
 
 export default function CharacterProfileScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { stats, myContribution, affinityValue, fandomLevelValue } = useLoaderData<typeof loader>();
   const [activeTab, setActiveTab] = useState<Tab>("about");
   const [isFavorite, setIsFavorite] = useState(true);
 
   // CHARACTERS에서 실제 캐릭터 데이터 가져오기
   const characterData = CHARACTERS[id || "chunsim"] || CHARACTERS["chunsim"];
-  
+
   // 프로필 화면에 필요한 추가 정보 (기본값 또는 characterData에서 가져오기)
   const character = {
     id: characterData.id,
     name: characterData.name,
     role: characterData.role,
-    relationship: "Close Friend", // TODO: 실제 관계 데이터로 교체 (DB에서 가져오기)
-    affinity: "98%", // TODO: 실제 친밀도 데이터로 교체 (DB에서 가져오기)
-    fandomLevel: "Lv. 12", // TODO: 실제 팬덤 레벨 데이터로 교체 (DB에서 가져오기)
+    relationship: fandomLevelValue > 10 ? "Close Friend" : "Fan", // Dynamic relation
+    affinity: `${affinityValue}%`,
+    fandomLevel: `Lv. ${fandomLevelValue}`,
     intro: characterData.bio || `안녕! 나는 ${characterData.name}야. 만나서 반가워!`,
     backstory: characterData.bio || `${characterData.name}에 대한 이야기입니다.`,
     personalityTraits: [
@@ -85,6 +129,12 @@ export default function CharacterProfileScreen() {
         {/* Drag Handle Indicator */}
         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-gray-300 dark:bg-gray-700" />
 
+        {/* Global Stats Badge (New!) */}
+        <div className="absolute top-0 right-5 -translate-y-1/2 bg-surface-dark border border-white/10 rounded-full px-3 py-1 flex items-center gap-2 shadow-lg">
+          <span className="material-symbols-outlined text-pink-500 text-sm">favorite</span>
+          <span className="text-white text-xs font-bold">{stats.totalHearts.toLocaleString()} Hearts</span>
+        </div>
+
         {/* Header Info */}
         <div className="flex justify-between items-start mb-4">
           <div>
@@ -113,9 +163,9 @@ export default function CharacterProfileScreen() {
             <span className="text-xl font-bold text-gray-900 dark:text-white">{character.fandomLevel}</span>
             <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Fandom</span>
           </div>
-          <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition">
-            <span className="material-symbols-outlined text-primary mb-0.5">settings_heart</span>
-            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Relation</span>
+          <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition bg-gradient-to-br from-primary/5 to-transparent">
+            <span className="text-xl font-bold text-primary">{myContribution.toLocaleString()}</span>
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">My Hearts</span>
           </div>
         </div>
 
@@ -220,8 +270,6 @@ export default function CharacterProfileScreen() {
         </div>
       </div>
     </div>
-
-
   );
 }
 

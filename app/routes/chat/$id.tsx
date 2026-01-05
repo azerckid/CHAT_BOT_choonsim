@@ -7,6 +7,7 @@ import { TypingIndicator } from "~/components/chat/TypingIndicator";
 import { MessageListSkeleton } from "~/components/chat/MessageListSkeleton";
 import { NetworkError } from "~/components/ui/NetworkError";
 import { LoadingSpinner } from "~/components/ui/LoadingSpinner";
+import { HeartBurst } from "~/components/ui/HeartBurst";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { z } from "zod";
@@ -191,6 +192,8 @@ export default function ChatRoom() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Add heart burst state
+  const [isHeartBurstActive, setIsHeartBurstActive] = useState(false);
   // Hearts state
   const [currentUserHearts, setCurrentUserHearts] = useState(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
   const [currentUserCredits, setCurrentUserCredits] = useState(user?.credits || 0);
@@ -397,6 +400,7 @@ export default function ChatRoom() {
         throw new Error(data.error || "Gifting failed");
       }
       toast.success(`${amount}개의 하트를 보냈습니다! 💖`);
+      setIsHeartBurstActive(true); // TRIGGER ANIMATION HERE
 
       // 2. 메시지 목록에 선물 알림 즉시 추가 (낙관적 UI)
       if (data.systemMsg) {
@@ -464,6 +468,7 @@ export default function ChatRoom() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white h-screen flex flex-col overflow-hidden max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
+      <HeartBurst active={isHeartBurstActive} onComplete={() => setIsHeartBurstActive(false)} count={30} />
       <ChatHeader
         characterName={characterName}
         characterId={character.id}
