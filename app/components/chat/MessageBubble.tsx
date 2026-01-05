@@ -15,6 +15,7 @@ interface MessageBubbleProps {
   onLike?: (messageId: string, currentLiked: boolean) => void;
   auraClass?: string;
   auraOpacity?: number;
+  auraStyle?: React.CSSProperties;
 }
 
 export function MessageBubble({
@@ -32,6 +33,7 @@ export function MessageBubble({
   onLike,
   auraClass,
   auraOpacity = 1,
+  auraStyle,
 }: MessageBubbleProps) {
   const isUser = sender === "user";
 
@@ -87,7 +89,7 @@ export function MessageBubble({
             "w-10 h-10 shrink-0 rounded-full bg-gray-300 dark:bg-surface-dark overflow-hidden border border-white/10 relative transition-all duration-500",
             auraClass
           )}
-          style={{ opacity: auraOpacity }}
+          style={{ opacity: auraOpacity, ...auraStyle }}
         >
           {avatarUrl ? (
             <img

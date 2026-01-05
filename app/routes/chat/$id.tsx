@@ -27,13 +27,43 @@ import {
 
 type LoadingState = "idle" | "loading" | "network-error";
 
-const EMOTION_MAP: Record<string, { color: string; text: string; aura: string }> = {
-  JOY: { color: "text-pink-400", text: "기분 좋음", aura: "shadow-[0_0_15px_rgba(236,72,153,0.4)]" },
-  SHY: { color: "text-rose-400", text: "부끄러움", aura: "shadow-[0_0_15px_rgba(251,113,133,0.4)]" },
-  EXCITED: { color: "text-orange-400", text: "신남!", aura: "shadow-[0_0_20px_rgba(251,146,60,0.6)] animate-pulse" },
-  LOVING: { color: "text-red-500", text: "사랑해", aura: "shadow-[0_0_20px_rgba(239,68,68,0.6)]" },
-  SAD: { color: "text-blue-400", text: "시무룩", aura: "shadow-[0_0_10px_rgba(96,165,250,0.3)]" },
-  THINKING: { color: "text-purple-400", text: "생각 중", aura: "shadow-[0_0_15px_rgba(192,132,252,0.4)]" },
+const EMOTION_MAP: Record<string, { color: string; text: string; aura: string; style?: React.CSSProperties }> = {
+  JOY: {
+    color: "text-pink-400",
+    text: "기분 좋음",
+    aura: "ring-2 ring-pink-500/30 animate-aura-breathe",
+    style: { "--aura-color": "rgba(236,72,153,0.6)" } as React.CSSProperties
+  },
+  SHY: {
+    color: "text-rose-400",
+    text: "부끄러움",
+    aura: "ring-2 ring-rose-500/40 animate-neon-flicker",
+    style: { "--aura-color": "rgba(251,113,133,0.5)" } as React.CSSProperties
+  },
+  EXCITED: {
+    color: "text-orange-400",
+    text: "신남!",
+    aura: "ring-4 ring-orange-500/50 animate-intense-pulse",
+    style: { "--aura-color": "rgba(251,146,60,0.8)" } as React.CSSProperties
+  },
+  LOVING: {
+    color: "text-red-500",
+    text: "사랑해",
+    aura: "ring-4 ring-red-600 animate-intense-pulse shadow-[0_0_10px_rgba(220,38,38,0.8)]",
+    style: { "--aura-color": "rgba(220,38,38,0.9)" } as React.CSSProperties
+  },
+  SAD: {
+    color: "text-blue-400",
+    text: "시무룩",
+    aura: "ring-1 ring-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.3)]",
+    style: { "--aura-color": "rgba(59,130,246,0.3)" } as React.CSSProperties
+  },
+  THINKING: {
+    color: "text-purple-400",
+    text: "생각 중",
+    aura: "ring-2 ring-purple-500/40 animate-aura-breathe",
+    style: { "--aura-color": "rgba(168,85,247,0.5)" } as React.CSSProperties
+  },
 };
 
 interface Message {
@@ -485,6 +515,7 @@ export default function ChatRoom() {
                 avatarUrl={msg.role === "assistant" ? avatarUrl : undefined}
                 auraClass={msg.role === "assistant" ? EMOTION_MAP[currentEmotion]?.aura : undefined}
                 auraOpacity={msg.role === "assistant" ? auraOpacity : 1}
+                auraStyle={msg.role === "assistant" ? EMOTION_MAP[currentEmotion]?.style : undefined}
                 timestamp={new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 isLiked={msg.isLiked || false}
                 onLike={async (messageId, liked) => {
@@ -516,6 +547,7 @@ export default function ChatRoom() {
                     avatarUrl={avatarUrl}
                     auraClass={EMOTION_MAP[currentEmotion]?.aura}
                     auraOpacity={auraOpacity}
+                    auraStyle={EMOTION_MAP[currentEmotion]?.style}
                     timestamp={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     isStreaming={true}
                   />

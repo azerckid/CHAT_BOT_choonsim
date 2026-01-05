@@ -293,20 +293,66 @@ body {
   animation: shimmer 2s infinite;
 }
 
-@keyframes pulse-slow {
+@keyframes aura-breathe {
 
   0%,
   100% {
+    box-shadow: 0 0 5px -2px var(--aura-color, rgba(238, 43, 140, 0.4));
+    transform: scale(1);
+  }
+
+  50% {
+    box-shadow: 0 0 10px 1px var(--aura-color, rgba(238, 43, 140, 0.7));
+    transform: scale(1.005);
+  }
+}
+
+@keyframes intense-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 5px 0 var(--aura-color, rgba(238, 43, 140, 0.5)), 0 0 10px 1px var(--aura-color, rgba(238, 43, 140, 0.3));
     opacity: 1;
   }
 
   50% {
+    box-shadow: 0 0 10px 3px var(--aura-color, rgba(238, 43, 140, 0.8)), 0 0 15px 5px var(--aura-color, rgba(238, 43, 140, 0.5));
+    opacity: 0.95;
+  }
+}
+
+@keyframes neon-flicker {
+
+  0%,
+  19%,
+  21%,
+  23%,
+  25%,
+  54%,
+  56%,
+  100% {
+    box-shadow: 0 0 15px var(--aura-color, rgba(238, 43, 140, 0.5)), 0 0 30px var(--aura-color, rgba(238, 43, 140, 0.3));
+  }
+
+  20%,
+  22%,
+  24%,
+  55% {
+    box-shadow: none;
     opacity: 0.8;
   }
 }
 
-.animate-pulse-slow {
-  animation: pulse-slow 2s ease-in-out infinite;
+.animate-aura-breathe {
+  animation: aura-breathe 3s ease-in-out infinite;
+}
+
+.animate-intense-pulse {
+  animation: intense-pulse 1.5s ease-in-out infinite;
+}
+
+.animate-neon-flicker {
+  animation: neon-flicker 4s infinite;
 }
 
 /* iOS Safe Area 지원 */
