@@ -363,6 +363,7 @@ export async function requireAdmin(request: Request): Promise<void> {
    - 선물 등급별(Small/Medium/Large/Mega) 및 연속 선물 보너스 지침 편집 UI 제공
 3. **AI 로직 연동 (ai.server.ts)**
    - 하드코딩된 `giftInstruction` 대신 DB에서 해당 캐릭터의 지침을 조회하여 시스템 명령에 동적으로 삽입
+   - **감정 분석기(Emotion Analyzer)** 를 가동하여 답변 시 감정 코드(`EMOTION:CODE`)를 함께 출력하도록 강제
    - 캐싱 로직(Redis 또는 메모리)을 적용하여 DB 부하 최소화
 
 ---
