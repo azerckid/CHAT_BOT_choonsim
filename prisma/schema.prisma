@@ -508,6 +508,8 @@ model User {
 
   UserInventory UserInventory[]
   GiftLog       GiftLog[]
+  UserMission   UserMission[]
+  FanPost       FanPost[]
 
   Bookmark                                    Bookmark[]
   BookmarkCollection                          BookmarkCollection[]
@@ -570,4 +572,66 @@ model verification {
   expiresAt  DateTime
   createdAt  DateTime?
   updatedAt  DateTime?
+}
+
+model Notice {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  type      String   @default("NOTICE") // NOTICE, NEWS, EVENT
+  imageUrl  String?
+  isActive  Boolean  @default(true)
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SystemLog {
+  id         String   @id @default(uuid())
+  level      String   @default("INFO") // INFO, WARN, ERROR, AUDIT
+  category   String   @default("SYSTEM") // API, AUTH, PAYMENT, DB
+  message    String
+  stackTrace String?
+  metadata   String? // JSON string
+  createdAt  DateTime @default(now())
+}
+
+model Mission {
+  id            String   @id @default(uuid())
+  title         String
+  description   String
+  rewardCredits Int      @default(0)
+  type          String   @default("DAILY") // DAILY, ONCE, SPECIAL
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  UserMission UserMission[]
+}
+
+model UserMission {
+  id          String   @id @default(uuid())
+  userId      String
+  missionId   String
+  status      String   @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED, CLAIMED
+  progress    Int      @default(0)
+  lastUpdated DateTime @default(now())
+
+  User    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId])
+}
+
+model FanPost {
+  id         String   @id @default(uuid())
+  userId     String
+  content    String
+  imageUrl   String?
+  likes      Int      @default(0)
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  User User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

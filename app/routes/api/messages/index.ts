@@ -60,6 +60,42 @@ export async function action({ request }: ActionFunctionArgs) {
         },
     });
 
+    // 2. 미션 진행도 업데이트 (채팅 미션)
+    const chatMissions = await prisma.mission.findMany({
+        where: {
+            isActive: true,
+            OR: [
+                { title: { contains: "Chat" } },
+                { title: { contains: "Message" } },
+                { title: { contains: "채팅" } },
+                { description: { contains: "chat" } }
+            ]
+        }
+    });
+
+    for (const mission of chatMissions) {
+        const userMission = await prisma.userMission.findUnique({
+            where: { userId_missionId: { userId: session.user.id, missionId: mission.id } }
+        });
+
+        if (!userMission || (userMission.status === "IN_PROGRESS" && userMission.progress < 100)) {
+            const newProgress = Math.min((userMission?.progress || 0) + 20, 100);
+            await prisma.userMission.upsert({
+                where: { userId_missionId: { userId: session.user.id, missionId: mission.id } },
+                create: {
+                    userId: session.user.id,
+                    missionId: mission.id,
+                    progress: newProgress,
+                    status: newProgress === 100 ? "COMPLETED" : "IN_PROGRESS"
+                },
+                update: {
+                    progress: newProgress,
+                    status: newProgress === 100 ? "COMPLETED" : "IN_PROGRESS"
+                }
+            });
+        }
+    }
+
     return Response.json({ message: userMessage });
 }
 

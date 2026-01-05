@@ -1,0 +1,524 @@
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
+import { useLoaderData, useNavigate, useNavigation, Form, useActionData, useRevalidator } from "react-router";
+import { useState, useEffect } from "react";
+import { AdminLayout } from "~/components/admin/AdminLayout";
+import { requireAdmin } from "~/lib/auth.server";
+import { prisma } from "~/lib/db.server";
+import { cn } from "~/lib/utils";
+import { z } from "zod";
+import { toast } from "sonner";
+
+const characterSchema = z.object({
+    id: z.string().min(2).max(20).regex(/^[a-z0-9_]+$/, "Only lowercase, numbers, and underscore allowed"),
+    name: z.string().min(1),
+    role: z.string().min(1),
+    bio: z.string().min(1),
+    greetingMessage: z.string().optional(),
+    personaPrompt: z.string().min(10),
+    isOnline: z.boolean().default(false),
+});
+
+export async function loader({ params, request }: LoaderFunctionArgs) {
+    await requireAdmin(request);
+
+    const { id } = params;
+    if (!id || id === "new") {
+        return { character: null };
+    }
+
+    const character = await prisma.character.findUnique({
+        where: { id },
+        include: {
+            media: {
+                orderBy: { sortOrder: 'asc' }
+            },
+        }
+    });
+
+    if (!character) {
+        throw new Response("Character not found", { status: 404 });
+    }
+
+    return { character };
+}
+
+export async function action({ params, request }: ActionFunctionArgs) {
+    await requireAdmin(request);
+    const formData = await request.formData();
+    const actionType = formData.get("_action");
+
+    if (actionType === "delete") {
+        const id = params.id;
+        if (!id) return Response.json({ error: "ID missing" }, { status: 400 });
+        await prisma.character.delete({ where: { id } });
+        return { success: true, deleted: true, message: "Character deleted successfully" };
+    }
+
+    if (actionType === "add_media") {
+        const characterId = params.id;
+        const url = formData.get("url") as string;
+        const type = formData.get("type") as any;
+
+        if (!characterId || !url || !type) return Response.json({ error: "Missing data" }, { status: 400 });
+
+        const count = await prisma.characterMedia.count({ where: { characterId } });
+        await prisma.characterMedia.create({
+            data: { characterId, url, type, sortOrder: count }
+        });
+        return { success: true, message: "Media added successfully" };
+    }
+
+    if (actionType === "delete_media") {
+        const mediaId = formData.get("mediaId") as string;
+        if (!mediaId) return Response.json({ error: "Media ID missing" }, { status: 400 });
+
+        await prisma.characterMedia.delete({ where: { id: mediaId } });
+        return { success: true, message: "Media deleted" };
+    }
+
+    if (actionType === "reorder_media") {
+        const mediaId = formData.get("mediaId") as string;
+        const direction = formData.get("direction") as "up" | "down";
+        if (!mediaId || !direction) return Response.json({ error: "Missing data" }, { status: 400 });
+
+        const currentMedia = await prisma.characterMedia.findUnique({ where: { id: mediaId } });
+        if (!currentMedia) return Response.json({ error: "Media not found" }, { status: 404 });
+
+        const allMedia = await prisma.characterMedia.findMany({
+            where: { characterId: currentMedia.characterId },
+            orderBy: { sortOrder: "asc" }
+        });
+
+        const currentIndex = allMedia.findIndex(m => m.id === mediaId);
+        const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+        if (targetIndex >= 0 && targetIndex < allMedia.length) {
+            const targetMedia = allMedia[targetIndex];
+
+            await prisma.$transaction([
+                prisma.characterMedia.update({
+                    where: { id: currentMedia.id },
+                    data: { sortOrder: targetMedia.sortOrder }
+                }),
+                prisma.characterMedia.update({
+                    where: { id: targetMedia.id },
+                    data: { sortOrder: currentMedia.sortOrder }
+                })
+            ]);
+        }
+        return { success: true };
+    }
+
+    const data = {
+        id: formData.get("id") as string,
+        name: formData.get("name") as string,
+        role: formData.get("role") as string,
+        bio: formData.get("bio") as string,
+        greetingMessage: formData.get("greetingMessage") as string,
+        personaPrompt: formData.get("personaPrompt") as string,
+        isOnline: formData.get("isOnline") === "true",
+    };
+
+    try {
+        const validated = characterSchema.parse(data);
+        const isNew = !params.id || params.id === "new";
+
+        if (isNew) {
+            const existing = await prisma.character.findUnique({ where: { id: validated.id } });
+            if (existing) {
+                return Response.json({ error: "Character ID already exists" }, { status: 400 });
+            }
+
+            await prisma.character.create({
+                data: {
+                    ...validated,
+                    stats: { create: {} }
+                }
+            });
+            return { success: true, message: "Character debuted successfully!" };
+        } else {
+            await prisma.character.update({
+                where: { id: params.id },
+                data: validated
+            });
+            return { success: true, message: "Character profile updated!" };
+        }
+    } catch (e) {
+        if (e instanceof z.ZodError) {
+            return Response.json({ error: e.issues[0].message }, { status: 400 });
+        }
+        return Response.json({ error: "Failed to save character" }, { status: 500 });
+    }
+}
+
+export default function EditCharacter() {
+    const { character } = useLoaderData<typeof loader>();
+    const actionData = useActionData() as { success?: boolean; error?: string; deleted?: boolean; message?: string };
+    const navigate = useNavigate();
+    const navigation = useNavigation();
+    const revalidator = useRevalidator();
+    const isSubmitting = navigation.state !== "idle";
+    const isNew = !character;
+
+    const [activeTab, setActiveTab] = useState<"identity" | "ai" | "media">("identity");
+
+    useEffect(() => {
+        if (actionData?.success) {
+            if (actionData.deleted) {
+                toast.success(actionData.message || "Deleted");
+                navigate("/admin/characters");
+            } else {
+                toast.success(actionData.message || "Success");
+                if (isNew) navigate("/admin/characters");
+            }
+        } else if (actionData?.error) {
+            toast.error(actionData.error);
+        }
+    }, [actionData, navigate, isNew]);
+
+    return (
+        <AdminLayout>
+            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex justify-between items-center">
+                    <div className="space-y-1">
+                        <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase">
+                            {isNew ? "Create Character" : `Edit: ${character.name}`}
+                        </h1>
+                        <p className="text-white/40 text-sm font-medium">Configure identity, persona, and media.</p>
+                    </div>
+
+                    <div className="flex gap-3">
+                        {!isNew && (
+                            <Form method="post" onSubmit={(e) => {
+                                if (!confirm("Are you sure? This will delete all conversation history for this character.")) {
+                                    e.preventDefault();
+                                }
+                            }}>
+                                <input type="hidden" name="_action" value="delete" />
+                                <button
+                                    type="submit"
+                                    className="px-6 py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl font-bold text-sm hover:bg-red-500 hover:text-white transition-all"
+                                >
+                                    DELETE
+                                </button>
+                            </Form>
+                        )}
+                        <button
+                            onClick={() => navigate("/admin/characters")}
+                            className="px-6 py-3 bg-white/5 text-white/60 rounded-xl font-bold text-sm hover:text-white transition-all"
+                        >
+                            CANCEL
+                        </button>
+                    </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex gap-2 p-1 bg-[#1A1821] rounded-2xl w-fit border border-white/5">
+                    {(["identity", "ai", "media"] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={cn(
+                                "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                                activeTab === tab
+                                    ? "bg-primary text-black shadow-lg shadow-primary/20"
+                                    : "text-white/40 hover:text-white"
+                            )}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+
+                <Form method="post" className="space-y-8">
+                    {/* Identity Tab */}
+                    {activeTab === "identity" && (
+                        <div className="bg-[#1A1821]/60 border border-white/5 rounded-[40px] p-8 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Character ID (Handle)</label>
+                                    <input
+                                        name="id"
+                                        defaultValue={character?.id}
+                                        readOnly={!isNew}
+                                        placeholder="e.g. chunsim"
+                                        className={cn(
+                                            "w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold",
+                                            !isNew && "opacity-50 cursor-not-allowed"
+                                        )}
+                                    />
+                                    {isNew && <p className="text-[10px] text-white/20 ml-2 italic">* Use only lowercase, numbers, and underscores.</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Display Name</label>
+                                    <input
+                                        name="name"
+                                        defaultValue={character?.name}
+                                        placeholder="e.g. 춘심"
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Role/Tag</label>
+                                    <input
+                                        name="role"
+                                        defaultValue={character?.role}
+                                        placeholder="e.g. K-Pop Idol"
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold"
+                                    />
+                                </div>
+                                <div className="flex items-end pb-4">
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <div className="relative">
+                                            <input
+                                                type="checkbox"
+                                                name="isOnline"
+                                                value="true"
+                                                defaultChecked={character?.isOnline}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-12 h-6 bg-white/10 rounded-full peer peer-checked:bg-primary transition-all duration-300" />
+                                            <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:translate-x-6 transition-all duration-300" />
+                                        </div>
+                                        <span className="text-sm font-black text-white/40 group-hover:text-white transition-colors uppercase tracking-widest">Online Status</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Short Bio</label>
+                                <input
+                                    name="bio"
+                                    defaultValue={character?.bio}
+                                    placeholder="Briefly describe the character"
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Greeting Message</label>
+                                <textarea
+                                    name="greetingMessage"
+                                    defaultValue={character?.greetingMessage || ""}
+                                    placeholder="The first message the AI sends"
+                                    rows={2}
+                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-medium resize-none"
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* AI Persona Tab */}
+                    {activeTab === "ai" && (
+                        <div className="bg-[#1A1821]/60 border border-white/5 rounded-[40px] p-8 space-y-6">
+                            <div className="space-y-2 text-right">
+                                <div className="flex justify-between items-center mb-2 px-2">
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">System Persona Prompt</label>
+                                    <span className="text-[10px] text-primary font-bold italic tracking-tighter px-2 py-1 bg-primary/10 rounded-lg">High Precision Emotion Engine</span>
+                                </div>
+                                <textarea
+                                    name="personaPrompt"
+                                    defaultValue={character?.personaPrompt}
+                                    placeholder="Define the core personality, speech patterns, and secrets..."
+                                    className="w-full h-[500px] bg-black/40 border border-white/10 rounded-[32px] p-8 text-white focus:outline-none focus:border-primary/50 transition-all font-mono text-sm leading-relaxed"
+                                />
+                                <p className="text-[10px] text-white/20 italic">* This prompt defines how the AI will behave. Be specific about tone and emojis.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Media Tab */}
+                    {activeTab === "media" && (
+                        <div className="space-y-8 animate-in fade-in duration-500">
+                            {isNew ? (
+                                <div className="bg-[#1A1821]/60 border border-white/5 rounded-[40px] p-8 flex flex-col items-center justify-center min-h-[300px] text-center space-y-4">
+                                    <span className="material-symbols-outlined text-white/10 text-[64px]">priority_high</span>
+                                    <div className="space-y-1">
+                                        <h3 className="text-lg font-black italic text-white/40 uppercase">Action Required</h3>
+                                        <p className="text-sm text-white/20 font-medium">Please save the character identity first before uploading media.</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Upload Section */}
+                                    <div className="bg-[#1A1821]/60 border border-white/5 rounded-[40px] p-8 space-y-6">
+                                        <div className="flex justify-between items-center px-2">
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Add New Media</label>
+                                            <span className="text-[10px] text-primary font-bold italic tracking-tighter px-2 py-1 bg-primary/10 rounded-lg underline cursor-help" title="Max 10MB per image">Cloudinary Network Integrated</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">Classification</label>
+                                                <select
+                                                    id="new-media-type"
+                                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold appearance-none cursor-pointer"
+                                                >
+                                                    <option value="AVATAR">Profile Avatar</option>
+                                                    <option value="COVER">Background Cover</option>
+                                                    <option value="NORMAL">Standard Gallery</option>
+                                                    <option value="SECRET">Secret Reward</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="relative">
+                                                <input
+                                                    type="file"
+                                                    id="media-upload"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+
+                                                        const toastId = toast.loading("Uploading to Cloudinary...");
+                                                        try {
+                                                            const formData = new FormData();
+                                                            formData.append("file", file);
+
+                                                            const res = await fetch("/api/upload", {
+                                                                method: "POST",
+                                                                body: formData
+                                                            });
+
+                                                            const result = await res.json();
+                                                            if (result.url) {
+                                                                const type = (document.getElementById("new-media-type") as HTMLSelectElement).value;
+                                                                const submitData = new FormData();
+                                                                submitData.append("_action", "add_media");
+                                                                submitData.append("url", result.url);
+                                                                submitData.append("type", type);
+
+                                                                const response = await fetch(window.location.pathname, {
+                                                                    method: "POST",
+                                                                    body: submitData
+                                                                });
+
+                                                                if (response.ok) {
+                                                                    toast.success("Media added successfully", { id: toastId });
+                                                                    revalidator.revalidate();
+                                                                } else {
+                                                                    throw new Error("Failed to save media metadata");
+                                                                }
+                                                            }
+                                                        } catch (error) {
+                                                            toast.error("Upload failed", { id: toastId });
+                                                        }
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    disabled={isSubmitting}
+                                                    onClick={() => document.getElementById("media-upload")?.click()}
+                                                    className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black italic uppercase tracking-tighter hover:bg-white/10 hover:border-primary/30 transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <span className="material-symbols-outlined">add_photo_alternate</span>
+                                                    Select & Upload
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Media Gallery */}
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {character.media.map((item, index) => (
+                                            <div key={item.id} className="group relative bg-[#1A1821]/60 border border-white/5 rounded-3xl overflow-hidden aspect-square">
+                                                <img
+                                                    src={item.url}
+                                                    alt={item.type}
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                />
+                                                <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-3 p-4">
+                                                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">{item.type}</span>
+
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            disabled={index === 0}
+                                                            onClick={async () => {
+                                                                const fd = new FormData();
+                                                                fd.append("_action", "reorder_media");
+                                                                fd.append("mediaId", item.id);
+                                                                fd.append("direction", "up");
+                                                                await fetch(window.location.pathname, { method: "POST", body: fd });
+                                                                revalidator.revalidate();
+                                                            }}
+                                                            className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-black transition-all disabled:opacity-20"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            disabled={index === character.media.length - 1}
+                                                            onClick={async () => {
+                                                                const fd = new FormData();
+                                                                fd.append("_action", "reorder_media");
+                                                                fd.append("mediaId", item.id);
+                                                                fd.append("direction", "down");
+                                                                await fetch(window.location.pathname, { method: "POST", body: fd });
+                                                                revalidator.revalidate();
+                                                            }}
+                                                            className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-black transition-all disabled:opacity-20"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[18px]">arrow_downward</span>
+                                                        </button>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            if (!confirm("Are you sure?")) return;
+                                                            const formData = new FormData();
+                                                            formData.append("_action", "delete_media");
+                                                            formData.append("mediaId", item.id);
+
+                                                            const response = await fetch(window.location.pathname, {
+                                                                method: "POST",
+                                                                body: formData
+                                                            });
+                                                            if (response.ok) {
+                                                                toast.success("Media deleted");
+                                                                revalidator.revalidate();
+                                                            }
+                                                        }}
+                                                        className="w-8 h-8 rounded-lg bg-red-500/20 text-red-500 border border-red-500/40 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                    </button>
+                                                </div>
+                                                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-[8px] font-black text-white/60 uppercase tracking-tighter">
+                                                    #{index + 1} {item.type}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-4">
+                        <button
+                            type="submit"
+                            disabled={isSubmitting}
+                            className={cn(
+                                "w-full py-6 bg-primary text-[#0B0A10] rounded-[32px] font-black italic text-xl tracking-tighter transition-all hover:scale-[1.02] active:scale-95 shadow-[0_10px_40px_rgba(255,0,255,0.4)] flex items-center justify-center gap-3",
+                                isSubmitting && "opacity-50 cursor-not-allowed"
+                            )}
+                        >
+                            {isSubmitting ? (
+                                <span className="w-6 h-6 border-4 border-black border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <>
+                                    <span className="material-symbols-outlined font-bold">bolt</span>
+                                    {isNew ? "DEBUT CHARACTER" : "SAVE CORE SETTINGS"}
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </Form>
+            </div>
+        </AdminLayout>
+    );
+}

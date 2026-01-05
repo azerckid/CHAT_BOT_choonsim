@@ -138,6 +138,7 @@ export const auth = betterAuth({
             bio: { type: "string" },
             snsId: { type: "string" },
             provider: { type: "string" },
+            role: { type: "string" }, // "USER", "ADMIN"
         },
     },
     // Database hooks: account가 업데이트될 때 User 테이블도 업데이트
@@ -230,6 +231,40 @@ export const auth = betterAuth({
     },
 });
 
+/**
+ * 환경 변수에서 Super Admin 이메일 목록 가져오기
+ */
+function getAdminEmails(): string[] {
+    const emails = process.env.ADMIN_EMAILS || "";
+    return emails.split(",").map(e => e.trim()).filter(Boolean);
+}
+
+/**
+ * 이메일이 Super Admin인지 확인
+ */
+export function isAdminEmail(email: string | undefined): boolean {
+    if (!email) return false;
+    return getAdminEmails().includes(email);
+}
+
+/**
+ * 사용자가 Admin 권한을 가지고 있는지 확인
+ */
+export async function isAdmin(userId: string): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, role: true },
+    });
+
+    if (!user) return false;
+
+    // Super Admin (환경 변수) 또는 DB Role Admin
+    return isAdminEmail(user.email) || user.role === "ADMIN";
+}
+
+/**
+ * 인증된 사용자의 ID를 가져옴 (권한 없으면 null)
+ */
 export async function requireUserId(request: Request): Promise<string | null> {
     const session = await auth.api.getSession({
         headers: request.headers,
@@ -241,4 +276,26 @@ export async function requireUserId(request: Request): Promise<string | null> {
 
     return session.user.id;
 }
+
+/**
+ * Admin 권한이 없으면 에러 반환 (Loader/Action에서 사용)
+ */
+export async function requireAdmin(request: Request): Promise<string> {
+    const session = await auth.api.getSession({
+        headers: request.headers,
+    });
+
+    if (!session || !session.user) {
+        throw new Response("Unauthorized", { status: 401 });
+    }
+
+    const hasAdminAccess = await isAdmin(session.user.id);
+
+    if (!hasAdminAccess) {
+        throw new Response("Forbidden", { status: 403 });
+    }
+
+    return session.user.id;
+}
+
 

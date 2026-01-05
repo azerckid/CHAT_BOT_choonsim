@@ -7,6 +7,7 @@ import { useLoaderData } from "react-router";
 import { CHARACTERS } from "~/lib/characters";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { DateTime } from "luxon";
+import { cn } from "~/lib/utils";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -17,7 +18,7 @@ export function meta({ }: Route.MetaArgs) {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
-  
+
   // 인증된 사용자의 경우 최근 대화 목록 가져오기 (최대 5개)
   let recentConversations: any[] = [];
   if (session) {
@@ -43,17 +44,28 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .map(id => CHARACTERS[id])
     .filter(Boolean);
 
+  // 공지사항 및 이벤트 가져오기
+  const notices = await prisma.notice.findMany({
+    where: { isActive: true },
+    orderBy: [
+      { isPinned: "desc" },
+      { createdAt: "desc" }
+    ],
+    take: 3
+  });
+
   return Response.json({
     user: session?.user || null,
     todaysPick,
     recentConversations,
     trendingIdols,
+    notices,
     isAuthenticated: !!session,
   });
 }
 
 export default function HomeScreen() {
-  const { user, todaysPick, recentConversations, trendingIdols, isAuthenticated } = useLoaderData<typeof loader>() as any;
+  const { user, todaysPick, recentConversations, trendingIdols, notices, isAuthenticated } = useLoaderData<typeof loader>() as any;
   const navigate = useNavigate();
 
   const handleStartChat = async (characterId: string) => {
@@ -167,11 +179,14 @@ export default function HomeScreen() {
             </div>
             <span className="text-xs font-medium text-gray-300">New Chat</span>
           </button>
-          <button className="flex flex-col items-center gap-2 group">
+          <button
+            onClick={() => navigate("/missions")}
+            className="flex flex-col items-center gap-2 group"
+          >
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-dark border border-white/10 group-active:scale-95 transition-all text-[#FFD700]">
               <span className="material-symbols-outlined text-[28px]">redeem</span>
             </div>
-            <span className="text-xs font-medium text-gray-300">Daily Gift</span>
+            <span className="text-xs font-medium text-gray-300">Missions</span>
           </button>
           <button
             onClick={() => navigate("/fandom")}
@@ -251,7 +266,7 @@ export default function HomeScreen() {
           <span className="material-symbols-outlined text-gray-400">trending_up</span>
         </div>
         <div className="flex overflow-x-auto px-4 gap-4 pb-4 scrollbar-hide snap-x">
-          {trendingIdols.map((character, index) => (
+          {(trendingIdols as any[]).map((character: any, index: number) => (
             <button
               key={character.id}
               onClick={() => navigate(`/character/${character.id}`)}
@@ -285,33 +300,50 @@ export default function HomeScreen() {
 
       {/* News & Events */}
       <div className="px-4 pb-8">
-        <h2 className="text-white text-lg font-bold mb-3">News & Events</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-white text-lg font-bold">News & Events</h2>
+          <button
+            onClick={() => navigate("/notices")}
+            className="text-primary text-xs font-bold uppercase tracking-widest"
+          >
+            See All
+          </button>
+        </div>
         <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-xl bg-surface-dark border border-white/5">
-            <div className="flex flex-col sm:flex-row">
-              <div className="h-32 w-full sm:w-32 shrink-0 bg-cover bg-center bg-gradient-to-br from-primary/20 to-purple-600/20"></div>
-              <div className="flex-1 p-4 flex flex-col justify-center">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Event</span>
-                  <span className="text-xs text-gray-400">Ends in 2 days</span>
-                </div>
-                <h3 className="text-white font-bold text-base mb-1">Summer Beach Collection</h3>
-                <p className="text-gray-400 text-xs mb-0">Get exclusive swimsuits for your favorite idols!</p>
-              </div>
+          {notices.length === 0 ? (
+            <div className="py-8 text-center bg-white/5 rounded-2xl border border-white/5">
+              <p className="text-white/20 text-xs font-bold uppercase tracking-[0.2em]">No official updates yet</p>
             </div>
-          </div>
-          <div className="relative overflow-hidden rounded-xl bg-surface-dark border border-white/5">
-            <div className="flex flex-col sm:flex-row">
-              <div className="h-32 w-full sm:w-32 shrink-0 bg-cover bg-center bg-gradient-to-br from-blue-600/20 to-purple-600/20"></div>
-              <div className="flex-1 p-4 flex flex-col justify-center">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Update</span>
+          ) : (
+            (notices as any[]).map((notice) => (
+              <div
+                key={notice.id}
+                onClick={() => navigate(`/notices/${notice.id}`)}
+                className="relative overflow-hidden rounded-xl bg-surface-dark border border-white/5 active:bg-white/10 transition-colors cursor-pointer group"
+              >
+                <div className="flex flex-col sm:flex-row">
+                  <div className="h-28 w-full sm:w-28 shrink-0 bg-cover bg-center bg-gradient-to-br from-primary/30 to-purple-600/30">
+                    {notice.imageUrl && <img src={notice.imageUrl} alt="" className="w-full h-full object-cover" />}
+                  </div>
+                  <div className="flex-1 p-4 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={cn(
+                        "rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider text-white",
+                        notice.type === "EVENT" ? "bg-emerald-500" : notice.type === "NEWS" ? "bg-blue-600" : "bg-primary"
+                      )}>
+                        {notice.type}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-medium">
+                        {DateTime.fromJSDate(new Date(notice.createdAt)).toFormat("LLL dd")}
+                      </span>
+                    </div>
+                    <h3 className="text-white font-bold text-sm mb-1 group-hover:text-primary transition-colors truncate">{notice.title}</h3>
+                    <p className="text-gray-400 text-[11px] line-clamp-1 leading-relaxed">{notice.content}</p>
+                  </div>
                 </div>
-                <h3 className="text-white font-bold text-base mb-1">New Voice Packs Added</h3>
-                <p className="text-gray-400 text-xs mb-0">Experience more realistic conversations now.</p>
               </div>
-            </div>
-          </div>
+            ))
+          )}
         </div>
       </div>
 

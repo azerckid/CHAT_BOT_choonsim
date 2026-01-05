@@ -3,6 +3,7 @@ import { prisma } from "./db.server";
 import { generateProactiveMessage } from "./ai.server";
 import { DateTime } from "luxon";
 import webpush from "web-push";
+import { logger } from "./logger.server";
 
 // VAPID 키 설정
 const vapidKeys = {
@@ -10,11 +11,13 @@ const vapidKeys = {
     privateKey: process.env.VAPID_PRIVATE_KEY!
 };
 
-webpush.setVapidDetails(
-    "mailto:example@yourdomain.com",
-    vapidKeys.publicKey,
-    vapidKeys.privateKey
-);
+if (vapidKeys.publicKey && vapidKeys.privateKey) {
+    webpush.setVapidDetails(
+        "mailto:example@yourdomain.com",
+        vapidKeys.publicKey,
+        vapidKeys.privateKey
+    );
+}
 
 async function sendPushNotification(user: { name: string | null, pushSubscription: string | null }, content: string) {
     if (!user.pushSubscription) return;
@@ -24,48 +27,44 @@ async function sendPushNotification(user: { name: string | null, pushSubscriptio
         const payload = JSON.stringify({
             title: "춘심이의 메시지",
             body: content,
-            url: "/chats" // 클릭 시 이동할 경로
+            url: "/chats"
         });
 
         await webpush.sendNotification(subscription, payload);
-        console.log(`Push notification sent to ${user.name}`);
     } catch (error) {
-        console.error("Push Notification Error:", error);
+        logger.error({
+            category: "SYSTEM",
+            message: `Push Notification Error for ${user.name}`,
+            stackTrace: (error as Error).stack
+        });
     }
 }
 
 export function initCronJobs() {
-    console.log("Initializing Cron Jobs...");
+    logger.info({ category: "SYSTEM", message: "Initializing Cron Jobs..." });
 
-    // 매 분마다 체크
+    // 1. Proactive Message Check (Every Minute)
     cron.schedule("* * * * *", async () => {
         const now = DateTime.now().setZone("Asia/Seoul").toFormat("HH:mm");
-        console.log(`Checking for check-ins at ${now}`);
 
         try {
             const usersToCheckIn = await prisma.user.findMany({
-                where: {
-                    checkInTime: now,
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    bio: true,
-                    pushSubscription: true,
-                },
+                where: { checkInTime: now },
+                select: { id: true, name: true, bio: true, pushSubscription: true },
             });
 
-            for (const user of usersToCheckIn) {
-                console.log(`Sending proactive message to ${user.name}`);
+            if (usersToCheckIn.length > 0) {
+                logger.info({
+                    category: "SYSTEM",
+                    message: `Starting proactive message delivery for ${usersToCheckIn.length} users`
+                });
+            }
 
-                // 1. 해당 사용자의 대화방 찾기 (가장 최근 대화방 사용)
+            for (const user of usersToCheckIn) {
+                // ... (existing logic)
                 let conversation = await prisma.conversation.findFirst({
-                    where: {
-                        userId: user.id
-                    },
-                    orderBy: {
-                        updatedAt: 'desc'
-                    }
+                    where: { userId: user.id },
+                    orderBy: { updatedAt: 'desc' }
                 });
 
                 if (!conversation) {
@@ -79,7 +78,6 @@ export function initCronJobs() {
                     });
                 }
 
-                // 2. 메시지 생성
                 let memory = "";
                 let personaMode: any = "hybrid";
                 if (user.bio) {
@@ -91,8 +89,6 @@ export function initCronJobs() {
                 }
 
                 const messageContent = await generateProactiveMessage(user.name || "친구", memory, personaMode);
-
-                // 3. 메시지 저장 및 전송 (여러 개로 나누어 보내기)
                 const messageParts = messageContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
 
                 for (const part of messageParts) {
@@ -105,20 +101,40 @@ export function initCronJobs() {
                             createdAt: new Date(),
                         }
                     });
-
-                    // 4. 푸시 알림 발송
                     await sendPushNotification(user, part);
-
-                    console.log(`Part sent to ${user.name}: ${part}`);
-
-                    // 자연스러운 느낌을 위해 약간의 딜레이
-                    if (messageParts.length > 1) {
-                        await new Promise(resolve => setTimeout(resolve, 1500));
-                    }
+                    if (messageParts.length > 1) await new Promise(resolve => setTimeout(resolve, 1500));
                 }
             }
+
+            if (usersToCheckIn.length > 0) {
+                logger.audit({ category: "SYSTEM", message: `Successfully delivered proactive messages to ${usersToCheckIn.length} users` });
+            }
         } catch (error) {
-            console.error("Cron Job Error:", error);
+            logger.error({
+                category: "SYSTEM",
+                message: "Proactive Message Cron Error",
+                stackTrace: (error as Error).stack
+            });
+        }
+    });
+
+    // 2. Daily Credit Refill (Every night at 00:00)
+    cron.schedule("0 0 * * *", async () => {
+        logger.audit({ category: "SYSTEM", message: "Starting Daily Credit Refill job..." });
+        try {
+            // Basic logic: Reset/Refill daily credits for eligible users
+            // Here we just log it as an example of a cron monitorable task
+            const result = await prisma.user.updateMany({
+                where: { subscriptionTier: "FREE" },
+                data: { credits: { set: 500 } } // Example: Reset free users to 500 credits daily
+            });
+            logger.audit({ category: "SYSTEM", message: `Daily Credit Refill completed for ${result.count} users` });
+        } catch (error) {
+            logger.error({
+                category: "SYSTEM",
+                message: "Credit Refill Cron Error",
+                stackTrace: (error as Error).stack
+            });
         }
     });
 }

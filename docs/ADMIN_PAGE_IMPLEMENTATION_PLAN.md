@@ -7,8 +7,9 @@
 - **Database**: Turso (libSQL) with Prisma ORM
 - **Authentication**: Better Auth (session-based)
 - **UI Components**: shadcn/ui (Nova Preset) + Tailwind CSS v4
-- **Current Status**: 계획 단계 (구현 전)
-- **Character Data**: `app/lib/characters.ts`에 하드코딩된 CHARACTERS 객체 사용 (별도 Character 테이블 없음)
+- **Current Status**: Phase 1-5 완료 (2026-01-05)
+- **Next Step**: Phase 6 (서비스 통합 및 유저 기능 활성화)
+- **Character Data**: DB 및 `app/lib/characters.ts` 연동 완료
 
 ---
 
@@ -310,93 +311,32 @@ export async function requireAdmin(request: Request): Promise<void> {
 
 ## 5. 구현 우선순위 (Roadmap)
 
-### Phase 1: 인프라 및 인증 (Infrastructure & Authentication)
+### Phase 1: 인프라 및 인증 (Infrastructure & Authentication) - [완료]
+### Phase 2: 캐릭터 CMS (Character Content Management) - [완료]
+### Phase 3: 아이템 시스템 (Item & Economy Management) - [완료]
+### Phase 4: 사용자 및 결제 관리 (User & Payment Management) - [완료]
+### Phase 5: 시스템 모니터링 및 운영 기능 - [완료]
 
-**목표**: Admin 접근 제어 시스템 구축
+### Phase 6: 서비스 통합 및 유저 기능 활성화 (User Integration)
 
-1. **User 모델 확장**
-   - `User` 모델에 `role` 필드 추가 (`String? @default("USER")`)
-   - 마이그레이션 실행: `npx prisma migrate dev --name add_user_role`
+**목표**: 관리자 도구로 생성한 콘텐츠를 실제 유저가 소비할 수 있도록 프론트엔드 연동
 
-2. **Admin 인증 헬퍼 함수 구현**
-   - `app/lib/auth.server.ts`에 `isAdminEmail()`, `isAdmin()`, `requireAdmin()` 함수 추가
-   - 환경 변수 `ADMIN_EMAILS` 설정 가이드 문서화
+1. **실시간 공지사항 연동**
+   - `home.tsx`, `fandom.tsx`의 하드코딩된 뉴스 섹션을 `Notice` DB 데이터로 교체
+   - 전체 공지사항 목록(`routes/notices/index.tsx`) 및 상세 페이지 구현
 
-3. **Admin 라우트 구조 생성**
-   - `app/routes/admin/` 디렉토리 생성
-   - `app/routes/admin/dashboard.tsx` (대시보드 페이지)
-   - `app/routes/admin/$.tsx` (404 페이지)
-   - 각 라우트에 `requireAdmin()` 적용
+2. **미션 시스템 활성화**
+   - `UserMission` 모델 추가 및 유저별 미션 진행도 추적 로직 구현
+   - `fandom.tsx` 또는 별도의 `/missions` 페이지에서 실시간 미션 현황 표시
+   - 미션 완료 및 보상(크레딧) 수령 기능 구현
 
-4. **Admin 레이아웃 컴포넌트**
-   - `app/components/admin/AdminLayout.tsx` 생성 (사이드바 + 헤더)
-   - `app/components/admin/AdminSidebar.tsx` 생성
-   - `app/components/admin/AdminHeader.tsx` 생성
+3. **팬 피드(Fan Feed) 연동**
+   - `FanPost` 모델 추가 및 유저 게시글 작성 기능 구현
+   - `fandom.tsx`의 피드를 실시간 DB 데이터로 교체
 
-### Phase 2: 캐릭터 CMS (Character Content Management)
-
-**목표**: 캐릭터 콘텐츠 관리 기능 완성
-
-1. **캐릭터 관리 페이지**
-   - `app/routes/admin/characters/index.tsx` (캐릭터 목록)
-   - `app/routes/admin/characters/$id.tsx` (캐릭터 편집)
-   - `app/routes/api.admin.characters.*.ts` (CRUD API)
-
-2. **캐릭터 데이터 마이그레이션 (선택사항)**
-   - Character 테이블 추가 (선택)
-   - `scripts/seed-characters.mjs` 작성 및 실행
-
-3. **이미지 업로드 연동**
-   - Cloudinary 업로드 기능 (`app/lib/cloudinary.server.ts` 활용)
-   - 아바타 및 갤러리 이미지 관리
-
-### Phase 3: 아이템 시스템 (Item & Economy Management)
-
-**목표**: 하트 등 가상 아이템 관리 기능 완성
-
-1. **아이템 관리 페이지**
-   - `app/routes/admin/items/index.tsx` (아이템 목록)
-   - `app/routes/admin/items/$id.tsx` (아이템 편집)
-   - `app/routes/api.admin.items.*.ts` (CRUD API)
-
-2. **선물 통계 대시보드**
-   - `app/routes/admin/items/statistics.tsx` (캐릭터별 하트 랭킹)
-   - `CharacterStat` 기반 통계 조회
-
-3. **사용자 인벤토리 관리**
-   - `app/routes/admin/users/$id/inventory.tsx` (사용자별 보유 아이템 조회)
-   - 수동 아이템 지급 기능 (선택사항)
-
-### Phase 4: 사용자 및 결제 관리 (User & Payment Management)
-
-**목표**: 사용자 통계 및 결제 관리 기능 완성
-
-1. **사용자 관리 페이지**
-   - `app/routes/admin/users/index.tsx` (사용자 목록)
-   - `app/routes/admin/users/$id.tsx` (사용자 상세)
-   - 구독 등급 수동 변경 기능
-
-2. **결제 내역 조회**
-   - `app/routes/admin/payments/index.tsx` (결제 내역 목록)
-   - PayPal/Toss 통합 조회
-
-3. **통계 대시보드**
-   - `app/routes/admin/dashboard.tsx` 확장
-   - 사용자 수, 결제 통계, 아이템 판매 통계 등
-
-### Phase 5: 시스템 모니터링 및 운영 기능
-
-**목표**: 서비스 운영을 위한 모니터링 도구
-
-1. **시스템 모니터링**
-   - API 사용량 모니터링 (Gemini, Cloudinary)
-   - 에러 로그 조회
-   - 크론 잡 모니터링
-
-2. **콘텐츠 관리**
-   - 뉴스/이벤트 관리
-   - 미션 관리
-   - 팬 피드 관리 (FanPost 테이블 필요)
+4. **사용자 경험 고도화**
+   - 홈 화면의 'Quick Access' 버튼(Daily Gift 등) 실제 로직 연동
+   - 프로필 페이지에 미션 및 공지사항 바로가기 추가
 
 ---
 

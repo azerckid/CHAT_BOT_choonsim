@@ -67,11 +67,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
     console.error("Error calculating days together:", error);
   }
 
+  // 하트 보유량 조회
+  const heartInventory = await prisma.userInventory.findUnique({
+    where: {
+      userId_itemId: {
+        userId: session.user.id,
+        itemId: "heart",
+      },
+    },
+  });
+
   // 통계 데이터
   const stats = {
     daysTogether,
     affinityLevel: 0, // 정책 정해지기 전까지 모두 0레벨
-    hearts: 0, // 아직 하트 판매 기능 없음
+    hearts: heartInventory?.quantity || 0,
   };
 
   // 오늘의 토큰 사용량 계산

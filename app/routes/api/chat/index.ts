@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { ActionFunctionArgs } from "react-router";
 import { streamAIResponse, generateSummary, extractPhotoMarker } from "~/lib/ai.server";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
+import { logger } from "~/lib/logger.server";
 
 const chatSchema = z.object({
     message: z.string().optional().default(""),
@@ -85,6 +86,11 @@ export async function action({ request }: ActionFunctionArgs) {
                 });
 
                 if (!currentUser || currentUser.credits < MIN_REQUIRED_CREDITS) {
+                    logger.warn({
+                        category: "API",
+                        message: `Insufficient credits for user ${session.user.id}`,
+                        metadata: { credits: currentUser?.credits }
+                    });
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Insufficient credits", code: 402 })}\n\n`));
                     controller.close();
                     return;
@@ -115,9 +121,17 @@ export async function action({ request }: ActionFunctionArgs) {
                                 credits: { decrement: tokenUsage.totalTokens }
                             }
                         });
-                        console.log(`Deducted ${tokenUsage.totalTokens} credits for user ${session.user.id}`);
+                        logger.info({
+                            category: "API",
+                            message: `Deducted ${tokenUsage.totalTokens} credits for user ${session.user.id}`,
+                            metadata: { tokenUsage }
+                        });
                     } catch (err) {
-                        console.error("Failed to deduct credits:", err);
+                        logger.error({
+                            category: "DB",
+                            message: `Failed to deduct credits for user ${session.user.id}`,
+                            stackTrace: (err as Error).stack
+                        });
                     }
                 }
 
@@ -256,7 +270,12 @@ export async function action({ request }: ActionFunctionArgs) {
 
                 controller.close();
             } catch (error) {
-                console.error("Streaming error:", error);
+                logger.error({
+                    category: "API",
+                    message: "Streaming error in chat API",
+                    stackTrace: (error as Error).stack,
+                    metadata: { conversationId, characterId }
+                });
                 controller.error(error);
             }
         },
