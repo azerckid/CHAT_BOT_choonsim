@@ -135,6 +135,25 @@ export function extractPhotoMarker(content: string, characterId: string = "chuns
 }
 
 /**
+ * AI 응답에서 [EMOTION:CODE] 마커를 감지하고 감정 코드를 추출
+ * @param content AI 응답 텍스트
+ * @returns { content: string, emotion: string | null } 마커가 제거된 텍스트와 감정 코드
+ */
+export function extractEmotionMarker(content: string): { content: string; emotion: string | null } {
+    const emotionMarkerRegex = /\[EMOTION:([A-Z]+)\]/gi;
+    const match = /\[EMOTION:([A-Z]+)\]/gi.exec(content);
+
+    if (!match) {
+        return { content, emotion: null };
+    }
+
+    const emotion = match[1].toUpperCase();
+    const cleanedContent = content.replace(emotionMarkerRegex, "").trim();
+
+    return { content: cleanedContent, emotion };
+}
+
+/**
  * 이미지 URL을 Base64 데이터 URL로 변환 (Axios 사용으로 안정성 강화)
  */
 async function urlToBase64(url: string): Promise<string> {
@@ -586,6 +605,23 @@ export async function* streamAIResponse(
 지금 시간은 ${timeInfo}입니다.
 이 정보를 활용하여 자연스럽게 대화하세요. 예를 들어, 아침/점심/저녁 인사, 주말/평일 구분, 특별한 날짜(생일, 기념일 등) 언급 등에 활용할 수 있습니다.`;
     systemInstruction += timeContext;
+
+    // 감정 상태(Emotion) 시스템 지침 추가
+    const emotionInstruction = `\n\n[EMOTION SYSTEM]
+당신은 매 답변의 처음에 현재의 감정 상태를 마커 형태로 표시해야 합니다.
+사용 가능한 감정 마커:
+- [EMOTION:JOY]: 평범한 기쁨, 즐거움, 웃음
+- [EMOTION:SHY]: 부끄러움, 설렘, 수줍음
+- [EMOTION:EXCITED]: 매우 기쁨, 연속 선물로 인한 흥분, 신남
+- [EMOTION:LOVING]: 깊은 애정, 고마움, 사랑
+- [EMOTION:SAD]: 실망, 시무룩, 아쉬움
+- [EMOTION:THINKING]: 고민 중, 생각 중, 궁금함
+
+규칙:
+1. 답변의 본문을 시작하기 전에 가장 먼저 마커를 하나만 넣으세요. (예: [EMOTION:JOY] 안녕하세요!)
+2. '---'를 사용하여 메시지를 나눌 경우, 각 부분의 맨 처음에 해당 부분의 감정에 어울리는 마커를 다시 넣으세요.
+3. 상황에 따라 가장 적절한 감정을 선택하세요. 특히 선물을 받았을 때는 EXCITED나 LOVING을 권장합니다.`;
+    systemInstruction += emotionInstruction;
 
     const messages: BaseMessage[] = [
         new SystemMessage(systemInstruction),

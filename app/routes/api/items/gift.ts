@@ -47,22 +47,41 @@ export async function action({ request }: ActionFunctionArgs) {
                 throw new Error("Insufficient hearts");
             }
 
-            // 3. Update CharacterStat
+            // 3. Check if this is a new giver (before updating CharacterStat)
+            const existingGift = await tx.giftLog.findFirst({
+                where: {
+                    fromUserId: session.user.id,
+                    toCharacterId: characterId,
+                },
+            });
+
+            const isNewGiver = !existingGift;
+
+            // 4. Calculate Emotion Expiry (Gambia Formula)
+            const durationMinutes = amount >= 100 ? 30 : amount >= 50 ? 15 : amount >= 10 ? 5 : 1;
+            const emotionExpiresAt = new Date(Date.now() + durationMinutes * 60000);
+            const initialEmotion = amount >= 100 ? "LOVING" : amount >= 50 ? "EXCITED" : "JOY";
+
             await tx.characterStat.upsert({
                 where: { characterId },
                 create: {
                     characterId,
                     totalHearts: amount,
                     totalUniqueGivers: 1,
+                    currentEmotion: initialEmotion,
+                    emotionExpiresAt,
                     lastGiftAt: new Date(),
                 },
                 update: {
                     totalHearts: { increment: amount },
+                    totalUniqueGivers: isNewGiver ? { increment: 1 } : undefined,
+                    currentEmotion: initialEmotion,
+                    emotionExpiresAt,
                     lastGiftAt: new Date(),
                 },
             });
 
-            // 4. Create GiftLog
+            // 5. Create GiftLog
             const giftLog = await tx.giftLog.create({
                 data: {
                     id: crypto.randomUUID(),
@@ -75,7 +94,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 },
             });
 
-            // 5. Create a system message for the chat to acknowledge the gift
+            // 6. Create a system message for the chat to acknowledge the gift
             const systemMsg = await tx.message.create({
                 data: {
                     id: crypto.randomUUID(),
@@ -87,7 +106,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
             });
 
-            // 6. Update mission progress (Gift missions)
+            // 7. Update mission progress (Gift missions)
             const giftMissions = await tx.mission.findMany({
                 where: {
                     isActive: true,

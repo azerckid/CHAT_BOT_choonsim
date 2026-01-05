@@ -2,7 +2,7 @@ import { prisma } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import type { ActionFunctionArgs } from "react-router";
-import { streamAIResponse, generateSummary, extractPhotoMarker } from "~/lib/ai.server";
+import { streamAIResponse, generateSummary, extractPhotoMarker, extractEmotionMarker } from "~/lib/ai.server";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { logger } from "~/lib/logger.server";
 
@@ -200,7 +200,41 @@ export async function action({ request }: ActionFunctionArgs) {
                 // 3단계: 각 말풍선을 하나씩 순차적으로 스트리밍
                 for (let i = 0; i < messageParts.length; i++) {
                     const part = messageParts[i];
-                    const cleanedContent = part; // 이미 사진 마커는 제거되었으므로 그대로 사용
+
+                    // 감정 마커 추출
+                    const emotionMarker = extractEmotionMarker(part);
+                    const emotionCode = emotionMarker.emotion;
+                    const finalContent = emotionMarker.content;
+
+                    // 감정 정보가 있으면 먼저 전송 (프론트엔드 UI 업데이트용)
+                    if (emotionCode) {
+                        // 선물 컨텍스트가 있으면 지속 시간 계산 (다이내믹 감쇄)
+                        let expiresAt: Date | null = null;
+                        if (giftContext) {
+                            const amount = giftContext.amount;
+                            const durationMinutes = amount >= 100 ? 30 : amount >= 50 ? 15 : amount >= 10 ? 5 : 1;
+                            expiresAt = new Date(Date.now() + durationMinutes * 60000);
+                        }
+
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                            emotion: emotionCode,
+                            expiresAt: expiresAt?.toISOString()
+                        })}\n\n`));
+
+                        // DB 업데이트 (비동기)
+                        prisma.characterStat.upsert({
+                            where: { characterId },
+                            create: {
+                                characterId,
+                                currentEmotion: emotionCode,
+                                emotionExpiresAt: expiresAt
+                            },
+                            update: {
+                                currentEmotion: emotionCode,
+                                emotionExpiresAt: expiresAt || undefined // 선물 반응일 때만 업데이트
+                            }
+                        }).catch(err => console.error("Failed to update emotion:", err));
+                    }
 
                     // 첫 번째 말풍선이고 사진이 있으면 먼저 사진 URL 전송
                     if (i === 0 && photoUrl) {
@@ -208,10 +242,10 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
 
                     // 한 글자씩 스트리밍 (랜덤 딜레이로 자연스러운 타이핑 효과)
-                    for (const char of cleanedContent) {
+                    for (const char of finalContent) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: char })}\n\n`));
-                        // 50ms~200ms 사이 랜덤 딜레이 (사람처럼 자연스러운 타이핑)
-                        const randomDelay = Math.floor(Math.random() * (200 - 50 + 1)) + 50;
+                        // 40ms~120ms 사이 랜덤 딜레이 (조금 더 쾌적하게 조정)
+                        const randomDelay = Math.floor(Math.random() * (120 - 40 + 1)) + 40;
                         await new Promise(resolve => setTimeout(resolve, randomDelay));
                     }
 
@@ -220,7 +254,7 @@ export async function action({ request }: ActionFunctionArgs) {
                         data: {
                             id: crypto.randomUUID(),
                             role: "assistant",
-                            content: cleanedContent,
+                            content: finalContent, // 감정 마커가 제거된 최종 텍스트 저장
                             conversationId,
                             createdAt: new Date(),
                             type: "TEXT",

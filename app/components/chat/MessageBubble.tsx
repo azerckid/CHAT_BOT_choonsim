@@ -13,6 +13,8 @@ interface MessageBubbleProps {
   messageId?: string;
   isLiked?: boolean;
   onLike?: (messageId: string, currentLiked: boolean) => void;
+  auraClass?: string;
+  auraOpacity?: number;
 }
 
 export function MessageBubble({
@@ -28,6 +30,8 @@ export function MessageBubble({
   messageId,
   isLiked = false,
   onLike,
+  auraClass,
+  auraOpacity = 1,
 }: MessageBubbleProps) {
   const isUser = sender === "user";
 
@@ -41,12 +45,12 @@ export function MessageBubble({
     return (
       <div className={cn("flex items-end gap-3 justify-end group", className)}>
         {messageId && onLike && (
-          <button 
+          <button
             onClick={handleLike}
             className={cn(
               "opacity-0 group-hover:opacity-100 transition-opacity p-1 order-1",
-              isLiked 
-                ? "opacity-100 text-primary" 
+              isLiked
+                ? "opacity-100 text-primary"
                 : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
             )}
           >
@@ -78,7 +82,13 @@ export function MessageBubble({
   return (
     <div className={cn("flex items-end gap-3 group", className)}>
       {showAvatar && (
-        <div className="w-10 h-10 shrink-0 rounded-full bg-gray-300 dark:bg-surface-dark overflow-hidden border border-white/10 relative">
+        <div
+          className={cn(
+            "w-10 h-10 shrink-0 rounded-full bg-gray-300 dark:bg-surface-dark overflow-hidden border border-white/10 relative transition-all duration-500",
+            auraClass
+          )}
+          style={{ opacity: auraOpacity }}
+        >
           {avatarUrl ? (
             <img
               alt={senderName || "AI profile"}
@@ -113,12 +123,12 @@ export function MessageBubble({
               {timestamp}
             </span>
             {messageId && onLike && (
-              <button 
+              <button
                 onClick={handleLike}
                 className={cn(
                   "opacity-0 group-hover:opacity-100 transition-opacity p-1",
-                  isLiked 
-                    ? "opacity-100 text-primary" 
+                  isLiked
+                    ? "opacity-100 text-primary"
                     : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
                 )}
               >
@@ -131,12 +141,12 @@ export function MessageBubble({
           </div>
         )}
         {!timestamp && messageId && onLike && (
-          <button 
+          <button
             onClick={handleLike}
             className={cn(
               "opacity-0 group-hover:opacity-100 transition-opacity p-1 ml-1",
-              isLiked 
-                ? "opacity-100 text-primary" 
+              isLiked
+                ? "opacity-100 text-primary"
                 : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
             )}
           >

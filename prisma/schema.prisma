@@ -110,6 +110,8 @@ model CharacterStat {
   characterId       String    @unique
   totalHearts       Int       @default(0)
   totalUniqueGivers Int       @default(0)
+  currentEmotion    String?   @default("JOY")
+  emotionExpiresAt  DateTime?
   lastGiftAt        DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

@@ -27,6 +27,15 @@ import {
 
 type LoadingState = "idle" | "loading" | "network-error";
 
+const EMOTION_MAP: Record<string, { color: string; text: string; aura: string }> = {
+  JOY: { color: "text-pink-400", text: "기분 좋음", aura: "shadow-[0_0_15px_rgba(236,72,153,0.4)]" },
+  SHY: { color: "text-rose-400", text: "부끄러움", aura: "shadow-[0_0_15px_rgba(251,113,133,0.4)]" },
+  EXCITED: { color: "text-orange-400", text: "신남!", aura: "shadow-[0_0_20px_rgba(251,146,60,0.6)] animate-pulse" },
+  LOVING: { color: "text-red-500", text: "사랑해", aura: "shadow-[0_0_20px_rgba(239,68,68,0.6)]" },
+  SAD: { color: "text-blue-400", text: "시무룩", aura: "shadow-[0_0_10px_rgba(96,165,250,0.3)]" },
+  THINKING: { color: "text-purple-400", text: "생각 중", aura: "shadow-[0_0_15px_rgba(192,132,252,0.4)]" },
+};
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -65,6 +74,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }),
   ]);
 
+  if (!conversation) throw new Response("Conversation Not Found", { status: 404 });
+
+  const characterStat = await prisma.characterStat.findUnique({
+    where: { characterId: conversation.characterId },
+  });
+
   const userLikes = await prisma.messageLike.findMany({
     where: {
       userId: session.user.id,
@@ -87,7 +102,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
   const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-  return Response.json({ messages: messagesWithLikes, user, conversation, paypalClientId, tossClientKey });
+  return Response.json({ messages: messagesWithLikes, user, conversation, characterStat, paypalClientId, tossClientKey });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -133,7 +148,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function ChatRoom() {
-  const { messages: initialMessages, user, conversation, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any, paypalClientId: string, tossClientKey: string };
+  const { messages: initialMessages, user, conversation, characterStat, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any, characterStat: any, paypalClientId: string, tossClientKey: string };
   const fetcher = useFetcher();
   const navigate = useNavigate();
 
@@ -148,6 +163,9 @@ export default function ChatRoom() {
   const [isAiStreaming, setIsAiStreaming] = useState(false);
   const [isItemStoreOpen, setIsItemStoreOpen] = useState(false);
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
+  const [currentEmotion, setCurrentEmotion] = useState<string>(characterStat?.currentEmotion || "JOY");
+  const [emotionExpiresAt, setEmotionExpiresAt] = useState<string | null>(characterStat?.emotionExpiresAt || null);
+  const [auraOpacity, setAuraOpacity] = useState(1);
   const [isOptimisticTyping, setIsOptimisticTyping] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -163,6 +181,40 @@ export default function ChatRoom() {
   }, [user]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 감정 만료 타이머 및 초기 상태 설정
+  useEffect(() => {
+    if (characterStat) {
+      setCurrentEmotion(characterStat.currentEmotion || "JOY");
+      setEmotionExpiresAt(characterStat.emotionExpiresAt || null);
+    }
+  }, [characterStat]);
+
+  useEffect(() => {
+    if (!emotionExpiresAt || currentEmotion === "JOY") return;
+
+    const checkExpiry = () => {
+      const now = new Date().getTime();
+      const expiry = new Date(emotionExpiresAt).getTime();
+
+      if (now >= expiry) {
+        setCurrentEmotion("JOY");
+        setEmotionExpiresAt(null);
+        setAuraOpacity(1);
+      } else {
+        const diff = (expiry - now) / 1000;
+        if (diff <= 10) {
+          // 마지막 10초 동안 서서히 흐려짐
+          setAuraOpacity(diff / 10);
+        } else {
+          setAuraOpacity(1);
+        }
+      }
+    };
+
+    const timer = setInterval(checkExpiry, 1000);
+    return () => clearInterval(timer);
+  }, [emotionExpiresAt, currentEmotion]);
 
   // 스크롤 동기화
   useEffect(() => {
@@ -243,6 +295,12 @@ export default function ChatRoom() {
             if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
+                if (data.emotion) {
+                  setCurrentEmotion(data.emotion);
+                }
+                if (data.expiresAt) {
+                  setEmotionExpiresAt(data.expiresAt);
+                }
                 if (data.text) {
                   fullAiContent += data.text;
                   currentMessageContent += data.text; // 현재 말풍선에 추가
@@ -389,7 +447,9 @@ export default function ChatRoom() {
         characterName={characterName}
         characterId={character.id}
         isOnline={true}
-        statusText="Active Now"
+        statusText={EMOTION_MAP[currentEmotion]?.text || "Active Now"}
+        statusClassName={EMOTION_MAP[currentEmotion]?.color}
+        statusOpacity={auraOpacity}
         onBack={handleBack}
         onDeleteChat={() => setIsDeleteDialogOpen(true)}
         onResetChat={() => setIsResetDialogOpen(true)}
@@ -423,6 +483,8 @@ export default function ChatRoom() {
                 content={msg.content}
                 mediaUrl={msg.mediaUrl || undefined}
                 avatarUrl={msg.role === "assistant" ? avatarUrl : undefined}
+                auraClass={msg.role === "assistant" ? EMOTION_MAP[currentEmotion]?.aura : undefined}
+                auraOpacity={msg.role === "assistant" ? auraOpacity : 1}
                 timestamp={new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 isLiked={msg.isLiked || false}
                 onLike={async (messageId, liked) => {
@@ -452,6 +514,8 @@ export default function ChatRoom() {
                     content={streamingContent}
                     mediaUrl={streamingMediaUrl || undefined}
                     avatarUrl={avatarUrl}
+                    auraClass={EMOTION_MAP[currentEmotion]?.aura}
+                    auraOpacity={auraOpacity}
                     timestamp={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     isStreaming={true}
                   />

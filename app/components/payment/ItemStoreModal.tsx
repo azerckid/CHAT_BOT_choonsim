@@ -76,8 +76,32 @@ export function ItemStoreModal({
     };
 
     const handlePayPalApprove = async (data: any, actions: any) => {
-        // Need to implement /api/payment/item/capture-order for items
-        toast.info("PayPal 연동 준비 중입니다.");
+        setIsProcessing(true);
+        try {
+            const response = await fetch("/api/payment/item/capture-order", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    orderId: data.orderID,
+                    packageId: selectedPackageId,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                toast.success(`${result.quantityAdded}개의 하트가 인벤토리에 추가되었습니다!`);
+                onOpenChange(false);
+                revalidator.revalidate();
+            } else {
+                toast.error(result.error || "결제 처리 중 오류가 발생했습니다.");
+            }
+        } catch (error) {
+            console.error("PayPal Capture Error:", error);
+            toast.error("결제 승인 처리 중 오류가 발생했습니다.");
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     return (
@@ -207,8 +231,20 @@ export function ItemStoreModal({
                                                 }}
                                                 forceReRender={[selectedPackageId]}
                                                 createOrder={async () => {
-                                                    // Placeholder: Need /api/payment/item/create-order
-                                                    return "ORDER_ID";
+                                                    try {
+                                                        const response = await fetch("/api/payment/item/create-order", {
+                                                            method: "POST",
+                                                            headers: { "Content-Type": "application/json" },
+                                                            body: JSON.stringify({ packageId: selectedPackageId }),
+                                                        });
+                                                        const result = await response.json();
+                                                        if (result.orderId) return result.orderId;
+                                                        throw new Error(result.error || "Failed to create order");
+                                                    } catch (error) {
+                                                        console.error("PayPal Create Order Error:", error);
+                                                        toast.error("결제 주문 생성에 실패했습니다.");
+                                                        throw error;
+                                                    }
                                                 }}
                                                 onApprove={handlePayPalApprove}
                                             />

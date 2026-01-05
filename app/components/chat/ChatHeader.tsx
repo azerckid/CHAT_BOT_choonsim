@@ -8,6 +8,8 @@ interface ChatHeaderProps {
   onBack?: () => void;
   onDeleteChat?: () => void;
   onResetChat?: () => void;
+  statusClassName?: string;
+  statusOpacity?: number;
 }
 
 import {
@@ -17,6 +19,8 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 
+import { cn } from "~/lib/utils";
+
 export function ChatHeader({
   characterName,
   characterId,
@@ -25,6 +29,8 @@ export function ChatHeader({
   onBack,
   onDeleteChat,
   onResetChat,
+  statusClassName,
+  statusOpacity = 1,
 }: ChatHeaderProps) {
   return (
     <header className="flex-none z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-200 dark:border-white/5 sticky top-0">
@@ -51,7 +57,10 @@ export function ChatHeader({
               <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
             )}
           </div>
-          <span className="text-[11px] text-primary font-bold uppercase tracking-widest mt-0.5">
+          <span
+            className={cn("text-[11px] text-primary font-bold uppercase tracking-widest mt-0.5 transition-colors duration-500", statusClassName)}
+            style={{ opacity: statusOpacity }}
+          >
             {statusText}
           </span>
         </div>
