@@ -423,10 +423,11 @@ export default function ChatRoom() {
     } catch (error: any) {
       toast.error(error.message);
       throw error;
-    } finally {
-      // Re-fetch loader data to update hearts/credits
-      navigate(".", { replace: true });
     }
+    // Note: Do not navigate/revalidate here. It causes a race condition where
+    // the loader data (which might not yet have the AI response) overwrites
+    // the locally added AI response message if streaming finishes quickly.
+    // We rely on optimistic updates for hearts and messages.
   };
 
   const handleBack = () => navigate(-1);
