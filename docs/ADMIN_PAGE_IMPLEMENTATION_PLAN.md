@@ -367,10 +367,3 @@ export async function requireAdmin(request: Request): Promise<void> {
 # Admin 접근 제어
 ADMIN_EMAILS=admin@example.com,owner@example.com
 ```
-
----
-
-본 계획은 기존의 요구사항을 유지하면서 **하트 선물 시스템**이 캐릭터 데이터와 유기적으로 결합되도록 구성되었습니다. 
-
-**현재 상태**: 계획 단계 (구현 전)
-**다음 단계**: Phase 1 (인프라 및 인증)부터 시작
