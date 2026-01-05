@@ -1,5 +1,7 @@
 import cron from "node-cron";
-import { prisma } from "./db.server";
+import { db } from "./db.server";
+import * as schema from "../db/schema";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { generateProactiveMessage } from "./ai.server";
 import { DateTime } from "luxon";
 import webpush from "web-push";
@@ -48,9 +50,9 @@ export function initCronJobs() {
         const now = DateTime.now().setZone("Asia/Seoul").toFormat("HH:mm");
 
         try {
-            const usersToCheckIn = await prisma.user.findMany({
-                where: { checkInTime: now },
-                select: { id: true, name: true, bio: true, pushSubscription: true },
+            const usersToCheckIn = await db.query.user.findMany({
+                where: eq(schema.user.checkInTime, now),
+                columns: { id: true, name: true, bio: true, pushSubscription: true },
             });
 
             if (usersToCheckIn.length > 0) {
@@ -61,22 +63,22 @@ export function initCronJobs() {
             }
 
             for (const user of usersToCheckIn) {
-                // ... (existing logic)
-                let conversation = await prisma.conversation.findFirst({
-                    where: { userId: user.id },
-                    orderBy: { updatedAt: 'desc' }
+                let conversation = await db.query.conversation.findFirst({
+                    where: eq(schema.conversation.userId, user.id),
+                    orderBy: [desc(schema.conversation.updatedAt)]
                 });
 
                 if (!conversation) {
-                    conversation = await prisma.conversation.create({
-                        data: {
-                            id: crypto.randomUUID(),
-                            title: "춘심이와의 대화",
-                            userId: user.id,
-                            updatedAt: new Date(),
-                        }
-                    });
+                    const [newConv] = await db.insert(schema.conversation).values({
+                        id: crypto.randomUUID(),
+                        title: "춘심이와의 대화",
+                        userId: user.id,
+                        updatedAt: new Date(),
+                    }).returning();
+                    conversation = newConv;
                 }
+
+                if (!conversation) continue;
 
                 let memory = "";
                 let personaMode: any = "hybrid";
@@ -92,14 +94,12 @@ export function initCronJobs() {
                 const messageParts = messageContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
 
                 for (const part of messageParts) {
-                    await prisma.message.create({
-                        data: {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: part,
-                            conversationId: conversation.id,
-                            createdAt: new Date(),
-                        }
+                    await db.insert(schema.message).values({
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: part,
+                        conversationId: conversation.id,
+                        createdAt: new Date(),
                     });
                     await sendPushNotification(user, part);
                     if (messageParts.length > 1) await new Promise(resolve => setTimeout(resolve, 1500));
@@ -122,13 +122,12 @@ export function initCronJobs() {
     cron.schedule("0 0 * * *", async () => {
         logger.audit({ category: "SYSTEM", message: "Starting Daily Credit Refill job..." });
         try {
-            // Basic logic: Reset/Refill daily credits for eligible users
-            // Here we just log it as an example of a cron monitorable task
-            const result = await prisma.user.updateMany({
-                where: { subscriptionTier: "FREE" },
-                data: { credits: { set: 500 } } // Example: Reset free users to 500 credits daily
-            });
-            logger.audit({ category: "SYSTEM", message: `Daily Credit Refill completed for ${result.count} users` });
+            const result = await db.update(schema.user)
+                .set({ credits: 500, updatedAt: new Date() })
+                .where(eq(schema.user.subscriptionTier, "FREE"));
+
+            // libSQL result.rowsAffected or similar
+            logger.audit({ category: "SYSTEM", message: `Daily Credit Refill completed for free tier users` });
         } catch (error) {
             logger.error({
                 category: "SYSTEM",

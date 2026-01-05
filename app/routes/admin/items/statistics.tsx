@@ -2,50 +2,62 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { count, desc, sum, eq, inArray } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
     // Get character stats with naming info
-    const characterStats = await prisma.characterStat.findMany({
-        include: {
+    const characterStats = await db.query.characterStat.findMany({
+        with: {
             character: {
-                select: { name: true }
+                columns: { name: true }
             }
         },
-        orderBy: { totalHearts: "desc" }
+        orderBy: [desc(schema.characterStat.totalHearts)]
     });
 
     // Get aggregate statistics
-    const totalHearts = characterStats.reduce((sum, stat) => sum + stat.totalHearts, 0);
-    const totalGifts = await prisma.giftLog.count();
-    const uniqueGivers = await prisma.giftLog.groupBy({
-        by: ["fromUserId"],
-        _count: true
-    });
+    const totalHearts = characterStats.reduce((acc, stat) => acc + (stat.totalHearts || 0), 0);
+
+    const totalGiftsRes = await db.select({ value: count() }).from(schema.giftLog);
+    const totalGifts = totalGiftsRes[0]?.value || 0;
+
+    const uniqueGiversRes = await db.select({
+        fromUserId: schema.giftLog.fromUserId
+    }).from(schema.giftLog).groupBy(schema.giftLog.fromUserId);
+    const giversCount = uniqueGiversRes.length;
 
     // Item popularity
-    const itemPopularity = await prisma.giftLog.groupBy({
-        by: ["itemId"],
-        _count: true,
-        orderBy: { _count: { itemId: "desc" } },
-        take: 5
-    });
+    const itemPopularity = await db.select({
+        itemId: schema.giftLog.itemId,
+        count: count()
+    })
+        .from(schema.giftLog)
+        .groupBy(schema.giftLog.itemId)
+        .orderBy(desc(count()))
+        .limit(5);
 
     // Populate item names for popularity
-    const items = await prisma.item.findMany({
-        where: { id: { in: itemPopularity.map(p => p.itemId) } },
-        select: { id: true, name: true }
-    });
+    const itemIds = itemPopularity.map(p => p.itemId).filter((id): id is string => id !== null);
+
+    let items: { id: string; name: string }[] = [];
+    if (itemIds.length > 0) {
+        items = await db.query.item.findMany({
+            where: inArray(schema.item.id, itemIds),
+            columns: { id: true, name: true }
+        });
+    }
 
     const itemStats = itemPopularity.map(p => ({
         name: items.find(i => i.id === p.itemId)?.name || "Unknown Item",
-        count: p._count
+        count: p.count
     }));
 
-    return { characterStats, totalHearts, totalGifts, giversCount: uniqueGivers.length, itemStats };
+    return { characterStats, totalHearts, totalGifts, giversCount, itemStats };
 }
 
 export default function GiftStatistics() {

@@ -1,4 +1,6 @@
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq, sql, and } from "drizzle-orm";
 
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
 
@@ -43,29 +45,34 @@ export async function processSuccessfulTossPayment(
     paymentData: any,
     creditsGranted: number
 ) {
-    return await prisma.$transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
         // 1. 유저 크레딧 업데이트
-        const updatedUser = await tx.user.update({
-            where: { id: userId },
-            data: {
-                credits: { increment: creditsGranted },
-            },
+        await tx.update(schema.user)
+            .set({
+                credits: sql`${schema.user.credits} + ${creditsGranted}`,
+                updatedAt: new Date(),
+            })
+            .where(eq(schema.user.id, userId));
+
+        const updatedUser = await tx.query.user.findFirst({
+            where: eq(schema.user.id, userId),
         });
 
         // 2. 결제 로그 기록
-        const payment = await tx.payment.create({
-            data: {
-                userId,
-                transactionId: paymentData.orderId, // Toss OrderId
-                paymentKey: paymentData.paymentKey, // Toss PaymentKey
-                amount: paymentData.totalAmount,
-                currency: "KRW",
-                status: "COMPLETED",
-                provider: "TOSS",
-                type: "TOPUP",
-                creditsGranted,
-            },
-        });
+        const [payment] = await tx.insert(schema.payment).values({
+            id: crypto.randomUUID(),
+            userId,
+            transactionId: paymentData.orderId, // Toss OrderId
+            paymentKey: paymentData.paymentKey, // Toss PaymentKey
+            amount: paymentData.totalAmount,
+            currency: "KRW",
+            status: "COMPLETED",
+            provider: "TOSS",
+            type: "TOPUP",
+            creditsGranted,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        }).returning();
 
         return { user: updatedUser, payment };
     });
@@ -79,35 +86,40 @@ export async function processSuccessfulTossSubscription(
     paymentData: any,
     tier: string
 ) {
-    return await prisma.$transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
         // 1. 유저 구독 정보 업데이트
-        const updatedUser = await tx.user.update({
-            where: { id: userId },
-            data: {
+        await tx.update(schema.user)
+            .set({
                 subscriptionTier: tier,
                 subscriptionStatus: "ACTIVE",
-            },
+                updatedAt: new Date(),
+            })
+            .where(eq(schema.user.id, userId));
+
+        const updatedUser = await tx.query.user.findFirst({
+            where: eq(schema.user.id, userId),
         });
 
         // 2. 결제 로그 기록
-        const payment = await tx.payment.create({
-            data: {
-                userId,
-                transactionId: paymentData.orderId,
-                paymentKey: paymentData.paymentKey,
-                amount: paymentData.totalAmount,
-                currency: "KRW",
-                status: "COMPLETED",
-                provider: "TOSS",
-                type: "SUBSCRIPTION",
-                description: `${tier} Membership Subscription`,
-                metadata: JSON.stringify({
-                    paymentData,
-                    tier,
-                    activatedAt: new Array().toString() // Simple timestamp placeholder if needed
-                }),
-            },
-        });
+        const [payment] = await tx.insert(schema.payment).values({
+            id: crypto.randomUUID(),
+            userId,
+            transactionId: paymentData.orderId,
+            paymentKey: paymentData.paymentKey,
+            amount: paymentData.totalAmount,
+            currency: "KRW",
+            status: "COMPLETED",
+            provider: "TOSS",
+            type: "SUBSCRIPTION",
+            description: `${tier} Membership Subscription`,
+            metadata: JSON.stringify({
+                paymentData,
+                tier,
+                activatedAt: new Date().toISOString(),
+            }),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        }).returning();
 
         return { user: updatedUser, payment };
     });
@@ -122,29 +134,45 @@ export async function processSuccessfulTossItemPayment(
     itemId: string,
     quantity: number
 ) {
-    return await prisma.$transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
         // 1. 인벤토리 업데이트
-        const inventory = await tx.userInventory.upsert({
-            where: { userId_itemId: { userId, itemId } },
-            create: { userId, itemId, quantity },
-            update: { quantity: { increment: quantity } },
+        await tx.insert(schema.userInventory).values({
+            id: crypto.randomUUID(),
+            userId,
+            itemId,
+            quantity,
+            updatedAt: new Date(),
+        }).onConflictDoUpdate({
+            target: [schema.userInventory.userId, schema.userInventory.itemId],
+            set: {
+                quantity: sql`${schema.userInventory.quantity} + ${quantity}`,
+                updatedAt: new Date(),
+            },
+        });
+
+        const inventory = await tx.query.userInventory.findFirst({
+            where: and(
+                eq(schema.userInventory.userId, userId),
+                eq(schema.userInventory.itemId, itemId)
+            ),
         });
 
         // 2. 결제 로그 기록
-        const payment = await tx.payment.create({
-            data: {
-                userId,
-                transactionId: paymentData.orderId,
-                paymentKey: paymentData.paymentKey,
-                amount: paymentData.totalAmount,
-                currency: "KRW",
-                status: "COMPLETED",
-                provider: "TOSS",
-                type: "ITEM_PURCHASE",
-                description: `아이템 구매: ${itemId} x ${quantity}`,
-                metadata: JSON.stringify({ itemId, quantity, paymentData }),
-            },
-        });
+        const [payment] = await tx.insert(schema.payment).values({
+            id: crypto.randomUUID(),
+            userId,
+            transactionId: paymentData.orderId,
+            paymentKey: paymentData.paymentKey,
+            amount: paymentData.totalAmount,
+            currency: "KRW",
+            status: "COMPLETED",
+            provider: "TOSS",
+            type: "ITEM_PURCHASE",
+            description: `아이템 구매: ${itemId} x ${quantity}`,
+            metadata: JSON.stringify({ itemId, quantity, paymentData }),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        }).returning();
 
         return { inventory, payment };
     });

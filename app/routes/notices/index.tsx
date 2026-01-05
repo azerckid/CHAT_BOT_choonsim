@@ -1,4 +1,6 @@
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
@@ -6,11 +8,11 @@ import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-    const notices = await prisma.notice.findMany({
-        where: { isActive: true },
+    const notices = await db.query.notice.findMany({
+        where: eq(schema.notice.isActive, true),
         orderBy: [
-            { isPinned: "desc" },
-            { createdAt: "desc" }
+            desc(schema.notice.isPinned),
+            desc(schema.notice.createdAt)
         ],
     });
 

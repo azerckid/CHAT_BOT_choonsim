@@ -1,8 +1,10 @@
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import type { ActionFunctionArgs } from "react-router";
 import { deleteImage } from "~/lib/cloudinary.server";
+import * as schema from "~/db/schema";
+import { eq, isNotNull, and } from "drizzle-orm";
 
 const deleteSchema = z.object({
     conversationId: z.string().uuid(),
@@ -30,12 +32,12 @@ export async function action({ request }: ActionFunctionArgs) {
 
     try {
         // 1. 해당 대화방의 이미지 메시지 찾기
-        const messagesWithMedia = await prisma.message.findMany({
-            where: {
-                conversationId,
-                mediaUrl: { not: null }
-            },
-            select: { mediaUrl: true }
+        const messagesWithMedia = await db.query.message.findMany({
+            where: and(
+                eq(schema.message.conversationId, conversationId),
+                isNotNull(schema.message.mediaUrl)
+            ),
+            columns: { mediaUrl: true }
         });
 
         // 2. Cloudinary에서 이미지 삭제
@@ -46,23 +48,22 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // 3. DB 데이터 삭제 (트랜잭션 권장)
-        await prisma.$transaction(async (tx) => {
+        await db.transaction(async (tx) => {
             // 메시지 삭제
-            await tx.message.deleteMany({
-                where: { conversationId }
-            });
+            await tx.delete(schema.message)
+                .where(eq(schema.message.conversationId, conversationId));
 
             // 대화방 삭제 (기억 초기화가 아닐 때만)
             if (!resetMemory) {
-                await tx.conversation.delete({
-                    where: { id: conversationId }
-                });
+                await tx.delete(schema.conversation)
+                    .where(eq(schema.conversation.id, conversationId));
             }
 
             // 기억 초기화 요청이 있는 경우
             if (resetMemory) {
-                const user = await tx.user.findUnique({
-                    where: { id: session.user.id }
+                const user = await tx.query.user.findFirst({
+                    where: eq(schema.user.id, session.user.id),
+                    columns: { bio: true }
                 });
 
                 if (user?.bio) {
@@ -71,10 +72,9 @@ export async function action({ request }: ActionFunctionArgs) {
                         delete bioData.memory;
                         delete bioData.lastMemoryUpdate;
 
-                        await tx.user.update({
-                            where: { id: session.user.id },
-                            data: { bio: JSON.stringify(bioData) }
-                        });
+                        await tx.update(schema.user)
+                            .set({ bio: JSON.stringify(bioData), updatedAt: new Date() })
+                            .where(eq(schema.user.id, session.user.id));
                     } catch (e) {
                         console.error("Failed to reset memory:", e);
                     }

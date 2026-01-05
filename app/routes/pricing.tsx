@@ -1,12 +1,10 @@
-
 import { useState, useEffect } from "react";
-import { type LoaderFunctionArgs, useLoaderData, useNavigate } from "react-router";
+import { type LoaderFunctionArgs, useLoaderData, useNavigate, useFetcher } from "react-router";
 import { auth } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { SUBSCRIPTION_PLANS, type SubscriptionPlan } from "~/lib/subscription-plans";
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
-import { useFetcher } from "react-router";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { Button } from "~/components/ui/button";
 import {
@@ -16,6 +14,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "~/components/ui/dialog";
+import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -23,9 +23,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
         throw new Response(null, { status: 302, headers: { Location: "/login" } });
     }
 
-    const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { subscriptionTier: true, subscriptionStatus: true, email: true }
+    const user = await db.query.user.findFirst({
+        where: eq(schema.user.id, session.user.id),
+        columns: { subscriptionTier: true, subscriptionStatus: true, email: true }
     });
 
     const paypalClientId = process.env.PAYPAL_CLIENT_ID;

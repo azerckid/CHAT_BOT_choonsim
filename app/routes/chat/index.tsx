@@ -7,10 +7,11 @@ import { ChatListSkeleton } from "~/components/chat/ChatListSkeleton";
 import { NetworkError } from "~/components/ui/NetworkError";
 import { ApiError } from "~/components/ui/ApiError";
 import { cn } from "~/lib/utils";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs } from "react-router";
-
+import * as schema from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { useNavigate } from "react-router";
 import { CHARACTERS } from "~/lib/characters";
 import {
@@ -26,22 +27,21 @@ type LoadingState = "idle" | "loading" | "error" | "network-error";
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    // Redirect to login if not authenticated
     throw new Response(null, {
       status: 302,
       headers: { Location: "/login" },
     });
   }
 
-  const conversations = await prisma.conversation.findMany({
-    where: { userId: session.user.id },
-    include: {
-      Message: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
+  const conversations = await db.query.conversation.findMany({
+    where: eq(schema.conversation.userId, session.user.id),
+    with: {
+      messages: {
+        orderBy: [desc(schema.message.createdAt)],
+        limit: 1,
       },
     },
-    orderBy: { updatedAt: "desc" },
+    orderBy: [desc(schema.conversation.updatedAt)],
   });
 
   return Response.json({ conversations });
@@ -157,7 +157,7 @@ export default function ChatListScreen() {
           </div>
         ) : (
           conversations.map((chat: any) => {
-            const lastMsg = chat.Message?.[0];
+            const lastMsg = chat.messages?.[0];
             const character = CHARACTERS[chat.characterId || "chunsim"] || CHARACTERS["chunsim"];
 
             return (

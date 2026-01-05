@@ -1,11 +1,9 @@
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { ActionFunctionArgs } from "react-router";
 import { z } from "zod";
-
-const likeSchema = z.object({
-    messageId: z.string().uuid(),
-});
+import * as schema from "~/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function action({ request, params }: ActionFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -26,8 +24,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     try {
         // 메시지 존재 확인
-        const message = await prisma.message.findUnique({
-            where: { id: messageId },
+        const message = await db.query.message.findFirst({
+            where: eq(schema.message.id, messageId),
         });
 
         if (!message) {
@@ -35,13 +33,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
 
         // 기존 좋아요 확인
-        const existingLike = await prisma.messageLike.findUnique({
-            where: {
-                messageId_userId: {
-                    messageId,
-                    userId,
-                },
-            },
+        const existingLike = await db.query.messageLike.findFirst({
+            where: and(
+                eq(schema.messageLike.messageId, messageId),
+                eq(schema.messageLike.userId, userId)
+            ),
         });
 
         if (request.method === "POST") {
@@ -50,12 +46,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 return Response.json({ liked: true, message: "Already liked" });
             }
 
-            await prisma.messageLike.create({
-                data: {
-                    id: crypto.randomUUID(),
-                    messageId,
-                    userId,
-                },
+            await db.insert(schema.messageLike).values({
+                id: crypto.randomUUID(),
+                messageId,
+                userId,
+                createdAt: new Date(),
             });
 
             return Response.json({ liked: true });
@@ -65,14 +60,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
                 return Response.json({ liked: false, message: "Not liked" });
             }
 
-            await prisma.messageLike.delete({
-                where: {
-                    messageId_userId: {
-                        messageId,
-                        userId,
-                    },
-                },
-            });
+            await db.delete(schema.messageLike)
+                .where(and(
+                    eq(schema.messageLike.messageId, messageId),
+                    eq(schema.messageLike.userId, userId)
+                ));
 
             return Response.json({ liked: false });
         }

@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useFetcher } from "react-router";
 import { CHARACTERS } from "~/lib/characters";
 import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
 import { toast } from "sonner";
+import * as schema from "~/db/schema";
+import { eq, desc, and, like } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -20,25 +22,25 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const selectedCharacter = CHARACTERS[characterId] || CHARACTERS["chunsim"];
 
   // 1. Character Stats (Hearts)
-  const characterStat = await prisma.characterStat.findUnique({
-    where: { characterId: selectedCharacter.id }
+  const characterStat = await db.query.characterStat.findFirst({
+    where: eq(schema.characterStat.characterId, selectedCharacter.id)
   });
 
   // 2. 공지사항 (Official Updates)
-  const notices = await prisma.notice.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: "desc" },
-    take: 5
+  const notices = await db.query.notice.findMany({
+    where: eq(schema.notice.isActive, true),
+    orderBy: [desc(schema.notice.createdAt)],
+    limit: 5
   });
 
   // 3. 미션 (Daily Missions)
-  const allMissions = await prisma.mission.findMany({
-    where: { isActive: true },
-    take: 3
+  const allMissions = await db.query.mission.findMany({
+    where: eq(schema.mission.isActive, true),
+    limit: 3
   });
 
-  const userMissions = await prisma.userMission.findMany({
-    where: { userId: session.user.id }
+  const userMissions = await db.query.userMission.findMany({
+    where: eq(schema.userMission.userId, session.user.id)
   });
 
   const missions = allMissions.map(m => {
@@ -51,22 +53,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
   });
 
   // 4. 팬 피드 (Fan Feed)
-  const feedPosts = await prisma.fanPost.findMany({
-    where: { isApproved: true },
-    include: {
-      User: {
-        select: { name: true, image: true, avatarUrl: true }
+  const feedPosts = await db.query.fanPost.findMany({
+    where: eq(schema.fanPost.isApproved, true),
+    with: {
+      user: {
+        columns: { name: true, image: true, avatarUrl: true }
       }
     },
-    orderBy: { createdAt: "desc" },
-    take: 20
+    orderBy: [desc(schema.fanPost.createdAt)],
+    limit: 20
   });
 
   // 5. 리더보드 (미션 완료 기준 임시 점수)
-  const topUsers = await prisma.user.findMany({
-    select: { id: true, name: true, avatarUrl: true, image: true, credits: true },
-    orderBy: { credits: "desc" },
-    take: 5
+  const topUsers = await db.query.user.findMany({
+    columns: { id: true, name: true, avatarUrl: true, image: true, credits: true },
+    orderBy: [desc(schema.user.credits)],
+    limit: 5
   });
 
   const leaderboard = topUsers.map((u, i) => ({
@@ -101,31 +103,37 @@ export async function action({ request }: ActionFunctionArgs) {
       return Response.json({ error: "Content too short" }, { status: 400 });
     }
 
-    const post = await prisma.fanPost.create({
-      data: {
-        userId: session.user.id,
-        content,
-        isApproved: true // 초기엔 자동 승인
-      }
-    });
+    const [post] = await db.insert(schema.fanPost).values({
+      id: crypto.randomUUID(),
+      userId: session.user.id,
+      content,
+      isApproved: true, // 초기엔 자동 승인
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
 
     // 미션 체크: "게시글 작성하기" 미션이 있다면 진행도 업데이트
-    const shareMission = await prisma.mission.findFirst({
-      where: { title: { contains: "post" }, isActive: true }
+    const shareMission = await db.query.mission.findFirst({
+      where: and(
+        like(schema.mission.title, "%post%"),
+        eq(schema.mission.isActive, true)
+      )
     });
 
     if (shareMission) {
-      await prisma.userMission.upsert({
-        where: { userId_missionId: { userId: session.user.id, missionId: shareMission.id } },
-        create: {
-          userId: session.user.id,
-          missionId: shareMission.id,
+      await db.insert(schema.userMission).values({
+        id: crypto.randomUUID(),
+        userId: session.user.id,
+        missionId: shareMission.id,
+        progress: 100,
+        status: "COMPLETED",
+        lastUpdated: new Date(),
+      }).onConflictDoUpdate({
+        target: [schema.userMission.userId, schema.userMission.missionId],
+        set: {
           progress: 100,
-          status: "COMPLETED"
-        },
-        update: {
-          progress: 100,
-          status: "COMPLETED"
+          status: "COMPLETED",
+          lastUpdated: new Date()
         }
       });
     }
@@ -496,12 +504,12 @@ export default function FandomScreen() {
                 <div className="size-10 rounded-full bg-slate-200 overflow-hidden border border-white/5">
                   <img
                     className="w-full h-full object-cover"
-                    src={post.User.avatarUrl || post.User.image || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + post.userId}
-                    alt={post.User.name}
+                    src={post.user.avatarUrl || post.user.image || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + post.userId}
+                    alt={post.user.name}
                   />
                 </div>
                 <div>
-                  <p className="text-sm font-bold dark:text-white text-slate-900">{post.User.name}</p>
+                  <p className="text-sm font-bold dark:text-white text-slate-900">{post.user.name}</p>
                   <p className="text-[10px] text-slate-500 dark:text-white/40 font-bold uppercase tracking-tight">
                     {DateTime.fromJSDate(new Date(post.createdAt)).toRelative()}
                   </p>
@@ -515,7 +523,7 @@ export default function FandomScreen() {
               <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
                 <button className="flex items-center gap-1.5 text-slate-500 dark:text-white/60 hover:text-primary transition-colors">
                   <span className="material-symbols-outlined text-[20px]">favorite</span>
-                  <span className="text-xs font-medium">{post.likeCount || 0}</span>
+                  <span className="text-xs font-medium">{post.likes || 0}</span>
                 </button>
                 <button className="flex items-center gap-1.5 text-slate-500 dark:text-white/60 hover:text-white transition-colors">
                   <span className="material-symbols-outlined text-[20px]">chat_bubble</span>

@@ -3,7 +3,6 @@ import { useLoaderData, useNavigate, useNavigation, Form, useActionData, useReva
 import { useState, useEffect } from "react";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -19,6 +18,10 @@ const itemSchema = z.object({
     isActive: z.boolean().default(true),
 });
 
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
+
 export async function loader({ params, request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
@@ -27,8 +30,8 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         return { item: null };
     }
 
-    const item = await prisma.item.findUnique({
-        where: { id },
+    const item = await db.query.item.findFirst({
+        where: eq(schema.item.id, id),
     });
 
     if (!item) {
@@ -48,16 +51,16 @@ export async function action({ params, request }: ActionFunctionArgs) {
 
     if (actionType === "delete") {
         if (!id) return Response.json({ error: "ID missing" }, { status: 400 });
-        await prisma.item.delete({ where: { id } });
+        await db.delete(schema.item).where(eq(schema.item.id, id));
         return { success: true, deleted: true, message: "Item deleted successfully" };
     }
 
     const data = {
         name: formData.get("name") as string,
         type: formData.get("type") as string,
-        priceCredits: formData.get("priceCredits") || undefined,
-        priceUSD: formData.get("priceUSD") || undefined,
-        priceKRW: formData.get("priceKRW") || undefined,
+        priceCredits: Number(formData.get("priceCredits")) || 0,
+        priceUSD: Number(formData.get("priceUSD")) || 0,
+        priceKRW: Number(formData.get("priceKRW")) || 0,
         description: formData.get("description") as string,
         iconUrl: formData.get("iconUrl") as string,
         isActive: formData.get("isActive") === "true",
@@ -67,21 +70,24 @@ export async function action({ params, request }: ActionFunctionArgs) {
         const validated = itemSchema.parse(data);
 
         if (isNew) {
-            await prisma.item.create({
-                data: validated
+            await db.insert(schema.item).values({
+                id: crypto.randomUUID(),
+                ...validated,
+                updatedAt: new Date(),
             });
             return { success: true, message: "Item created successfully!" };
         } else {
-            await prisma.item.update({
-                where: { id },
-                data: validated
-            });
+            await db.update(schema.item).set({
+                ...validated,
+                updatedAt: new Date(),
+            }).where(eq(schema.item.id, id));
             return { success: true, message: "Item updated successfully!" };
         }
     } catch (e) {
         if (e instanceof z.ZodError) {
             return Response.json({ error: e.issues[0].message }, { status: 400 });
         }
+        console.error(e);
         return Response.json({ error: "Failed to save item" }, { status: 500 });
     }
 }

@@ -1,4 +1,5 @@
-import { prisma } from "./db.server";
+import { db } from "./db.server";
+import * as schema from "../db/schema";
 
 export type LogLevel = "INFO" | "WARN" | "ERROR" | "AUDIT";
 export type LogCategory = "SYSTEM" | "API" | "AUTH" | "PAYMENT" | "DB";
@@ -34,16 +35,14 @@ async function log(defaultLevel: LogLevel, payload: string | LogPayload) {
 
     try {
         // Log to database asynchronously (don't await to avoid blocking response)
-        // Note: Using prisma.systemLog instead of prisma.notice (based on new schema)
-        // @ts-ignore - Prisma might not have regenerated types yet
-        prisma.systemLog.create({
-            data: {
-                level,
-                category,
-                message,
-                stackTrace,
-                metadata
-            }
+        db.insert(schema.systemLog).values({
+            id: crypto.randomUUID(),
+            level,
+            category,
+            message,
+            stackTrace,
+            metadata,
+            createdAt: new Date(),
         }).catch((err: any) => console.error("Critical: Failed to save log to DB", err));
     } catch (err) {
         console.error("Critical: Logger infrastructure error", err);

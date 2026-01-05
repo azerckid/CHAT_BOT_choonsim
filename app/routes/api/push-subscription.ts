@@ -1,6 +1,8 @@
 import type { ActionFunctionArgs } from "react-router";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
+import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function action({ request }: ActionFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -11,12 +13,12 @@ export async function action({ request }: ActionFunctionArgs) {
     const { subscription } = await request.json();
 
     try {
-        await prisma.user.update({
-            where: { id: session.user.id },
-            data: {
-                pushSubscription: JSON.stringify(subscription)
-            }
-        });
+        await db.update(schema.user)
+            .set({
+                pushSubscription: JSON.stringify(subscription),
+                updatedAt: new Date(),
+            })
+            .where(eq(schema.user.id, session.user.id));
 
         return Response.json({ success: true });
     } catch (error) {

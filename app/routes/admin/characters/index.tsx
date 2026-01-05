@@ -2,24 +2,29 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, Link } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { desc, eq } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
-    const characters = await prisma.character.findMany({
-        include: {
-            media: {
-                where: { type: "AVATAR" },
-                take: 1
-            },
+    const characters = await db.query.character.findMany({
+        with: {
+            media: true,
             stats: true
         },
-        orderBy: { createdAt: "desc" }
+        orderBy: [desc(schema.character.createdAt)]
     });
 
-    return { characters };
+    // Sort/Filter media to ensure avatar comes first or filtering happen here if strictly needed
+    const charactersWithSortedMedia = characters.map(char => ({
+        ...char,
+        media: char.media.filter(m => m.type === "AVATAR").concat(char.media.filter(m => m.type !== "AVATAR"))
+    }));
+
+    return { characters: charactersWithSortedMedia };
 }
 
 export default function AdminCharacters() {

@@ -1,13 +1,14 @@
-import { useNavigate } from "react-router";
+import { useNavigate, useLoaderData } from "react-router";
 import { auth } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import type { LoaderFunctionArgs } from "react-router";
 import type { Route } from "./+types/home";
-import { useLoaderData } from "react-router";
 import { CHARACTERS } from "~/lib/characters";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { DateTime } from "luxon";
 import { cn } from "~/lib/utils";
+import * as schema from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -22,16 +23,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // 인증된 사용자의 경우 최근 대화 목록 가져오기 (최대 5개)
   let recentConversations: any[] = [];
   if (session) {
-    recentConversations = await prisma.conversation.findMany({
-      where: { userId: session.user.id },
-      include: {
-        Message: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
+    recentConversations = await db.query.conversation.findMany({
+      where: eq(schema.conversation.userId, session.user.id),
+      with: {
+        messages: {
+          orderBy: [desc(schema.message.createdAt)],
+          limit: 1,
         },
       },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
+      orderBy: [desc(schema.conversation.updatedAt)],
+      limit: 5,
     });
   }
 
@@ -45,13 +46,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .filter(Boolean);
 
   // 공지사항 및 이벤트 가져오기
-  const notices = await prisma.notice.findMany({
-    where: { isActive: true },
+  const notices = await db.query.notice.findMany({
+    where: eq(schema.notice.isActive, true),
     orderBy: [
-      { isPinned: "desc" },
-      { createdAt: "desc" }
+      desc(schema.notice.isPinned),
+      desc(schema.notice.createdAt)
     ],
-    take: 3
+    limit: 3
   });
 
   return Response.json({

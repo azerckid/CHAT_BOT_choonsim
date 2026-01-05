@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLoaderData } from "react-router";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { signOut } from "~/lib/auth-client";
 import type { LoaderFunctionArgs } from "react-router";
@@ -18,6 +18,8 @@ import {
 import { Button } from "~/components/ui/button";
 import { toast } from "sonner";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
+import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -25,8 +27,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw new Response(null, { status: 302, headers: { Location: "/login" } });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+  const user = await db.query.user.findFirst({
+    where: eq(schema.user.id, session.user.id),
   });
 
   return Response.json({ user });

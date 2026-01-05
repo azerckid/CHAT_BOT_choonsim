@@ -1,10 +1,12 @@
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import type { ActionFunctionArgs } from "react-router";
 import { streamAIResponse, generateSummary, extractPhotoMarker, extractEmotionMarker } from "~/lib/ai.server";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { logger } from "~/lib/logger.server";
+import * as schema from "~/db/schema";
+import { eq, and, sql, desc, gte, count } from "drizzle-orm";
 
 const chatSchema = z.object({
     message: z.string().optional().default(""),
@@ -41,15 +43,15 @@ export async function action({ request }: ActionFunctionArgs) {
     const { message, conversationId, mediaUrl, characterId, giftContext } = result.data;
 
     // 1. 대화 내역 및 사용자 정보 조회
-    const [history, user] = await Promise.all([
-        prisma.message.findMany({
-            where: { conversationId },
-            orderBy: { createdAt: "desc" },
-            take: 10,
+    const [history, currentUser] = await Promise.all([
+        db.query.message.findMany({
+            where: eq(schema.message.conversationId, conversationId),
+            orderBy: [desc(schema.message.createdAt)],
+            limit: 10,
         }),
-        prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: { bio: true, subscriptionTier: true },
+        db.query.user.findFirst({
+            where: eq(schema.user.id, session.user.id),
+            columns: { bio: true, subscriptionTier: true, credits: true },
         }),
     ]);
 
@@ -58,9 +60,9 @@ export async function action({ request }: ActionFunctionArgs) {
     let memory: string = "";
     let bioData: any = {};
 
-    if (user?.bio) {
+    if (currentUser?.bio) {
         try {
-            bioData = JSON.parse(user.bio);
+            bioData = JSON.parse(currentUser.bio);
             if (bioData.personaMode) personality = bioData.personaMode;
             if (bioData.memory) memory = bioData.memory;
         } catch (e) {
@@ -72,19 +74,19 @@ export async function action({ request }: ActionFunctionArgs) {
     let giftCountInSession = 0;
     if (giftContext) {
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-        giftCountInSession = await prisma.giftLog.count({
-            where: {
-                fromUserId: session.user.id,
-                toCharacterId: characterId,
-                createdAt: { gte: tenMinutesAgo }
-            }
-        });
-        // 현재 선물을 포함하므로 최소 1
-        giftCountInSession = giftCountInSession + 1;
+        const [giftCountRes] = await db.select({ value: count() })
+            .from(schema.giftLog)
+            .where(and(
+                eq(schema.giftLog.fromUserId, session.user.id),
+                eq(schema.giftLog.toCharacterId, characterId),
+                gte(schema.giftLog.createdAt, tenMinutesAgo)
+            ));
+
+        giftCountInSession = (giftCountRes?.value ?? 0) + 1;
     }
 
     // 멀티모달 히스토리 구성
-    const formattedHistory = history.reverse().map(msg => ({
+    const formattedHistory = [...history].reverse().map(msg => ({
         role: msg.role,
         content: msg.content,
         mediaUrl: msg.mediaUrl,
@@ -99,12 +101,7 @@ export async function action({ request }: ActionFunctionArgs) {
             try {
                 // 1. 크레딧 잔액 확인 (최소 실행 비용)
                 const MIN_REQUIRED_CREDITS = 10;
-                const currentUser = await prisma.user.findUnique({
-                    where: { id: session.user.id },
-                    select: { credits: true }
-                });
-
-                if (!currentUser || currentUser.credits < MIN_REQUIRED_CREDITS) {
+                if (!currentUser || (currentUser.credits ?? 0) < MIN_REQUIRED_CREDITS) {
                     logger.warn({
                         category: "API",
                         message: `Insufficient credits for user ${session.user.id}`,
@@ -116,10 +113,8 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
 
                 // 2단계: AI 응답 스트리밍 및 토큰 사용량 집계
-                // ... (기존 스트리밍 로직)
-                const subscriptionTier = (user?.subscriptionTier as any) || "FREE";
+                const subscriptionTier = (currentUser?.subscriptionTier as any) || "FREE";
                 let tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
-                let firstMessageId: string | null = null;
 
                 for await (const item of streamAIResponse(
                     message,
@@ -139,17 +134,13 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
                 }
 
-                // ... (사진 처리 및 메시지 분할 로직)
-
                 // 3단계. 토큰 사용량에 따른 크레딧 차감 (스트리밍 완료 후)
                 if (tokenUsage && tokenUsage.totalTokens > 0) {
                     try {
-                        await prisma.user.update({
-                            where: { id: session.user.id },
-                            data: {
-                                credits: { decrement: tokenUsage.totalTokens }
-                            }
-                        });
+                        await db.update(schema.user)
+                            .set({ credits: sql`${schema.user.credits} - ${tokenUsage.totalTokens}` })
+                            .where(eq(schema.user.id, session.user.id));
+
                         logger.info({
                             category: "API",
                             message: `Deducted ${tokenUsage.totalTokens} credits for user ${session.user.id}`,
@@ -164,24 +155,18 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
                 }
 
-                // ... (이하 메시지 저장 및 전송 로직)
-
-                // 전체 응답에서 사진 마커 먼저 추출 (첫 번째 말풍선에만 포함될 것으로 예상)
+                // 전체 응답에서 사진 마커 먼저 추출
                 const firstPhotoMarker = extractPhotoMarker(fullContent, characterId);
                 const photoUrl = firstPhotoMarker.photoUrl;
-
-                // 사진 마커가 있으면 전체 응답에서 제거
                 const contentWithoutPhotoMarker = photoUrl ? firstPhotoMarker.content : fullContent;
 
-                // 2단계: 전체 응답을 ---로 나누기 (없으면 적당한 길이로 강제로 나누기)
+                // 2단계: 전체 응답을 ---로 나누기
                 let messageParts = contentWithoutPhotoMarker.split('---').map(p => p.trim()).filter(p => p.length > 0);
 
-                // ---가 없거나 하나만 있으면 적당한 길이로 강제로 나누기
                 if (messageParts.length <= 1 && contentWithoutPhotoMarker.length > 100) {
-                    const chunkSize = 80; // 한 말풍선당 약 80자
+                    const chunkSize = 80;
                     messageParts = [];
                     let currentPart = "";
-
                     const sentences = contentWithoutPhotoMarker.split(/[.!?。！？]\s*/).filter(s => s.trim());
 
                     for (const sentence of sentences) {
@@ -200,15 +185,11 @@ export async function action({ request }: ActionFunctionArgs) {
                 // 3단계: 각 말풍선을 하나씩 순차적으로 스트리밍
                 for (let i = 0; i < messageParts.length; i++) {
                     const part = messageParts[i];
-
-                    // 감정 마커 추출
                     const emotionMarker = extractEmotionMarker(part);
                     const emotionCode = emotionMarker.emotion;
                     const finalContent = emotionMarker.content;
 
-                    // 감정 정보가 있으면 먼저 전송 (프론트엔드 UI 업데이트용)
                     if (emotionCode) {
-                        // 선물 컨텍스트가 있으면 지속 시간 계산 (다이내믹 감쇄)
                         let expiresAt: Date | null = null;
                         if (giftContext) {
                             const amount = giftContext.amount;
@@ -222,90 +203,75 @@ export async function action({ request }: ActionFunctionArgs) {
                         })}\n\n`));
 
                         // DB 업데이트 (비동기)
-                        prisma.characterStat.upsert({
-                            where: { characterId },
-                            create: {
+                        db.insert(schema.characterStat)
+                            .values({
+                                id: crypto.randomUUID(),
                                 characterId,
                                 currentEmotion: emotionCode,
-                                emotionExpiresAt: expiresAt
-                            },
-                            update: {
-                                currentEmotion: emotionCode,
-                                emotionExpiresAt: expiresAt || undefined // 선물 반응일 때만 업데이트
-                            }
-                        }).catch(err => console.error("Failed to update emotion:", err));
+                                emotionExpiresAt: expiresAt,
+                                updatedAt: new Date(),
+                            })
+                            .onConflictDoUpdate({
+                                target: [schema.characterStat.characterId],
+                                set: {
+                                    currentEmotion: emotionCode,
+                                    emotionExpiresAt: expiresAt || undefined,
+                                    updatedAt: new Date(),
+                                }
+                            }).catch(err => console.error("Failed to update emotion:", err));
                     }
 
-                    // 첫 번째 말풍선이고 사진이 있으면 먼저 사진 URL 전송
                     if (i === 0 && photoUrl) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ mediaUrl: photoUrl })}\n\n`));
                     }
 
-                    // 한 글자씩 스트리밍 (랜덤 딜레이로 자연스러운 타이핑 효과)
                     for (const char of finalContent) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: char })}\n\n`));
-                        // 40ms~120ms 사이 랜덤 딜레이 (조금 더 쾌적하게 조정)
                         const randomDelay = Math.floor(Math.random() * (120 - 40 + 1)) + 40;
                         await new Promise(resolve => setTimeout(resolve, randomDelay));
                     }
 
-                    // 메시지 저장 및 완료 신호 (첫 번째 말풍선에만 사진 포함)
-                    const savedMessage = await prisma.message.create({
-                        data: {
-                            id: crypto.randomUUID(),
-                            role: "assistant",
-                            content: finalContent, // 감정 마커가 제거된 최종 텍스트 저장
-                            conversationId,
-                            createdAt: new Date(),
-                            type: "TEXT",
-                            mediaUrl: (i === 0 && photoUrl) ? photoUrl : null,
-                            mediaType: (i === 0 && photoUrl) ? "image" : null,
-                        },
-                    });
+                    // 메시지 저장
+                    const [savedMessage] = await db.insert(schema.message).values({
+                        id: crypto.randomUUID(),
+                        role: "assistant",
+                        content: finalContent,
+                        conversationId,
+                        createdAt: new Date(),
+                        type: "TEXT",
+                        mediaUrl: (i === 0 && photoUrl) ? photoUrl : null,
+                        mediaType: (i === 0 && photoUrl) ? "image" : null,
+                    }).returning();
 
-                    // 첫 번째 메시지에만 AgentExecution 레코드 생성 (토큰 사용량 추적)
-                    if (i === 0) {
+                    if (i === 0 && savedMessage) {
                         try {
-                            // tokenUsage가 없어도 기본값으로 저장 (디버깅용)
                             const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-
-                            if (!tokenUsage) {
-                                console.warn("Token usage not available from streaming response. Saving with 0 values.");
-                            }
-
-                            await prisma.agentExecution.create({
-                                data: {
-                                    id: crypto.randomUUID(),
-                                    messageId: savedMessage.id,
-                                    agentName: `gemini-2.0-flash-${characterId}`,
-                                    intent: personality || "hybrid",
-                                    promptTokens: usage.promptTokens,
-                                    completionTokens: usage.completionTokens,
-                                    totalTokens: usage.totalTokens,
-                                    createdAt: new Date(),
-                                },
+                            await db.insert(schema.agentExecution).values({
+                                id: crypto.randomUUID(),
+                                messageId: savedMessage.id,
+                                agentName: `gemini-2.0-flash-${characterId}`,
+                                intent: personality || "hybrid",
+                                promptTokens: usage.promptTokens,
+                                completionTokens: usage.completionTokens,
+                                totalTokens: usage.totalTokens,
+                                createdAt: new Date(),
                             });
                         } catch (executionError) {
-                            // AgentExecution 저장 실패는 로그만 남기고 계속 진행
                             console.error("Failed to save AgentExecution:", executionError);
                         }
                     }
 
-                    // 첫 번째 말풍선에만 mediaUrl 포함 (완료된 메시지에 사진 표시용)
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage.id, mediaUrl: (i === 0 && photoUrl) ? photoUrl : null })}\n\n`));
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage?.id, mediaUrl: (i === 0 && photoUrl) ? photoUrl : null })}\n\n`));
 
-                    // 다음 말풍선 전에 약간의 딜레이
                     if (i < messageParts.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 300)); // 말풍선 사이 300ms 딜레이
+                        await new Promise(resolve => setTimeout(resolve, 300));
                     }
                 }
 
-                // 모든 스트리밍 완료 신호
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
 
                 // 대화 요약 고도화
                 if (history.length >= 8) {
-                    // 요약용 메시지 리스트도 멀티모달 고려 (단순화하여 텍스트만 전달하거나 Placeholder 사용)
                     const allMessagesForSummary: BaseMessage[] = [
                         ...formattedHistory.map(h => {
                             const content = h.content || (h.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
@@ -317,17 +283,16 @@ export async function action({ request }: ActionFunctionArgs) {
 
                     const newSummary = await generateSummary(allMessagesForSummary);
                     if (newSummary) {
-                        // bio에 기억 정보 업데이트
-                        await prisma.user.update({
-                            where: { id: session.user.id },
-                            data: {
+                        await db.update(schema.user)
+                            .set({
                                 bio: JSON.stringify({
                                     ...bioData,
                                     memory: newSummary,
                                     lastMemoryUpdate: new Date().toISOString()
-                                })
-                            }
-                        });
+                                }),
+                                updatedAt: new Date()
+                            })
+                            .where(eq(schema.user.id, session.user.id));
                     }
                 }
 

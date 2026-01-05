@@ -297,12 +297,12 @@ const users = await db.query.user.findMany({
 ### **Phase 1: 인프라 설정 (Infrastructure)** - 예상 소요: 2-3일
 
 #### 1.1 패키지 설치
-- [ ] `drizzle-orm` 설치 (`npm install drizzle-orm`)
-- [ ] `drizzle-kit` 설치 (`npm install -D drizzle-kit`)
-- [ ] 버전 확인 및 호환성 검증
+- [x] `drizzle-orm` 설치 (`npm install drizzle-orm`)
+- [x] `drizzle-kit` 설치 (`npm install -D drizzle-kit`)
+- [x] 버전 확인 및 호환성 검증
 
 #### 1.2 Drizzle 설정 파일 생성
-- [ ] `drizzle.config.ts` 생성 (Turso 접속 정보 포함)
+- [x] `drizzle.config.ts` 생성 (Turso 접속 정보 포함)
   ```typescript
   import { defineConfig } from "drizzle-kit";
   
@@ -319,22 +319,22 @@ const users = await db.query.user.findMany({
   ```
 
 #### 1.3 스키마 파일 생성
-- [ ] `app/db/schema.ts` 작성
+- [x] `app/db/schema.ts` 작성
   - Prisma 스키마의 모든 모델을 Drizzle 스키마로 변환
   - 관계(relations) 정의
   - 인덱스 및 제약조건 매핑
   - 예상 작업량: 약 20개 모델 × 평균 30분 = 10시간
 
 #### 1.4 초기 마이그레이션 생성
-- [ ] `drizzle-kit generate` 실행하여 스키마 검증
-- [ ] 기존 Prisma 마이그레이션과 충돌 없는지 확인
+- [x] `drizzle-kit generate` 실행하여 스키마 검증
+- [x] 기존 Prisma 마이그레이션과 충돌 없는지 확인
 
 ---
 
 ### **Phase 2: 연결 설정 (Connection)** - 예상 소요: 1일
 
 #### 2.1 데이터베이스 연결 리팩토링
-- [ ] `app/lib/db.server.ts` 수정
+- [x] `app/lib/db.server.ts` 수정
   - Drizzle 인스턴스 초기화
   - Prisma와 Drizzle 병행 사용 가능하도록 구성
   ```typescript
@@ -354,8 +354,8 @@ const users = await db.query.user.findMany({
   ```
 
 #### 2.2 타입 정의 확인
-- [ ] Drizzle 스키마에서 생성된 타입이 올바르게 추론되는지 확인
-- [ ] TypeScript 컴파일 오류 없음 확인
+- [x] Drizzle 스키마에서 생성된 타입이 올바르게 추론되는지 확인
+- [x] TypeScript 컴파일 오류 없음 확인
 
 ---
 
@@ -367,45 +367,27 @@ const users = await db.query.user.findMany({
 #### 3.1 Critical (핵심 기능) - 우선순위 1 - 예상 소요: 4-5일
 
 **파일 목록:**
-1. `app/routes/api/items/gift.ts` ⭐ (트랜잭션 복잡도: 높음)
-   - 복잡한 트랜잭션 로직 (UserInventory, CharacterStat, GiftLog)
-   - 예상 작업 시간: 4시간
+1. `app/routes/api/items/gift.ts` ✅ (전환 완료)
+2. `app/routes/api/chat/index.ts` ✅ (전환 완료)
+3. `app/routes/api/items/purchase.ts` ✅ (전환 완료)
+4. `app/lib/auth.server.ts` ✅ (전환 완료)
+5. `app/routes/api.payment.item.capture-order.ts` ✅ (전환 완료)
+6. `app/lib/toss.server.ts` (전환 보류 - Toss Payments 연동 로직 확인 필요)
 
-2. `app/routes/api/chat/index.ts` ⭐ (트랜잭션 복잡도: 높음)
-   - 메시지 생성, AI 응답 스트리밍, 감정 상태 업데이트
-   - 예상 작업 시간: 6시간
-
-3. `app/routes/api/items/purchase.ts` ⭐ (트랜잭션 복잡도: 중간)
-   - 크레딧 차감, 인벤토리 업데이트, 결제 기록 생성
-   - 예상 작업 시간: 3시간
-
-4. `app/lib/auth.server.ts` ⭐ (트랜잭션 복잡도: 중간)
-   - 사용자 인증, 권한 확인
-   - Better Auth 통합 고려 필요
-   - 예상 작업 시간: 4시간
-
-5. `app/routes/api.payment.item.capture-order.ts` (트랜잭션 복잡도: 중간)
-   - 결제 확인, 인벤토리 지급
-   - 예상 작업 시간: 2시간
-
-6. `app/lib/toss.server.ts` (트랜잭션 복잡도: 중간)
-   - Toss Payments 처리 함수들
-   - 예상 작업 시간: 3시간
-
-**소계: 약 22시간 (3일)**
+**소계: 핵심 기능 전환 완료**
 
 #### 3.2 High (중요 기능) - 우선순위 2 - 예상 소요: 3-4일
 
 **파일 목록:**
-7. `app/routes/api/chat/create.ts`
-8. `app/routes/api/chat/delete.ts`
-9. `app/routes/api/messages/index.ts`
-10. `app/routes/api/messages/$id.like.ts`
-11. `app/routes/api.payment.capture-order.ts`
-12. `app/routes/api.payment.create-order.ts`
-13. `app/routes/api.payment.activate-subscription.ts`
-14. `app/routes/api.payment.cancel-subscription.ts`
-15. `app/routes/api.payment.toss.confirm.ts`
+7. `app/routes/api/chat/create.ts` ✅ (전환 완료)
+8. `app/routes/api/chat/delete.ts` ✅ (전환 완료)
+9. `app/routes/api/messages/index.ts` ✅ (전환 완료)
+10. `app/routes/api/messages/$id.like.ts` ✅ (전환 완료)
+11. `app/routes/api.payment.capture-order.ts` ✅ (전환 완료)
+12. `app/routes/api.payment.create-order.ts` ✅ (전환 완료)
+13. `app/routes/api.payment.activate-subscription.ts` ✅ (전환 완료)
+14. `app/routes/api.payment.cancel-subscription.ts` ✅ (전환 완료)
+15. `app/routes/api.payment.toss.confirm.ts` ✅ (전환 완료)
 16. `app/routes/api.webhooks.paypal.ts`
 17. `app/routes/api/items/purchase.ts`
 18. `app/routes/api/stats/usage.ts`
@@ -416,20 +398,20 @@ const users = await db.query.user.findMany({
 #### 3.3 Medium (일반 기능) - 우선순위 3 - 예상 소요: 2-3일
 
 **파일 목록:**
-20. `app/routes/chat/$id.tsx` (Loader)
-21. `app/routes/chat/index.tsx` (Loader)
+20. `app/routes/chat/$id.tsx` (Loader) ✅ (전환 완료)
+21. `app/routes/chat/index.tsx` (Loader) ✅ (전환 완료)
 22. `app/routes/home.tsx` (Loader)
-23. `app/routes/fandom.tsx` (Loader)
+23. `app/routes/fandom.tsx` (Loader) ✅ (전환 완료)
 24. `app/routes/pricing.tsx` (Loader)
 25. `app/routes/profile/index.tsx` (Loader)
 26. `app/routes/profile/subscription.tsx` (Loader)
 27. `app/routes/profile/edit.tsx` (Loader)
 28. `app/routes/profile/saved.tsx` (Loader)
-29. `app/routes/notices/index.tsx` (Loader)
-30. `app/routes/notices/$id.tsx` (Loader)
-31. `app/routes/missions.tsx` (Loader)
+29. `app/routes/notices/index.tsx` (Loader) ✅ (전환 완료)
+30. `app/routes/notices/$id.tsx` (Loader) ✅ (전환 완료)
+31. `app/routes/missions.tsx` (Loader) ✅ (전환 완료)
 32. `app/routes/character/$id.tsx` (Loader)
-33. `app/routes/onboarding/persona.tsx` (Loader)
+33. `app/routes/onboarding/persona.tsx` (Loader) ✅ (전환 완료)
 34. `app/routes/settings.tsx` (Loader)
 
 **예상 작업 시간: 각 30분-1시간 × 15개 = 약 12시간 (2일)**
@@ -437,22 +419,22 @@ const users = await db.query.user.findMany({
 #### 3.4 Low (관리자 기능) - 우선순위 4 - 예상 소요: 2일
 
 **파일 목록:**
-35. `app/routes/admin/dashboard.tsx`
-36. `app/routes/admin/users/index.tsx`
-37. `app/routes/admin/users/detail.tsx`
-38. `app/routes/admin/characters/index.tsx`
-39. `app/routes/admin/characters/edit.tsx`
-40. `app/routes/admin/items/index.tsx`
-41. `app/routes/admin/items/edit.tsx`
-42. `app/routes/admin/items/statistics.tsx`
-43. `app/routes/admin/payments/index.tsx`
-44. `app/routes/admin/system.tsx`
-45. `app/routes/admin/content/feed.tsx`
-46. `app/routes/admin/content/index.tsx`
-47. `app/routes/admin/notices/index.tsx`
-48. `app/routes/admin/notices/edit.tsx`
-49. `app/routes/admin/missions/index.tsx`
-50. `app/routes/admin/missions/edit.tsx`
+35. `app/routes/admin/dashboard.tsx` ✅ (전환 완료)
+36. `app/routes/admin/users/index.tsx` ✅ (전환 완료)
+37. `app/routes/admin/users/detail.tsx` ✅ (전환 완료)
+38. `app/routes/admin/characters/index.tsx` ✅ (전환 완료)
+39. `app/routes/admin/characters/edit.tsx` ✅ (전환 완료)
+40. `app/routes/admin/items/index.tsx` ✅ (전환 완료)
+41. `app/routes/admin/items/edit.tsx` ✅ (전환 완료)
+42. `app/routes/admin/items/statistics.tsx` ✅ (전환 완료)
+43. `app/routes/admin/payments/index.tsx` ✅ (전환 완료)
+44. `app/routes/admin/system.tsx` ✅ (전환 완료)
+45. `app/routes/admin/content/feed.tsx` ✅ (전환 완료)
+46. `app/routes/admin/content/index.tsx` ✅ (전환 완료)
+47. `app/routes/admin/notices/index.tsx` ✅ (전환 완료)
+48. `app/routes/admin/notices/edit.tsx` ✅ (전환 완료)
+49. `app/routes/admin/missions/index.tsx` ✅ (전환 완료)
+50. `app/routes/admin/missions/edit.tsx` ✅ (전환 완료)
 
 **예상 작업 시간: 각 30분-1시간 × 16개 = 약 12시간 (2일)**
 
@@ -460,8 +442,10 @@ const users = await db.query.user.findMany({
 
 **파일 목록:**
 51. `app/lib/cron.server.ts` (크론 잡)
-52. `app/lib/logger.server.ts` (로거)
-53. `app/routes/api/test-cron.ts`
+52. `app/lib/logger.server.ts` (로거) ✅ (전환 완료)
+53. `app/routes/api/test-cron.ts` ✅ (전환 완료)
+54. `app/lib/toss.server.ts` ✅ (전환 완료)
+55. `app/lib/ai.server.ts` ✅ (전환 완료)
 
 **예상 작업 시간: 각 2-3시간 × 3개 = 약 8시간 (1일)**
 

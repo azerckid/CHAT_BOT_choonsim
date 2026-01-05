@@ -7,7 +7,6 @@ import { TypingIndicator } from "~/components/chat/TypingIndicator";
 import { MessageListSkeleton } from "~/components/chat/MessageListSkeleton";
 import { NetworkError } from "~/components/ui/NetworkError";
 import { LoadingSpinner } from "~/components/ui/LoadingSpinner";
-import { prisma } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { z } from "zod";
@@ -66,6 +65,10 @@ const EMOTION_MAP: Record<string, { color: string; text: string; aura: string; s
   },
 };
 
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq, and, asc, inArray } from "drizzle-orm";
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -90,39 +93,35 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (!id) throw new Response("Not Found", { status: 404 });
 
   const [messages, user, conversation] = await Promise.all([
-    prisma.message.findMany({
-      where: { conversationId: id },
-      orderBy: { createdAt: "asc" },
+    db.query.message.findMany({
+      where: eq(schema.message.conversationId, id),
+      orderBy: [asc(schema.message.createdAt)],
     }),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      // @ts-ignore
-      include: { UserInventory: true },
+    db.query.user.findFirst({
+      where: eq(schema.user.id, session.user.id),
+      with: {
+        inventory: true,
+      }
     }),
-    prisma.conversation.findUnique({
-      where: { id },
+    db.query.conversation.findFirst({
+      where: eq(schema.conversation.id, id),
     }),
   ]);
 
   if (!conversation) throw new Response("Conversation Not Found", { status: 404 });
 
-  const characterStat = await prisma.characterStat.findUnique({
-    where: { characterId: conversation.characterId },
+  const characterStat = await db.query.characterStat.findFirst({
+    where: eq(schema.characterStat.characterId, conversation.characterId),
   });
 
-  const userLikes = await prisma.messageLike.findMany({
-    where: {
-      userId: session.user.id,
-      Message: {
-        conversationId: id,
-      },
-    },
-    select: {
-      messageId: true,
-    },
+  const userLikesInConv = await db.query.messageLike.findMany({
+    where: and(
+      eq(schema.messageLike.userId, session.user.id),
+      inArray(schema.messageLike.messageId, messages.map(m => m.id))
+    )
   });
 
-  const likedMessageIds = new Set(userLikes.map(like => like.messageId));
+  const likedMessageIds = new Set(userLikesInConv.map(like => like.messageId));
 
   const messagesWithLikes = messages.map(msg => ({
     ...msg,
@@ -143,14 +142,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (!id) return new Response("Missing ID", { status: 400 });
 
   const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "gift") {
-    // This part is handled by the dedicated /api/items/gift route usually,
-    // but if we want to handle it here we can.
-    // However, the /api/items/gift is already implemented.
-    // Let's keep it separate for now.
-  }
 
   const result = sendSchema.safeParse({
     message: formData.get("message"),
@@ -162,17 +153,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   // 1. 사용자 메시지 저장
-  const userMsg = await prisma.message.create({
-    data: {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: result.data?.message || "",
-      mediaUrl: result.data?.mediaUrl,
-      conversationId: id,
-      senderId: session.user.id,
-      createdAt: new Date(),
-    },
-  });
+  const [userMsg] = await db.insert(schema.message).values({
+    id: crypto.randomUUID(),
+    role: "user",
+    content: result.data?.message || "",
+    mediaUrl: result.data?.mediaUrl,
+    conversationId: id,
+    senderId: session.user.id,
+    createdAt: new Date(),
+  }).returning();
+
+  if (!userMsg) throw new Error("Failed to create user message Record");
 
   return Response.json({ success: true, message: userMsg });
 }
@@ -201,12 +192,12 @@ export default function ChatRoom() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   // Hearts state
-  const [currentUserHearts, setCurrentUserHearts] = useState(user?.UserInventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
+  const [currentUserHearts, setCurrentUserHearts] = useState(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
   const [currentUserCredits, setCurrentUserCredits] = useState(user?.credits || 0);
 
   // Re-sync states when loader data updates
   useEffect(() => {
-    setCurrentUserHearts(user?.UserInventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
+    setCurrentUserHearts(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
     setCurrentUserCredits(user?.credits || 0);
   }, [user]);
 

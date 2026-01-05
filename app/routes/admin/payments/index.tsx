@@ -2,8 +2,11 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, Link, Form, useSubmit } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
+
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq, and, desc, count, sum, SQL } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
@@ -11,25 +14,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const provider = url.searchParams.get("provider") || "all";
     const status = url.searchParams.get("status") || "all";
 
-    const where: any = {};
-    if (provider !== "all") where.provider = provider;
-    if (status !== "all") where.status = status;
+    const filters: SQL[] = [];
+    if (provider !== "all") filters.push(eq(schema.payment.provider, provider));
+    if (status !== "all") filters.push(eq(schema.payment.status, status));
 
-    const payments = await prisma.payment.findMany({
-        where,
-        include: {
-            User: { select: { name: true, email: true } }
+    const payments = await db.query.payment.findMany({
+        where: filters.length > 0 ? and(...filters) : undefined,
+        with: {
+            user: { columns: { name: true, email: true } }
         },
-        orderBy: { createdAt: "desc" },
-        take: 100
+        orderBy: [desc(schema.payment.createdAt)],
+        limit: 100
     });
 
     // Statistics
-    const stats = await prisma.payment.groupBy({
-        by: ["status"],
-        _count: true,
-        _sum: { amount: true }
-    });
+    const stats = await db.select({
+        status: schema.payment.status,
+        _count: count(),
+        _sum: { amount: sum(schema.payment.amount) }
+    })
+        .from(schema.payment)
+        .groupBy(schema.payment.status);
 
     return { payments, stats, provider, status };
 }
@@ -107,7 +112,7 @@ export default function PaymentHistory() {
                                             <td className="px-8 py-5">
                                                 <div className="flex flex-col">
                                                     <span className="text-white text-xs font-mono opacity-40 group-hover:opacity-100 transition-opacity">{p.transactionId || p.paymentKey || p.id}</span>
-                                                    <span className="text-white/60 text-[10px]">{p.User?.name || p.User?.email || "Unknown"}</span>
+                                                    <span className="text-white/60 text-[10px]">{p.user?.name || p.user?.email || "Unknown"}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">

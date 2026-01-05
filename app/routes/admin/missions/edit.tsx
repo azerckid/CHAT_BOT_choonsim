@@ -2,7 +2,6 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, Form, Link, redirect } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { z } from "zod";
 
 const missionSchema = z.object({
@@ -13,14 +12,17 @@ const missionSchema = z.object({
     isActive: z.boolean().default(true),
 });
 
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
     await requireAdmin(request);
     const { id } = params;
 
     if (id === "new" || !id) return { mission: null };
 
-    // @ts-ignore
-    const mission = await prisma.mission.findUnique({ where: { id } });
+    const mission = await db.query.mission.findFirst({ where: eq(schema.mission.id, id) });
     if (!mission) throw new Response("Not Found", { status: 404 });
 
     return { mission };
@@ -40,14 +42,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
     });
 
     if (id === "new" || !id) {
-        // @ts-ignore
-        await prisma.mission.create({ data: validated });
-    } else {
-        // @ts-ignore
-        await prisma.mission.update({
-            where: { id },
-            data: validated
+        await db.insert(schema.mission).values({
+            id: crypto.randomUUID(),
+            ...validated,
+            updatedAt: new Date(),
         });
+    } else {
+        await db.update(schema.mission).set({
+            ...validated,
+            updatedAt: new Date(),
+        }).where(eq(schema.mission.id, id));
     }
 
     return redirect("/admin/content/missions");

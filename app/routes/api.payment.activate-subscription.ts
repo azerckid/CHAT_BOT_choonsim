@@ -1,10 +1,11 @@
-
 import { type ActionFunctionArgs, data } from "react-router";
 import { z } from "zod";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { SUBSCRIPTION_PLANS } from "~/lib/subscription-plans";
 import { requireUserId } from "~/lib/auth.server";
 import { DateTime } from "luxon";
+import * as schema from "~/db/schema";
+import { eq, sql } from "drizzle-orm";
 
 const ActivateSubscriptionSchema = z.object({
     subscriptionId: z.string(),
@@ -36,8 +37,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
     try {
         // 이미 사용 중인 Subscription ID인지 확인
-        const existingSub = await prisma.user.findFirst({
-            where: { subscriptionId },
+        const existingSub = await db.query.user.findFirst({
+            where: eq(schema.user.subscriptionId, subscriptionId),
         });
 
         if (existingSub) {
@@ -49,37 +50,38 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // 트랜잭션으로 DB 업데이트
-        await prisma.$transaction(async (tx) => {
+        await db.transaction(async (tx) => {
             // 1. 사용자 정보 업데이트
             // 구독 만료일은 보통 1개월 뒤 (정확한 건 Webhook에서 갱신하지만, 초기값 설정)
             const nextMonth = DateTime.now().plus({ months: 1 }).toJSDate();
 
-            await tx.user.update({
-                where: { id: userId },
-                data: {
+            await tx.update(schema.user)
+                .set({
                     subscriptionStatus: "ACTIVE",
                     subscriptionTier: planEntry.tier,
                     subscriptionId: subscriptionId,
                     currentPeriodEnd: nextMonth,
                     // 초기 크레딧 지급 (구독 보너스)
-                    credits: { increment: planEntry.creditsPerMonth },
+                    credits: sql`${schema.user.credits} + ${planEntry.creditsPerMonth}`,
                     lastTokenRefillAt: new Date(),
-                },
-            });
+                    updatedAt: new Date(),
+                })
+                .where(eq(schema.user.id, userId));
 
             // 2. Payment 기록 생성
-            await tx.payment.create({
-                data: {
-                    userId,
-                    amount: planEntry.monthlyPrice,
-                    currency: "USD",
-                    status: "COMPLETED",
-                    type: "SUBSCRIPTION_ACTIVATION",
-                    provider: "PAYPAL",
-                    subscriptionId: subscriptionId,
-                    description: `Subscription Activation: ${planEntry.name}`,
-                    creditsGranted: planEntry.creditsPerMonth,
-                }
+            await tx.insert(schema.payment).values({
+                id: crypto.randomUUID(),
+                userId,
+                amount: planEntry.monthlyPrice,
+                currency: "USD",
+                status: "COMPLETED",
+                type: "SUBSCRIPTION_ACTIVATION",
+                provider: "PAYPAL",
+                subscriptionId: subscriptionId,
+                description: `Subscription Activation: ${planEntry.name}`,
+                creditsGranted: planEntry.creditsPerMonth,
+                createdAt: new Date(),
+                updatedAt: new Date(),
             });
         });
 

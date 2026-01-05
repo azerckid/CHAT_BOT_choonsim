@@ -3,7 +3,6 @@ import { useLoaderData, Form, Link, redirect } from "react-router";
 import { useState, useRef } from "react";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
 import { deleteImage } from "~/lib/cloudinary.server";
 import { z } from "zod";
@@ -17,13 +16,17 @@ const noticeSchema = z.object({
     imageUrl: z.string().optional().nullable(),
 });
 
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
     await requireAdmin(request);
     const { id } = params;
 
     if (id === "new" || !id) return { notice: null };
 
-    const notice = await prisma.notice.findUnique({ where: { id } });
+    const notice = await db.query.notice.findFirst({ where: eq(schema.notice.id, id) });
     if (!notice) throw new Response("Not Found", { status: 404 });
 
     return { notice };
@@ -44,17 +47,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
     });
 
     if (id === "new" || !id) {
-        await prisma.notice.create({ data: validated });
+        await db.insert(schema.notice).values({
+            id: crypto.randomUUID(),
+            ...validated,
+            updatedAt: new Date(),
+        });
     } else {
-        const oldNotice = await prisma.notice.findUnique({ where: { id } });
+        const oldNotice = await db.query.notice.findFirst({ where: eq(schema.notice.id, id) });
         // 만약 기존 이미지가 있고, 새 이미지가 다르거나 없다면 기존꺼 삭제
         if (oldNotice?.imageUrl && oldNotice.imageUrl !== validated.imageUrl) {
             await deleteImage(oldNotice.imageUrl);
         }
-        await prisma.notice.update({
-            where: { id },
-            data: validated
-        });
+        await db.update(schema.notice).set({
+            ...validated,
+            updatedAt: new Date(),
+        }).where(eq(schema.notice.id, id));
     }
 
     return redirect("/admin/content/notices");

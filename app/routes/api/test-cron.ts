@@ -1,6 +1,8 @@
 import type { ActionFunctionArgs } from "react-router";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { generateProactiveMessage } from "~/lib/ai.server";
+import * as schema from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export async function action({ request }: ActionFunctionArgs) {
     const formData = await request.formData();
@@ -11,9 +13,9 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     try {
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true, name: true, bio: true }
+        const user = await db.query.user.findFirst({
+            where: eq(schema.user.id, userId),
+            columns: { id: true, name: true, bio: true },
         });
 
         if (!user) {
@@ -21,20 +23,19 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // 1. 해당 사용자의 대화방 찾기 (가장 최근 대화방 사용)
-        let conversation = await prisma.conversation.findFirst({
-            where: { userId: user.id },
-            orderBy: { updatedAt: 'desc' }
+        let conversation = await db.query.conversation.findFirst({
+            where: eq(schema.conversation.userId, user.id),
+            orderBy: [desc(schema.conversation.updatedAt)],
         });
 
         if (!conversation) {
-            conversation = await prisma.conversation.create({
-                data: {
-                    id: crypto.randomUUID(),
-                    title: "춘심이와의 대화 (자동 생성)",
-                    userId: user.id,
-                    updatedAt: new Date(),
-                }
-            });
+            const [newConversation] = await db.insert(schema.conversation).values({
+                id: crypto.randomUUID(),
+                title: "춘심이와의 대화 (자동 생성)",
+                userId: user.id,
+                updatedAt: new Date(),
+            }).returning();
+            conversation = newConversation;
         }
 
         // 2. 메시지 생성
@@ -51,15 +52,13 @@ export async function action({ request }: ActionFunctionArgs) {
         const messageContent = await generateProactiveMessage(user.name || "친구", memory, personaMode);
 
         // 3. 메시지 저장
-        const savedMessage = await prisma.message.create({
-            data: {
-                id: crypto.randomUUID(),
-                role: "assistant",
-                content: messageContent,
-                conversationId: conversation.id,
-                createdAt: new Date(),
-            }
-        });
+        const [savedMessage] = await db.insert(schema.message).values({
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: messageContent,
+            conversationId: conversation.id,
+            createdAt: new Date(),
+        }).returning();
 
         return Response.json({
             success: true,

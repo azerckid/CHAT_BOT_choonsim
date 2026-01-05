@@ -1,8 +1,10 @@
 import type { ActionFunctionArgs } from "react-router";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import { CHARACTERS } from "~/lib/characters";
+import * as schema from "~/db/schema";
+import { eq, and } from "drizzle-orm";
 
 const createChatSchema = z.object({
     characterId: z.string(),
@@ -36,11 +38,11 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // 이미 존재하는 대화방이 있는지 확인
-        const existingConversation = await prisma.conversation.findFirst({
-            where: {
-                userId: session.user.id,
-                characterId: characterId,
-            },
+        const existingConversation = await db.query.conversation.findFirst({
+            where: and(
+                eq(schema.conversation.userId, session.user.id),
+                eq(schema.conversation.characterId, characterId)
+            ),
         });
 
         if (existingConversation) {
@@ -48,14 +50,17 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // 새 대화방 생성
-        const newConversation = await prisma.conversation.create({
-            data: {
-                id: crypto.randomUUID(),
-                userId: session.user.id,
-                characterId: characterId,
-                title: character.name,
-            },
-        });
+        const [newConversation] = await db.insert(schema.conversation).values({
+            id: crypto.randomUUID(),
+            userId: session.user.id,
+            characterId: characterId,
+            title: character.name,
+            updatedAt: new Date(),
+        }).returning();
+
+        if (!newConversation) {
+            throw new Error("Failed to create conversation Record");
+        }
 
         return Response.json({ conversationId: newConversation.id });
 

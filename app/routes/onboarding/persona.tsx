@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useFetcher } from "react-router";
 import { cn } from "~/lib/utils";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq, and } from "drizzle-orm";
 import { auth } from "~/lib/auth.server";
 import type { ActionFunctionArgs } from "react-router";
 
@@ -60,23 +62,23 @@ export async function action({ request }: ActionFunctionArgs) {
 
   if (!mode) return new Response("Missing mode", { status: 400 });
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { bio: JSON.stringify({ personaMode: mode }) },
-  });
+  await db.update(schema.user)
+    .set({ bio: JSON.stringify({ personaMode: mode }) })
+    .where(eq(schema.user.id, session.user.id));
 
-  const existingConv = await prisma.conversation.findFirst({
-    where: { userId: session.user.id, title: "춘심" },
+  const existingConv = await db.query.conversation.findFirst({
+    where: and(
+      eq(schema.conversation.userId, session.user.id),
+      eq(schema.conversation.title, "춘심")
+    ),
   });
 
   if (!existingConv) {
-    await prisma.conversation.create({
-      data: {
-        id: crypto.randomUUID(),
-        userId: session.user.id,
-        title: "춘심",
-        updatedAt: new Date(),
-      },
+    await db.insert(schema.conversation).values({
+      id: crypto.randomUUID(),
+      userId: session.user.id,
+      title: "춘심",
+      updatedAt: new Date(),
     });
   }
 

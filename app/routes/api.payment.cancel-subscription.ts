@@ -1,6 +1,8 @@
 
 import { type ActionFunctionArgs, data } from "react-router";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
 import { requireUserId } from "~/lib/auth.server";
 import { cancelPayPalSubscription } from "~/lib/paypal.server";
 
@@ -15,8 +17,8 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // 사용자 정보 및 구독 ID 조회
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
+    const user = await db.query.user.findFirst({
+        where: eq(schema.user.id, userId),
     });
 
     if (!user || !user.subscriptionId) {
@@ -30,12 +32,9 @@ export async function action({ request }: ActionFunctionArgs) {
         // 2. DB 업데이트
         // subscriptionStatus를 'CANCELLED'로 변경하지만,
         // subscriptionTier나 currentPeriodEnd는 그대로 두어 남은 기간 동안 혜택을 유지할 수 있게 함.
-        await prisma.user.update({
-            where: { id: userId },
-            data: {
-                subscriptionStatus: "CANCELLED",
-            },
-        });
+        await db.update(schema.user).set({
+            subscriptionStatus: "CANCELLED",
+        }).where(eq(schema.user.id, userId));
 
         // 3. Payment 로그 기록 (선택 사항, 기록 남기면 좋음)
         // 여기서는 상태 변경만 기록하거나 skip 가능

@@ -1,7 +1,6 @@
-
 import { type LoaderFunctionArgs, useLoaderData, useNavigate, useFetcher } from "react-router";
 import { auth } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { DateTime } from "luxon";
 import { toast } from "sonner";
 import { cn } from "~/lib/utils";
@@ -17,9 +16,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
-// @ts-ignore
-import type { Payment } from "@prisma/client";
 import { TokenTopUpModal } from "~/components/payment/TokenTopUpModal";
+import * as schema from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -31,9 +30,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // 사용자 정보 및 결제 내역 조회
   const [user, payments] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
+    db.query.user.findFirst({
+      where: eq(schema.user.id, userId),
+      columns: {
         credits: true,
         subscriptionTier: true,
         subscriptionStatus: true,
@@ -41,10 +40,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
         subscriptionId: true,
       },
     }),
-    prisma.payment.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 20, // 최근 20개 내역
+    db.query.payment.findMany({
+      where: eq(schema.payment.userId, userId),
+      orderBy: [desc(schema.payment.createdAt)],
+      limit: 20, // 최근 20개 내역
     }),
   ]);
 
@@ -62,7 +61,7 @@ type LoaderData = {
     currentPeriodEnd: Date | string | null;
     subscriptionId: string | null;
   } | null;
-  payments: Payment[]; // Prisma Client에서 가져온 Payment 타입 사용
+  payments: typeof schema.payment.$inferSelect[];
   paypalClientId?: string;
   tossClientKey?: string;
 };

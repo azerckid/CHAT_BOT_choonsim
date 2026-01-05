@@ -1,8 +1,10 @@
 import type { ActionFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { ITEMS } from "~/lib/items";
 import { z } from "zod";
+import * as schema from "~/db/schema";
+import { eq, and, sql, desc, or } from "drizzle-orm";
 
 const giftSchema = z.object({
     characterId: z.string(),
@@ -31,28 +33,33 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     try {
-        return await prisma.$transaction(async (tx) => {
+        return await db.transaction(async (tx) => {
             // 1. Check & Deduct from Inventory First
-            const inventory = await tx.userInventory.findUnique({
-                where: { userId_itemId: { userId: session.user.id, itemId } }
+            const inventory = await tx.query.userInventory.findFirst({
+                where: and(
+                    eq(schema.userInventory.userId, session.user.id),
+                    eq(schema.userInventory.itemId, itemId)
+                )
             });
 
             if (inventory && inventory.quantity >= amount) {
                 // Use Inventory
-                await tx.userInventory.update({
-                    where: { userId_itemId: { userId: session.user.id, itemId } },
-                    data: { quantity: { decrement: amount } }
-                });
+                await tx.update(schema.userInventory)
+                    .set({ quantity: sql`${schema.userInventory.quantity} - ${amount}`, updatedAt: new Date() })
+                    .where(and(
+                        eq(schema.userInventory.userId, session.user.id),
+                        eq(schema.userInventory.itemId, itemId)
+                    ));
             } else {
                 throw new Error("Insufficient hearts");
             }
 
             // 3. Check if this is a new giver (before updating CharacterStat)
-            const existingGift = await tx.giftLog.findFirst({
-                where: {
-                    fromUserId: session.user.id,
-                    toCharacterId: characterId,
-                },
+            const existingGift = await tx.query.giftLog.findFirst({
+                where: and(
+                    eq(schema.giftLog.fromUserId, session.user.id),
+                    eq(schema.giftLog.toCharacterId, characterId)
+                ),
             });
 
             const isNewGiver = !existingGift;
@@ -62,87 +69,105 @@ export async function action({ request }: ActionFunctionArgs) {
             const emotionExpiresAt = new Date(Date.now() + durationMinutes * 60000);
             const initialEmotion = amount >= 100 ? "LOVING" : amount >= 50 ? "EXCITED" : "JOY";
 
-            await tx.characterStat.upsert({
-                where: { characterId },
-                create: {
+            // Upsert CharacterStat
+            const existingStat = await tx.query.characterStat.findFirst({
+                where: eq(schema.characterStat.characterId, characterId)
+            });
+
+            if (existingStat) {
+                await tx.update(schema.characterStat)
+                    .set({
+                        totalHearts: sql`${schema.characterStat.totalHearts} + ${amount}`,
+                        totalUniqueGivers: isNewGiver ? sql`${schema.characterStat.totalUniqueGivers} + 1` : undefined,
+                        currentEmotion: initialEmotion,
+                        emotionExpiresAt,
+                        lastGiftAt: new Date(),
+                        updatedAt: new Date(),
+                    })
+                    .where(eq(schema.characterStat.characterId, characterId));
+            } else {
+                await tx.insert(schema.characterStat).values({
+                    id: crypto.randomUUID(),
                     characterId,
                     totalHearts: amount,
                     totalUniqueGivers: 1,
                     currentEmotion: initialEmotion,
                     emotionExpiresAt,
                     lastGiftAt: new Date(),
-                },
-                update: {
-                    totalHearts: { increment: amount },
-                    totalUniqueGivers: isNewGiver ? { increment: 1 } : undefined,
-                    currentEmotion: initialEmotion,
-                    emotionExpiresAt,
-                    lastGiftAt: new Date(),
-                },
-            });
+                    updatedAt: new Date(),
+                });
+            }
 
             // 5. Create GiftLog
-            const giftLog = await tx.giftLog.create({
-                data: {
-                    id: crypto.randomUUID(),
-                    fromUserId: session.user.id,
-                    toCharacterId: characterId,
-                    itemId,
-                    amount,
-                    message,
-                    createdAt: new Date(),
-                },
-            });
+            const [newGiftLog] = await tx.insert(schema.giftLog).values({
+                id: crypto.randomUUID(),
+                fromUserId: session.user.id,
+                toCharacterId: characterId,
+                itemId,
+                amount,
+                message,
+                createdAt: new Date(),
+            }).returning();
 
             // 6. Create a system message for the chat to acknowledge the gift
-            const systemMsg = await tx.message.create({
-                data: {
-                    id: crypto.randomUUID(),
-                    role: "assistant",
-                    content: `💝 **${session.user.name || "사용자"}**님이 하트 **${amount}**개를 선물했습니다!`,
-                    conversationId,
-                    type: "TEXT",
-                    createdAt: new Date(),
-                }
-            });
+            const [systemMsg] = await tx.insert(schema.message).values({
+                id: crypto.randomUUID(),
+                role: "assistant",
+                content: `💝 **${session.user.name || "사용자"}**님이 하트 **${amount}**개를 선물했습니다!`,
+                conversationId,
+                type: "TEXT",
+                createdAt: new Date(),
+            }).returning();
 
             // 7. Update mission progress (Gift missions)
-            const giftMissions = await tx.mission.findMany({
-                where: {
-                    isActive: true,
-                    OR: [
-                        { title: { contains: "Gift" } },
-                        { title: { contains: "Heart" } },
-                        { title: { contains: "선물" } },
-                        { description: { contains: "gift" } }
-                    ]
-                }
+            const giftMissions = await tx.query.mission.findMany({
+                where: and(
+                    eq(schema.mission.isActive, true),
+                    or(
+                        sql`${schema.mission.title} LIKE '%Gift%'`,
+                        sql`${schema.mission.title} LIKE '%Heart%'`,
+                        sql`${schema.mission.title} LIKE '%선물%'`,
+                        sql`${schema.mission.description} LIKE '%gift%'`
+                    )
+                )
             });
 
             for (const mission of giftMissions) {
-                const userMission = await tx.userMission.findUnique({
-                    where: { userId_missionId: { userId: session.user.id, missionId: mission.id } }
+                const userMission = await tx.query.userMission.findFirst({
+                    where: and(
+                        eq(schema.userMission.userId, session.user.id),
+                        eq(schema.userMission.missionId, mission.id)
+                    )
                 });
 
                 if (!userMission || (userMission.status === "IN_PROGRESS" && userMission.progress < 100)) {
                     const newProgress = Math.min((userMission?.progress || 0) + 25, 100);
-                    await tx.userMission.upsert({
-                        where: { userId_missionId: { userId: session.user.id, missionId: mission.id } },
-                        create: {
+
+                    if (userMission) {
+                        await tx.update(schema.userMission)
+                            .set({
+                                progress: newProgress,
+                                status: newProgress === 100 ? "COMPLETED" : "IN_PROGRESS",
+                                lastUpdated: new Date()
+                            })
+                            .where(and(
+                                eq(schema.userMission.userId, session.user.id),
+                                eq(schema.userMission.missionId, mission.id)
+                            ));
+                    } else {
+                        await tx.insert(schema.userMission).values({
+                            id: crypto.randomUUID(),
                             userId: session.user.id,
                             missionId: mission.id,
                             progress: newProgress,
-                            status: newProgress === 100 ? "COMPLETED" : "IN_PROGRESS"
-                        },
-                        update: {
-                            progress: newProgress,
-                            status: newProgress === 100 ? "COMPLETED" : "IN_PROGRESS"
-                        }
-                    });
+                            status: newProgress === 100 ? "COMPLETED" : "IN_PROGRESS",
+                            lastUpdated: new Date()
+                        });
+                    }
                 }
             }
 
-            return Response.json({ success: true, giftLog, systemMsg });
+            return Response.json({ success: true, giftLog: newGiftLog, systemMsg });
         });
     } catch (error: any) {
         console.error("Gifting transaction error:", error);

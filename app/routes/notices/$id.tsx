@@ -1,4 +1,6 @@
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq } from "drizzle-orm";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
@@ -6,8 +8,12 @@ import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
 
 export async function loader({ params }: LoaderFunctionArgs) {
-    const notice = await prisma.notice.findUnique({
-        where: { id: params.id },
+    if (!params.id) {
+        throw new Response("Notice ID Missing", { status: 400 });
+    }
+
+    const notice = await db.query.notice.findFirst({
+        where: eq(schema.notice.id, params.id),
     });
 
     if (!notice) {

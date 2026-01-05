@@ -1,9 +1,10 @@
-
 import { type ActionFunctionArgs } from "react-router";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { verifyWebhookSignature } from "~/lib/paypal.server";
 import { SUBSCRIPTION_PLANS } from "~/lib/subscription-plans";
 import { DateTime } from "luxon";
+import * as schema from "~/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 export async function action({ request }: ActionFunctionArgs) {
     if (request.method !== "POST") {
@@ -16,8 +17,6 @@ export async function action({ request }: ActionFunctionArgs) {
     const headers = Object.fromEntries(request.headers);
 
     // 2. Webhook 서명 검증
-    // 주의: 헤더 이름은 소문자로 변환되어 들어올 수 있으므로, verifyWebhookSignature 함수에서 처리 시 주의 필요
-    // 여기서는 헤더 전체를 넘겨서 처리
     const isValid = await verifyWebhookSignature(headers as any, body);
 
     if (!isValid) {
@@ -39,18 +38,18 @@ export async function action({ request }: ActionFunctionArgs) {
                 const amount = resource.amount.total;
 
                 // 1. 사용자 찾기
-                const user = await prisma.user.findFirst({
-                    where: { subscriptionId },
+                const user = await db.query.user.findFirst({
+                    where: eq(schema.user.subscriptionId, subscriptionId),
                 });
 
                 if (!user) {
                     console.warn(`User not found for subscription: ${subscriptionId}`);
-                    return new Response("User Not Found", { status: 200 }); // 200 OK to stop retries
+                    return new Response("User Not Found", { status: 200 });
                 }
 
-                // 2. 중복 처리 방지 (이미 처리된 트랜잭션인지 확인)
-                const existingPayment = await prisma.payment.findUnique({
-                    where: { transactionId },
+                // 2. 중복 처리 방지
+                const existingPayment = await db.query.payment.findFirst({
+                    where: eq(schema.payment.transactionId, transactionId),
                 });
 
                 if (existingPayment) {
@@ -61,41 +60,40 @@ export async function action({ request }: ActionFunctionArgs) {
                 // 3. 플랜 정보 가져오기 & 크레딧 계산
                 const planKey = user.subscriptionTier as keyof typeof SUBSCRIPTION_PLANS;
                 const plan = SUBSCRIPTION_PLANS[planKey];
-
-                // 만약 티어가 유효하지 않다면 보수적으로 처리 (크레딧 미지급)
                 const creditsToAdd = plan ? plan.creditsPerMonth : 0;
 
-                // 4. 다음 결제일 계산 (대략 한 달 뒤)
-                // 정확한 건 resource에 'next_billing_date'가 없을 수도 있으니 Luxon으로 계산
+                // 4. 다음 결제일 계산
                 const nextBillingDate = DateTime.now().plus({ months: 1 }).toJSDate();
 
                 // 5. 트랜잭션 실행
-                await prisma.$transaction([
-                    prisma.payment.create({
-                        data: {
-                            userId: user.id,
-                            amount: parseFloat(amount),
-                            currency: resource.amount.currency,
-                            status: "COMPLETED",
-                            type: "SUBSCRIPTION_RENEWAL",
-                            provider: "PAYPAL",
-                            transactionId: transactionId,
-                            subscriptionId: subscriptionId,
-                            description: `Subscription Renewal: ${user.subscriptionTier}`,
-                            creditsGranted: creditsToAdd > 0 ? creditsToAdd : undefined,
-                            metadata: JSON.stringify(resource), // 디버깅용 전체 데이터 저장
-                        },
-                    }),
-                    prisma.user.update({
-                        where: { id: user.id },
-                        data: {
-                            credits: { increment: Math.max(0, creditsToAdd) },
+                await db.transaction(async (tx) => {
+                    await tx.insert(schema.payment).values({
+                        id: crypto.randomUUID(),
+                        userId: user.id,
+                        amount: parseFloat(amount),
+                        currency: resource.amount.currency,
+                        status: "COMPLETED",
+                        type: "SUBSCRIPTION_RENEWAL",
+                        provider: "PAYPAL",
+                        transactionId: transactionId,
+                        subscriptionId: subscriptionId,
+                        description: `Subscription Renewal: ${user.subscriptionTier}`,
+                        creditsGranted: creditsToAdd > 0 ? creditsToAdd : undefined,
+                        metadata: JSON.stringify(resource),
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    });
+
+                    await tx.update(schema.user)
+                        .set({
+                            credits: sql`${schema.user.credits} + ${Math.max(0, creditsToAdd)}`,
                             lastTokenRefillAt: new Date(),
                             currentPeriodEnd: nextBillingDate,
-                            subscriptionStatus: "ACTIVE", // 혹시 정지 상태였다면 활성화
-                        },
-                    }),
-                ]);
+                            subscriptionStatus: "ACTIVE",
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(schema.user.id, user.id));
+                });
 
                 console.log(`[Subscription Renewal] Success for user ${user.id}. Added ${creditsToAdd} credits.`);
                 break;
@@ -104,10 +102,10 @@ export async function action({ request }: ActionFunctionArgs) {
             case "BILLING.SUBSCRIPTION.CANCELLED": {
                 const subscriptionId = resource.id;
 
-                await prisma.user.updateMany({
-                    where: { subscriptionId },
-                    data: { subscriptionStatus: "CANCELLED" },
-                });
+                await db.update(schema.user)
+                    .set({ subscriptionStatus: "CANCELLED", updatedAt: new Date() })
+                    .where(eq(schema.user.subscriptionId, subscriptionId));
+
                 console.log(`[Subscription Cancelled] Subscription ${subscriptionId} cancelled.`);
                 break;
             }
@@ -115,10 +113,10 @@ export async function action({ request }: ActionFunctionArgs) {
             case "BILLING.SUBSCRIPTION.SUSPENDED": {
                 const subscriptionId = resource.id;
 
-                await prisma.user.updateMany({
-                    where: { subscriptionId },
-                    data: { subscriptionStatus: "SUSPENDED" },
-                });
+                await db.update(schema.user)
+                    .set({ subscriptionStatus: "SUSPENDED", updatedAt: new Date() })
+                    .where(eq(schema.user.subscriptionId, subscriptionId));
+
                 console.log(`[Subscription Suspended] Subscription ${subscriptionId} suspended.`);
                 break;
             }

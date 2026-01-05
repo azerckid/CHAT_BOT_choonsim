@@ -1,6 +1,8 @@
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs } from "react-router";
+import * as schema from "~/db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 
 /**
  * 사용자별 토큰 사용량 통계 API
@@ -17,20 +19,34 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const userId = session.user.id;
 
     try {
-        // 사용자의 모든 메시지 ID 조회
-        const userMessages = await prisma.message.findMany({
-            where: {
-                conversationId: {
-                    in: (
-                        await prisma.conversation.findMany({
-                            where: { userId },
-                            select: { id: true },
-                        })
-                    ).map((c) => c.id),
+        // 사용자의 모든 대화방 ID 조회
+        const userConversations = await db.query.conversation.findMany({
+            where: eq(schema.conversation.userId, userId),
+            columns: { id: true },
+        });
+
+        const conversationIds = userConversations.map((c) => c.id);
+
+        if (conversationIds.length === 0) {
+            return Response.json({
+                total: {
+                    promptTokens: 0,
+                    completionTokens: 0,
+                    totalTokens: 0,
+                    messageCount: 0,
                 },
-                role: "assistant",
-            },
-            select: { id: true },
+                daily: [],
+                monthly: [],
+            });
+        }
+
+        // 사용자의 모든 메시지 ID 조회
+        const userMessages = await db.query.message.findMany({
+            where: and(
+                inArray(schema.message.conversationId, conversationIds),
+                eq(schema.message.role, "assistant")
+            ),
+            columns: { id: true },
         });
 
         const messageIds = userMessages.map((m) => m.id);
@@ -49,11 +65,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }
 
         // AgentExecution에서 토큰 사용량 집계
-        const executions = await prisma.agentExecution.findMany({
-            where: {
-                messageId: { in: messageIds },
-            },
-            select: {
+        const executions = await db.query.agentExecution.findMany({
+            where: inArray(schema.agentExecution.messageId, messageIds),
+            columns: {
                 promptTokens: true,
                 completionTokens: true,
                 totalTokens: true,

@@ -2,7 +2,9 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, Form, useSubmit, useRevalidator, Link } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
 import { useEffect } from "react";
@@ -10,15 +12,24 @@ import { useEffect } from "react";
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
-    const tweets = await prisma.tweet.findMany({
-        include: {
-            User: { select: { name: true, email: true, image: true } },
-            Media: true,
-            _count: { select: { Like: true, Retweet: true } }
+    const tweetsData = await db.query.tweet.findMany({
+        with: {
+            user: { columns: { name: true, email: true, image: true } },
+            media: true,
+            likes: { columns: { id: true } },
+            retweets: { columns: { id: true } }
         },
-        orderBy: { createdAt: "desc" },
-        take: 50
+        orderBy: [desc(schema.tweet.createdAt)],
+        limit: 50
     });
+
+    const tweets = tweetsData.map(t => ({
+        ...t,
+        _count: {
+            Like: t.likes.length,
+            Retweet: t.retweets.length
+        }
+    }));
 
     return { tweets };
 }
@@ -30,7 +41,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (intent === "delete_tweet") {
         const id = formData.get("id") as string;
-        await prisma.tweet.delete({ where: { id } });
+        await db.delete(schema.tweet).where(eq(schema.tweet.id, id));
         return { success: true, message: "Tweet deleted successfully" };
     }
 
@@ -96,15 +107,15 @@ export default function AdminFeedManagement() {
                                 <div className="p-6 pb-4 flex items-start justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-primary font-black italic text-sm">
-                                            {tweet.User?.image ? (
-                                                <img src={tweet.User.image} alt="" className="w-full h-full object-cover rounded-xl" />
+                                            {tweet.user?.image ? (
+                                                <img src={tweet.user.image} alt="" className="w-full h-full object-cover rounded-xl" />
                                             ) : (
-                                                tweet.User?.name?.[0] || "?"
+                                                tweet.user?.name?.[0] || "?"
                                             )}
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black text-white italic group-hover:text-primary transition-colors">{tweet.User?.name || "Suspended User"}</p>
-                                            <p className="text-[10px] text-white/20">{tweet.User?.email}</p>
+                                            <p className="text-xs font-black text-white italic group-hover:text-primary transition-colors">{tweet.user?.name || "Suspended User"}</p>
+                                            <p className="text-[10px] text-white/20">{tweet.user?.email}</p>
                                         </div>
                                     </div>
                                     <button
@@ -119,9 +130,9 @@ export default function AdminFeedManagement() {
                                 <div className="px-6 space-y-4 flex-1">
                                     <p className="text-xs text-white/60 leading-relaxed line-clamp-4">{tweet.content}</p>
 
-                                    {tweet.Media && tweet.Media.length > 0 && (
+                                    {tweet.media && tweet.media.length > 0 && (
                                         <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden border border-white/5">
-                                            {tweet.Media.map((m) => (
+                                            {tweet.media.map((m) => (
                                                 <div key={m.id} className="aspect-square bg-black/40 relative">
                                                     <img src={m.url} alt="" className="absolute inset-0 w-full h-full object-cover" />
                                                 </div>

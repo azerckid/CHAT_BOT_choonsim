@@ -1,9 +1,11 @@
 import { type ActionFunctionArgs, data } from "react-router";
 import { z } from "zod";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { paypal, paypalClient } from "~/lib/paypal.server";
 import { HEART_PACKAGES } from "~/lib/items";
 import { requireUserId } from "~/lib/auth.server";
+import * as schema from "~/db/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 const CaptureOrderSchema = z.object({
     orderId: z.string(),
@@ -53,33 +55,43 @@ export async function action({ request }: ActionFunctionArgs) {
         const quantity = itemPackage.quantity;
         const itemId = itemPackage.itemId;
 
-        await prisma.$transaction([
+        await db.transaction(async (tx) => {
             // 1. Payment 기록 생성
-            prisma.payment.create({
-                data: {
-                    userId,
-                    amount: itemPackage.priceUSD,
-                    currency: "USD",
-                    status: "COMPLETED",
-                    type: "ITEM_PURCHASE",
-                    provider: "PAYPAL",
-                    transactionId: result.id,
-                    description: itemPackage.name,
-                    metadata: JSON.stringify({
-                        itemId,
-                        quantity,
-                        packageId,
-                        paypalResult: result
-                    }),
-                },
-            }),
+            await tx.insert(schema.payment).values({
+                id: crypto.randomUUID(),
+                userId,
+                amount: itemPackage.priceUSD,
+                currency: "USD",
+                status: "COMPLETED",
+                type: "ITEM_PURCHASE",
+                provider: "PAYPAL",
+                transactionId: result.id,
+                description: itemPackage.name,
+                metadata: JSON.stringify({
+                    itemId,
+                    quantity,
+                    packageId,
+                    paypalResult: result
+                }),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
             // 2. 인벤토리 업데이트
-            prisma.userInventory.upsert({
-                where: { userId_itemId: { userId, itemId } },
-                create: { userId, itemId, quantity },
-                update: { quantity: { increment: quantity } },
-            }),
-        ]);
+            await tx.insert(schema.userInventory).values({
+                id: crypto.randomUUID(),
+                userId,
+                itemId,
+                quantity,
+                updatedAt: new Date(),
+            }).onConflictDoUpdate({
+                target: [schema.userInventory.userId, schema.userInventory.itemId],
+                set: {
+                    quantity: sql`${schema.userInventory.quantity} + ${quantity}`,
+                    updatedAt: new Date(),
+                }
+            });
+        });
 
         return data({ success: true, quantityAdded: quantity });
 

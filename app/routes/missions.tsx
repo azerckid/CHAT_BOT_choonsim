@@ -1,4 +1,6 @@
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useFetcher } from "react-router";
@@ -14,14 +16,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     // 1. 모든 활성 미션 가져오기
-    const allMissions = await prisma.mission.findMany({
-        where: { isActive: true },
-        orderBy: { createdAt: "desc" },
+    const allMissions = await db.query.mission.findMany({
+        where: eq(schema.mission.isActive, true),
+        orderBy: [desc(schema.mission.createdAt)],
     });
 
     // 2. 유저의 미션 진행 상태 가져오기
-    const userMissions = await prisma.userMission.findMany({
-        where: { userId: session.user.id },
+    const userMissions = await db.query.userMission.findMany({
+        where: eq(schema.userMission.userId, session.user.id),
     });
 
     // 3. 미션 데이터 결합
@@ -49,9 +51,12 @@ export async function action({ request }: ActionFunctionArgs) {
     const intent = formData.get("intent") as string;
 
     if (intent === "claim") {
-        const userMission = await prisma.userMission.findUnique({
-            where: { userId_missionId: { userId: session.user.id, missionId } },
-            include: { Mission: true },
+        const userMission = await db.query.userMission.findFirst({
+            where: and(
+                eq(schema.userMission.userId, session.user.id),
+                eq(schema.userMission.missionId, missionId)
+            ),
+            with: { mission: true },
         });
 
         if (!userMission || userMission.status !== "COMPLETED") {
@@ -59,25 +64,25 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // 트랜잭션: 상태 변경 및 크레딧 지급
-        await prisma.$transaction([
-            prisma.userMission.update({
-                where: { id: userMission.id },
-                data: { status: "CLAIMED" },
-            }),
-            prisma.user.update({
-                where: { id: session.user.id },
-                data: { credits: { increment: userMission.Mission.rewardCredits } },
-            }),
-            prisma.systemLog.create({
-                data: {
-                    level: "AUDIT",
-                    category: "PAYMENT",
-                    message: `User ${session.user.id} claimed ${userMission.Mission.rewardCredits} credits from mission ${missionId}`,
-                },
-            }),
-        ]);
+        await db.transaction(async (tx) => {
+            await tx.update(schema.userMission)
+                .set({ status: "CLAIMED" })
+                .where(eq(schema.userMission.id, userMission.id));
 
-        return Response.json({ success: true, reward: userMission.Mission.rewardCredits });
+            await tx.update(schema.user)
+                .set({ credits: sql`${schema.user.credits} + ${userMission.mission.rewardCredits}` })
+                .where(eq(schema.user.id, session.user.id));
+
+            await tx.insert(schema.systemLog).values({
+                id: crypto.randomUUID(),
+                level: "AUDIT",
+                category: "PAYMENT",
+                message: `User ${session.user.id} claimed ${userMission.mission.rewardCredits} credits from mission ${missionId}`,
+                createdAt: new Date(),
+            });
+        });
+
+        return Response.json({ success: true, reward: userMission.mission.rewardCredits });
     }
 
     return Response.json({ error: "Invalid intent" }, { status: 400 });

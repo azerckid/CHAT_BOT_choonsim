@@ -3,30 +3,43 @@ import { useLoaderData, useNavigate, useNavigation, Form, useActionData, useReva
 import { useState, useEffect } from "react";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
 import { z } from "zod";
 import { toast } from "sonner";
+
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
     await requireAdmin(request);
     const { id } = params;
     if (!id) throw new Response("User ID missing", { status: 400 });
 
-    const user = await prisma.user.findUnique({
-        where: { id },
-        include: {
-            UserInventory: {
-                include: { item: true }
+    const user = await db.query.user.findFirst({
+        where: eq(schema.user.id, id),
+        with: {
+            inventory: {
+                with: {
+                    item: true
+                }
             }
         }
     });
 
     if (!user) throw new Response("User not found", { status: 404 });
 
-    const allItems = await prisma.item.findMany({ where: { isActive: true } });
+    const allItems = await db.query.item.findMany({
+        where: eq(schema.item.isActive, true)
+    });
 
-    return { user, allItems };
+    // Map userInventories to UserInventory to match frontend expectation or update frontend
+    const userWithMappedInventory = {
+        ...user,
+        UserInventory: user.inventory
+    };
+
+    return { user: userWithMappedInventory, allItems };
 }
 
 export async function action({ params, request }: ActionFunctionArgs) {
@@ -43,15 +56,13 @@ export async function action({ params, request }: ActionFunctionArgs) {
         const status = formData.get("subscriptionStatus") as string;
         const credits = Number(formData.get("credits"));
 
-        await prisma.user.update({
-            where: { id },
-            data: {
-                role,
-                subscriptionTier: tier,
-                subscriptionStatus: status,
-                credits: isNaN(credits) ? undefined : credits,
-            }
-        });
+        await db.update(schema.user).set({
+            role,
+            subscriptionTier: tier,
+            subscriptionStatus: status,
+            credits: isNaN(credits) ? undefined : credits,
+        }).where(eq(schema.user.id, id));
+
         return { success: true, message: "User updated successfully" };
     }
 
@@ -61,18 +72,24 @@ export async function action({ params, request }: ActionFunctionArgs) {
 
         if (!itemId || isNaN(quantity) || quantity <= 0) return Response.json({ error: "Invalid data" }, { status: 400 });
 
-        const existing = await prisma.userInventory.findFirst({
-            where: { userId: id, itemId }
+        const existing = await db.query.userInventory.findFirst({
+            where: and(
+                eq(schema.userInventory.userId, id),
+                eq(schema.userInventory.itemId, itemId)
+            )
         });
 
         if (existing) {
-            await prisma.userInventory.update({
-                where: { id: existing.id },
-                data: { quantity: { increment: quantity } }
-            });
+            await db.update(schema.userInventory)
+                .set({ quantity: existing.quantity + quantity })
+                .where(eq(schema.userInventory.id, existing.id));
         } else {
-            await prisma.userInventory.create({
-                data: { userId: id, itemId, quantity }
+            await db.insert(schema.userInventory).values({
+                id: crypto.randomUUID(),
+                userId: id,
+                itemId,
+                quantity,
+                updatedAt: new Date(),
             });
         }
         return { success: true, message: "Item granted successfully" };
@@ -80,12 +97,12 @@ export async function action({ params, request }: ActionFunctionArgs) {
 
     if (actionType === "remove_item") {
         const inventoryId = formData.get("inventoryId") as string;
-        await prisma.userInventory.delete({ where: { id: inventoryId } });
+        await db.delete(schema.userInventory).where(eq(schema.userInventory.id, inventoryId));
         return { success: true, message: "Item removed from inventory" };
     }
 
     if (actionType === "delete_user") {
-        await prisma.user.delete({ where: { id } });
+        await db.delete(schema.user).where(eq(schema.user.id, id));
         return { success: true, deleted: true, message: "User deleted" };
     }
 

@@ -2,15 +2,17 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, Link, useRevalidator } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
 
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { desc, eq } from "drizzle-orm";
+
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
-    // @ts-ignore
-    const missions = await prisma.mission.findMany({
-        orderBy: { createdAt: "desc" }
+    const missions = await db.query.mission.findMany({
+        orderBy: [desc(schema.mission.createdAt)]
     });
     return { missions };
 }
@@ -22,22 +24,18 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (intent === "toggle_status") {
         const id = formData.get("id") as string;
-        // @ts-ignore
-        const mission = await prisma.mission.findUnique({ where: { id } });
+        const mission = await db.query.mission.findFirst({ where: eq(schema.mission.id, id) });
         if (mission) {
-            // @ts-ignore
-            await prisma.mission.update({
-                where: { id },
-                data: { isActive: !mission.isActive }
-            });
+            await db.update(schema.mission).set({
+                isActive: !mission.isActive
+            }).where(eq(schema.mission.id, id));
         }
         return { success: true };
     }
 
     if (intent === "delete") {
         const id = formData.get("id") as string;
-        // @ts-ignore
-        await prisma.mission.delete({ where: { id } });
+        await db.delete(schema.mission).where(eq(schema.mission.id, id));
         return { success: true };
     }
 

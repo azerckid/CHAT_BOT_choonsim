@@ -2,42 +2,52 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, Link } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
-import { cn } from "~/lib/utils";
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { count, sum, eq, desc } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
     // Fetch basic stats
-    const [userCount, characterCount, paymentTotal, messageCount, recentUsers, recentPayments] = await Promise.all([
-        prisma.user.count(),
-        prisma.character.count(),
-        prisma.payment.aggregate({
-            where: { status: "COMPLETED" },
-            _sum: { amount: true }
+    const [
+        userCountRes,
+        characterCountRes,
+        paymentTotalRes,
+        messageCountRes,
+        recentUsers,
+        recentPayments,
+        tierStatsRes
+    ] = await Promise.all([
+        db.select({ value: count() }).from(schema.user),
+        db.select({ value: count() }).from(schema.character),
+        db.select({ value: sum(schema.payment.amount) }).from(schema.payment).where(eq(schema.payment.status, "COMPLETED")),
+        db.select({ value: count() }).from(schema.message),
+        db.query.user.findMany({ orderBy: [desc(schema.user.createdAt)], limit: 5 }),
+        db.query.payment.findMany({
+            where: eq(schema.payment.status, "COMPLETED"),
+            with: { user: { columns: { name: true, email: true } } },
+            orderBy: [desc(schema.payment.createdAt)],
+            limit: 5
         }),
-        prisma.message.count(),
-        prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
-        prisma.payment.findMany({
-            where: { status: "COMPLETED" },
-            include: { User: { select: { name: true, email: true } } },
-            orderBy: { createdAt: "desc" },
-            take: 5
-        })
+        db.select({
+            tier: schema.user.subscriptionTier,
+            count: count()
+        }).from(schema.user).groupBy(schema.user.subscriptionTier)
     ]);
 
-    const tierStats = await prisma.user.groupBy({
-        by: ["subscriptionTier"],
-        _count: true
-    });
+    const userCount = userCountRes[0]?.value || 0;
+    const characterCount = characterCountRes[0]?.value || 0;
+    const revenue = Number(paymentTotalRes[0]?.value) || 0;
+    const messageCount = messageCountRes[0]?.value || 0;
 
     return {
         stats: {
             userCount,
             characterCount,
-            revenue: paymentTotal._sum.amount || 0,
+            revenue,
             messageCount,
-            tierStats: tierStats.map(s => ({ tier: s.subscriptionTier || "FREE", count: s._count }))
+            tierStats: tierStatsRes.map(s => ({ tier: s.tier || "FREE", count: s.count }))
         },
         recentUsers,
         recentPayments
@@ -156,7 +166,7 @@ export default function AdminDashboard() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-xs font-bold text-white tracking-tighter italic">+{p.currency === "KRW" ? "₩" : "$"}{p.amount.toLocaleString()}</p>
-                                        <p className="text-[9px] text-white/40 truncate">{p.User?.name || "Premium User"}</p>
+                                        <p className="text-[9px] text-white/40 truncate">{p.user?.name || "Premium User"}</p>
                                     </div>
                                     <div className="text-right">
                                         <span className="block text-[9px] font-black text-primary uppercase leading-none">{p.provider}</span>

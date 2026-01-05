@@ -2,32 +2,38 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
+
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { count, sum, eq, desc } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
     // Aggregate statistics as proxies for API usage
-    const [totalMessages, executionCount, mediaCount, userCount, pendingPayments, logs] = await Promise.all([
-        prisma.message.count(),
-        // @ts-ignore
-        prisma.agentExecution.count(),
-        prisma.characterMedia.count(),
-        prisma.user.count(),
-        prisma.payment.count({ where: { status: "PENDING" } }),
-        // @ts-ignore
-        prisma.systemLog.findMany({
-            orderBy: { createdAt: "desc" },
-            take: 20
+    const [messagesRes, executionRes, mediaRes, userRes, pendingPaymentsRes, logs] = await Promise.all([
+        db.select({ count: count() }).from(schema.message),
+        db.select({ count: count() }).from(schema.agentExecution),
+        db.select({ count: count() }).from(schema.characterMedia),
+        db.select({ count: count() }).from(schema.user),
+        db.select({ count: count() }).from(schema.payment).where(eq(schema.payment.status, "PENDING")),
+        db.query.systemLog.findMany({
+            orderBy: [desc(schema.systemLog.createdAt)],
+            limit: 20
         })
     ]);
 
+    const totalMessages = messagesRes[0]?.count || 0;
+    const executionCount = executionRes[0]?.count || 0;
+    const mediaCount = mediaRes[0]?.count || 0;
+    const userCount = userRes[0]?.count || 0;
+    const pendingPayments = pendingPaymentsRes[0]?.count || 0;
+
     // Calculate actual token consumption
-    // @ts-ignore
-    const tokenStats = await prisma.agentExecution.aggregate({
-        _sum: { totalTokens: true }
-    });
+    const tokenStats = await db.select({
+        totalTokens: sum(schema.agentExecution.totalTokens)
+    }).from(schema.agentExecution);
 
     // Mock system health data (could be fetched from process or server-side logs)
     const systemHealth = {
@@ -45,7 +51,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
             mediaCount,
             userCount,
             pendingPayments,
-            totalTokens: tokenStats._sum.totalTokens || 0
+            totalTokens: Number(tokenStats[0]?.totalTokens) || 0
         },
         health: systemHealth,
         logs

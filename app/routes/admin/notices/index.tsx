@@ -2,15 +2,18 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, Link, useRevalidator, Form } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
 import { deleteImage } from "~/lib/cloudinary.server";
 
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { desc, eq } from "drizzle-orm";
+
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
-    const notices = await prisma.notice.findMany({
-        orderBy: { createdAt: "desc" }
+    const notices = await db.query.notice.findMany({
+        orderBy: [desc(schema.notice.createdAt)]
     });
     return { notices };
 }
@@ -22,23 +25,22 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (intent === "toggle_status") {
         const id = formData.get("id") as string;
-        const notice = await prisma.notice.findUnique({ where: { id } });
+        const notice = await db.query.notice.findFirst({ where: eq(schema.notice.id, id) });
         if (notice) {
-            await prisma.notice.update({
-                where: { id },
-                data: { isActive: !notice.isActive }
-            });
+            await db.update(schema.notice).set({
+                isActive: !notice.isActive
+            }).where(eq(schema.notice.id, id));
         }
         return { success: true };
     }
 
     if (intent === "delete") {
         const id = formData.get("id") as string;
-        const notice = await prisma.notice.findUnique({ where: { id } });
+        const notice = await db.query.notice.findFirst({ where: eq(schema.notice.id, id) });
         if (notice?.imageUrl) {
             await deleteImage(notice.imageUrl);
         }
-        await prisma.notice.delete({ where: { id } });
+        await db.delete(schema.notice).where(eq(schema.notice.id, id));
         return { success: true };
     }
 

@@ -2,14 +2,16 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, Link } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
-import { cn } from "~/lib/utils";
+import { db } from "~/lib/db.server";
+import { auth } from "~/lib/auth.server";
+import * as schema from "~/db/schema";
+import { desc } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
-    const items = await prisma.item.findMany({
-        orderBy: { createdAt: "desc" },
+    const items = await db.query.item.findMany({
+        orderBy: [desc(schema.item.createdAt)],
     });
 
     return { items };

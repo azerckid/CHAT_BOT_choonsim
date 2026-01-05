@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
+import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
-import { useNavigate } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
 import { signOut } from "~/lib/auth-client";
 import { toast } from "sonner";
 import { DateTime } from "luxon";
 import { CHARACTERS } from "~/lib/characters";
 import { TokenTopUpModal } from "~/components/payment/TokenTopUpModal";
 import { ItemStoreModal } from "~/components/payment/ItemStoreModal";
+import * as schema from "~/db/schema";
+import { eq, asc, desc, inArray, and, gte, lt } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -18,18 +19,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw new Response(null, { status: 302, headers: { Location: "/login" } });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+  const user = await db.query.user.findFirst({
+    where: eq(schema.user.id, session.user.id),
   });
 
   // 함께한 날 계산: 사용자의 첫 번째 대화 시작일부터 오늘까지의 일수
   let daysTogether = 0;
   let mainCharacterName = "춘심"; // 기본값
   try {
-    const firstConversation = await prisma.conversation.findFirst({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "asc" },
-      select: { createdAt: true, characterId: true },
+    const firstConversation = await db.query.conversation.findFirst({
+      where: eq(schema.conversation.userId, session.user.id),
+      orderBy: [asc(schema.conversation.createdAt)],
+      columns: { createdAt: true, characterId: true },
     });
 
     if (firstConversation) {
@@ -39,9 +40,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       daysTogether = Math.max(0, Math.floor(today.diff(firstDay, "days").days)) + 1; // +1은 시작일 포함
 
       // 가장 많이 대화한 캐릭터 찾기
-      const conversations = await prisma.conversation.findMany({
-        where: { userId: session.user.id },
-        select: { characterId: true },
+      const conversations = await db.query.conversation.findMany({
+        where: eq(schema.conversation.userId, session.user.id),
+        columns: { characterId: true },
       });
 
       const characterCounts = new Map<string, number>();
@@ -69,13 +70,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   // 하트 보유량 조회
-  const heartInventory = await prisma.userInventory.findUnique({
-    where: {
-      userId_itemId: {
-        userId: session.user.id,
-        itemId: "heart",
-      },
-    },
+  const heartInventory = await db.query.userInventory.findFirst({
+    where: and(
+      eq(schema.userInventory.userId, session.user.id),
+      eq(schema.userInventory.itemId, "heart")
+    ),
   });
 
   // 통계 데이터
@@ -95,20 +94,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   try {
     // 사용자의 모든 메시지 ID 조회
-    const userConversations = await prisma.conversation.findMany({
-      where: { userId: session.user.id },
-      select: { id: true },
+    const userConversations = await db.query.conversation.findMany({
+      where: eq(schema.conversation.userId, session.user.id),
+      columns: { id: true },
     });
 
     if (userConversations.length > 0) {
       const conversationIds = userConversations.map((c) => c.id);
 
-      const userMessages = await prisma.message.findMany({
-        where: {
-          conversationId: { in: conversationIds },
-          role: "assistant",
-        },
-        select: { id: true },
+      const userMessages = await db.query.message.findMany({
+        where: and(
+          inArray(schema.message.conversationId, conversationIds),
+          eq(schema.message.role, "assistant")
+        ),
+        columns: { id: true },
       });
 
       const messageIds = userMessages.map((m) => m.id);
@@ -121,15 +120,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
         const tomorrowStart = now.plus({ days: 1 }).startOf("day").toJSDate();
 
         // 오늘 생성된 AgentExecution 조회 (프로필 페이지 방문 시점까지)
-        const todayExecutions = await prisma.agentExecution.findMany({
-          where: {
-            messageId: { in: messageIds },
-            createdAt: {
-              gte: todayStart,
-              lt: tomorrowStart,
-            },
-          },
-          select: {
+        const todayExecutions = await db.query.agentExecution.findMany({
+          where: and(
+            inArray(schema.agentExecution.messageId, messageIds),
+            gte(schema.agentExecution.createdAt, todayStart),
+            lt(schema.agentExecution.createdAt, tomorrowStart)
+          ),
+          columns: {
             promptTokens: true,
             completionTokens: true,
             totalTokens: true,

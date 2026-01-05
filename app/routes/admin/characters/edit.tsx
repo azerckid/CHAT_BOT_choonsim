@@ -3,7 +3,6 @@ import { useLoaderData, useNavigate, useNavigation, Form, useActionData, useReva
 import { useState, useEffect } from "react";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -18,6 +17,10 @@ const characterSchema = z.object({
     isOnline: z.boolean().default(false),
 });
 
+import { db } from "~/lib/db.server";
+import * as schema from "~/db/schema";
+import { eq, asc, count, and } from "drizzle-orm";
+
 export async function loader({ params, request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
@@ -26,11 +29,11 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
         return { character: null };
     }
 
-    const character = await prisma.character.findUnique({
-        where: { id },
-        include: {
+    const character = await db.query.character.findFirst({
+        where: eq(schema.character.id, id),
+        with: {
             media: {
-                orderBy: { sortOrder: 'asc' }
+                orderBy: [asc(schema.characterMedia.sortOrder)]
             },
         }
     });
@@ -50,7 +53,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
     if (actionType === "delete") {
         const id = params.id;
         if (!id) return Response.json({ error: "ID missing" }, { status: 400 });
-        await prisma.character.delete({ where: { id } });
+        await db.delete(schema.character).where(eq(schema.character.id, id));
         return { success: true, deleted: true, message: "Character deleted successfully" };
     }
 
@@ -61,9 +64,18 @@ export async function action({ params, request }: ActionFunctionArgs) {
 
         if (!characterId || !url || !type) return Response.json({ error: "Missing data" }, { status: 400 });
 
-        const count = await prisma.characterMedia.count({ where: { characterId } });
-        await prisma.characterMedia.create({
-            data: { characterId, url, type, sortOrder: count }
+        const countRes = await db.select({ value: count() })
+            .from(schema.characterMedia)
+            .where(eq(schema.characterMedia.characterId, characterId));
+        const currentCount = countRes[0]?.value || 0;
+
+        await db.insert(schema.characterMedia).values({
+            id: crypto.randomUUID(),
+            characterId,
+            url,
+            type,
+            sortOrder: currentCount,
+            createdAt: new Date(),
         });
         return { success: true, message: "Media added successfully" };
     }
@@ -72,7 +84,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
         const mediaId = formData.get("mediaId") as string;
         if (!mediaId) return Response.json({ error: "Media ID missing" }, { status: 400 });
 
-        await prisma.characterMedia.delete({ where: { id: mediaId } });
+        await db.delete(schema.characterMedia).where(eq(schema.characterMedia.id, mediaId));
         return { success: true, message: "Media deleted" };
     }
 
@@ -81,12 +93,14 @@ export async function action({ params, request }: ActionFunctionArgs) {
         const direction = formData.get("direction") as "up" | "down";
         if (!mediaId || !direction) return Response.json({ error: "Missing data" }, { status: 400 });
 
-        const currentMedia = await prisma.characterMedia.findUnique({ where: { id: mediaId } });
+        const currentMedia = await db.query.characterMedia.findFirst({
+            where: eq(schema.characterMedia.id, mediaId)
+        });
         if (!currentMedia) return Response.json({ error: "Media not found" }, { status: 404 });
 
-        const allMedia = await prisma.characterMedia.findMany({
-            where: { characterId: currentMedia.characterId },
-            orderBy: { sortOrder: "asc" }
+        const allMedia = await db.query.characterMedia.findMany({
+            where: eq(schema.characterMedia.characterId, currentMedia.characterId),
+            orderBy: [asc(schema.characterMedia.sortOrder)]
         });
 
         const currentIndex = allMedia.findIndex(m => m.id === mediaId);
@@ -95,16 +109,15 @@ export async function action({ params, request }: ActionFunctionArgs) {
         if (targetIndex >= 0 && targetIndex < allMedia.length) {
             const targetMedia = allMedia[targetIndex];
 
-            await prisma.$transaction([
-                prisma.characterMedia.update({
-                    where: { id: currentMedia.id },
-                    data: { sortOrder: targetMedia.sortOrder }
-                }),
-                prisma.characterMedia.update({
-                    where: { id: targetMedia.id },
-                    data: { sortOrder: currentMedia.sortOrder }
-                })
-            ]);
+            await db.transaction(async (tx) => {
+                await tx.update(schema.characterMedia)
+                    .set({ sortOrder: targetMedia.sortOrder })
+                    .where(eq(schema.characterMedia.id, currentMedia.id));
+
+                await tx.update(schema.characterMedia)
+                    .set({ sortOrder: currentMedia.sortOrder })
+                    .where(eq(schema.characterMedia.id, targetMedia.id));
+            });
         }
         return { success: true };
     }
@@ -124,29 +137,40 @@ export async function action({ params, request }: ActionFunctionArgs) {
         const isNew = !params.id || params.id === "new";
 
         if (isNew) {
-            const existing = await prisma.character.findUnique({ where: { id: validated.id } });
+            const existing = await db.query.character.findFirst({ where: eq(schema.character.id, validated.id) });
             if (existing) {
                 return Response.json({ error: "Character ID already exists" }, { status: 400 });
             }
 
-            await prisma.character.create({
-                data: {
+            await db.transaction(async (tx) => {
+                await tx.insert(schema.character).values({
                     ...validated,
-                    stats: { create: {} }
-                }
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                });
+
+                // Create initial stats
+                await tx.insert(schema.characterStat).values({
+                    id: crypto.randomUUID(),
+                    characterId: validated.id,
+                    updatedAt: new Date(),
+                });
             });
+
             return { success: true, message: "Character debuted successfully!" };
         } else {
-            await prisma.character.update({
-                where: { id: params.id },
-                data: validated
-            });
+            await db.update(schema.character).set({
+                ...validated,
+                updatedAt: new Date(),
+            }).where(eq(schema.character.id, params.id as string));
+
             return { success: true, message: "Character profile updated!" };
         }
     } catch (e) {
         if (e instanceof z.ZodError) {
             return Response.json({ error: e.issues[0].message }, { status: 400 });
         }
+        console.error(e);
         return Response.json({ error: "Failed to save character" }, { status: 500 });
     }
 }

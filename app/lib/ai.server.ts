@@ -3,7 +3,8 @@ import { HumanMessage, SystemMessage, AIMessage, BaseMessage } from "@langchain/
 import { StateGraph, END, Annotation, START } from "@langchain/langgraph";
 import axios from "axios";
 import { DateTime } from "luxon";
-import { prisma } from "./db.server";
+import { db } from "./db.server";
+import * as schema from "../db/schema";
 import { CHARACTERS } from "./characters";
 
 // 춘심 캐릭터 핵심 페르소나 정의
@@ -367,16 +368,14 @@ const callModelNode = async (state: typeof ChatStateAnnotation.State) => {
             if (toolCall.name === "saveTravelPlan" && state.userId) {
                 const args = toolCall.args as any;
                 try {
-                    await prisma.travelPlan.create({
-                        data: {
-                            id: crypto.randomUUID(),
-                            userId: state.userId,
-                            title: args.title,
-                            description: args.description || "춘심이와 함께 만든 여행 계획",
-                            startDate: args.startDate ? new Date(args.startDate) : null,
-                            endDate: args.endDate ? new Date(args.endDate) : null,
-                            updatedAt: new Date(),
-                        }
+                    await db.insert(schema.travelPlan).values({
+                        id: crypto.randomUUID(),
+                        userId: state.userId,
+                        title: args.title,
+                        description: args.description || "춘심이와 함께 만든 여행 계획",
+                        startDate: args.startDate ? new Date(args.startDate) : null,
+                        endDate: args.endDate ? new Date(args.endDate) : null,
+                        updatedAt: new Date(),
                     });
                     console.log(`Travel plan '${args.title}' saved for user ${state.userId}`);
                 } catch (e) {

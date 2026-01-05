@@ -1,12 +1,20 @@
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { prisma } from "./db.server";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "./db.server";
+import * as schema from "../db/schema";
+import { eq } from "drizzle-orm";
 
 export const auth = betterAuth({
     baseURL: process.env.BETTER_AUTH_URL,
     basePath: "/auth",
-    database: prismaAdapter(prisma, {
+    database: drizzleAdapter(db, {
         provider: "sqlite",
+        schema: {
+            user: schema.user,
+            account: schema.account,
+            session: schema.session,
+            verification: schema.verification,
+        },
     }),
     emailAndPassword: {
         enabled: true,
@@ -149,14 +157,15 @@ export const auth = betterAuth({
                     // 새 account가 생성될 때 (소셜 로그인 시)
                     // 해당 provider의 정보로 User 테이블 업데이트
                     try {
-                        const user = await prisma.user.findUnique({
-                            where: { id: account.userId },
+                        const user = await db.query.user.findFirst({
+                            where: eq(schema.user.id, account.userId),
                         });
 
                         if (user && account.providerId) {
                             // provider에 따라 다른 처리
                             const updateData: any = {
                                 provider: account.providerId,
+                                updatedAt: new Date(),
                             };
 
                             // image 필드가 있고, provider와 일치하는 경우에만 avatarUrl 업데이트
@@ -176,10 +185,9 @@ export const auth = betterAuth({
                                 updateData.avatarUrl = user.image;
                             }
 
-                            await prisma.user.update({
-                                where: { id: account.userId },
-                                data: updateData,
-                            });
+                            await db.update(schema.user)
+                                .set(updateData)
+                                .where(eq(schema.user.id, account.userId));
                         }
                     } catch (error) {
                         console.error("Error updating user in account create hook:", error);
@@ -191,14 +199,15 @@ export const auth = betterAuth({
                     // account가 업데이트될 때 (재로그인 시)
                     // 해당 provider의 정보로 User 테이블 업데이트
                     try {
-                        const user = await prisma.user.findUnique({
-                            where: { id: account.userId },
+                        const user = await db.query.user.findFirst({
+                            where: eq(schema.user.id, account.userId),
                         });
 
                         if (user && account.providerId) {
                             // provider에 따라 다른 처리
                             const updateData: any = {
                                 provider: account.providerId,
+                                updatedAt: new Date(),
                             };
 
                             // image 필드가 있고, provider와 일치하는 경우에만 avatarUrl 업데이트
@@ -217,10 +226,9 @@ export const auth = betterAuth({
                                 updateData.avatarUrl = user.image;
                             }
 
-                            await prisma.user.update({
-                                where: { id: account.userId },
-                                data: updateData,
-                            });
+                            await db.update(schema.user)
+                                .set(updateData)
+                                .where(eq(schema.user.id, account.userId));
                         }
                     } catch (error) {
                         console.error("Error updating user in account update hook:", error);
@@ -251,15 +259,15 @@ export function isAdminEmail(email: string | undefined): boolean {
  * 사용자가 Admin 권한을 가지고 있는지 확인
  */
 export async function isAdmin(userId: string): Promise<boolean> {
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { email: true, role: true },
+    const userResult = await db.query.user.findFirst({
+        where: eq(schema.user.id, userId),
+        columns: { email: true, role: true },
     });
 
-    if (!user) return false;
+    if (!userResult) return false;
 
     // Super Admin (환경 변수) 또는 DB Role Admin
-    return isAdminEmail(user.email) || user.role === "ADMIN";
+    return isAdminEmail(userResult.email) || userResult.role === "ADMIN";
 }
 
 /**

@@ -2,23 +2,24 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, Link, Form, useSubmit } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
 import { cn } from "~/lib/utils";
+import { db } from "~/lib/db.server";
+import { auth } from "~/lib/auth.server";
+import * as schema from "~/db/schema";
+import { desc, or, like } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
     const url = new URL(request.url);
     const search = url.searchParams.get("q") || "";
 
-    const users = await prisma.user.findMany({
-        where: {
-            OR: [
-                { email: { contains: search } },
-                { name: { contains: search } },
-            ],
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50, // Limit for better performance
+    const users = await db.query.user.findMany({
+        where: search ? or(
+            like(schema.user.email, `%${search}%`),
+            like(schema.user.name, `%${search}%`)
+        ) : undefined,
+        orderBy: [desc(schema.user.createdAt)],
+        limit: 50,
     });
 
     return { users, search };

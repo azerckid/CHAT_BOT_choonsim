@@ -1,8 +1,10 @@
 import type { ActionFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
-import { prisma } from "~/lib/db.server";
+import { db } from "~/lib/db.server";
 import { ITEMS } from "~/lib/items";
 import { z } from "zod";
+import * as schema from "~/db/schema";
+import { eq, sql } from "drizzle-orm";
 
 const purchaseSchema = z.object({
     itemId: z.string(),
@@ -30,9 +32,9 @@ export async function action({ request }: ActionFunctionArgs) {
     const totalCost = item.priceCredits * quantity;
 
     // 1. Check user credits
-    const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { credits: true },
+    const user = await db.query.user.findFirst({
+        where: eq(schema.user.id, session.user.id),
+        columns: { credits: true },
     });
 
     if (!user || user.credits < totalCost) {
@@ -40,40 +42,40 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     try {
-        await prisma.$transaction(async (tx) => {
+        await db.transaction(async (tx) => {
             // 2. Deduct credits
-            await tx.user.update({
-                where: { id: session.user.id },
-                data: { credits: { decrement: totalCost } },
-            });
+            await tx.update(schema.user)
+                .set({ credits: sql`${schema.user.credits} - ${totalCost}`, updatedAt: new Date() })
+                .where(eq(schema.user.id, session.user.id));
 
             // 3. Add to Inventory
-            await tx.userInventory.upsert({
-                where: { userId_itemId: { userId: session.user.id, itemId } },
-                create: {
-                    userId: session.user.id,
-                    itemId,
-                    quantity,
-                },
-                update: {
-                    quantity: { increment: quantity },
-                },
+            await tx.insert(schema.userInventory).values({
+                id: crypto.randomUUID(),
+                userId: session.user.id,
+                itemId,
+                quantity,
+                updatedAt: new Date(),
+            }).onConflictDoUpdate({
+                target: [schema.userInventory.userId, schema.userInventory.itemId],
+                set: {
+                    quantity: sql`${schema.userInventory.quantity} + ${quantity}`,
+                    updatedAt: new Date(),
+                }
             });
 
             // 4. Create Payment Record (for history)
-            await tx.payment.create({
-                data: {
-                    id: crypto.randomUUID(),
-                    userId: session.user.id,
-                    amount: totalCost,
-                    currency: "CREDITS",
-                    status: "COMPLETED",
-                    provider: "CREDITS",
-                    type: "ITEM_PURCHASE",
-                    description: `${item.name} ${quantity}개 구매`,
-                    metadata: JSON.stringify({ itemId, quantity }),
-                    createdAt: new Date(),
-                }
+            await tx.insert(schema.payment).values({
+                id: crypto.randomUUID(),
+                userId: session.user.id,
+                amount: totalCost,
+                currency: "CREDITS",
+                status: "COMPLETED",
+                provider: "CREDITS",
+                type: "ITEM_PURCHASE",
+                description: `${item.name} ${quantity}개 구매`,
+                metadata: JSON.stringify({ itemId, quantity }),
+                createdAt: new Date(),
+                updatedAt: new Date(),
             });
         });
 
