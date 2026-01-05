@@ -204,7 +204,7 @@ export default function ChatRoom() {
     startAiStreaming(content, mediaUrl);
   };
 
-  const startAiStreaming = async (userMessage: string, mediaUrl?: string) => {
+  const startAiStreaming = async (userMessage: string, mediaUrl?: string, giftContext?: { amount: number; itemId: string }) => {
     setIsAiStreaming(true);
     setStreamingContent("");
     setStreamingMediaUrl(null);
@@ -217,7 +217,8 @@ export default function ChatRoom() {
           message: userMessage,
           conversationId,
           mediaUrl,
-          characterId: character.id // Pass characterId to API
+          characterId: character.id, // Pass characterId to API
+          giftContext
         }),
       });
 
@@ -312,23 +313,29 @@ export default function ChatRoom() {
         }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || "Gifting failed");
       }
-
       toast.success(`${amount}개의 하트를 보냈습니다! 💖`);
+
+      // 2. 메시지 목록에 선물 알림 즉시 추가 (낙관적 UI)
+      if (data.systemMsg) {
+        setMessages(prev => [...prev, {
+          id: data.systemMsg.id,
+          role: "assistant", // 시스템 메시지 역할을 수행
+          content: data.systemMsg.content,
+          createdAt: data.systemMsg.createdAt,
+        }]);
+      }
+
+      // 3. AI 리액션 트리거 (강도 조절용 giftContext 포함)
+      startAiStreaming("", undefined, { amount, itemId });
 
       // Update local state
       if (currentUserHearts >= amount) {
         setCurrentUserHearts((prev: number) => prev - amount);
-      } else {
-        const cost = 100 * amount;
-        setCurrentUserCredits((prev: number) => prev - cost);
       }
-
-      // Refresh messages to show the system notification
-      navigate(".", { replace: true });
 
     } catch (error: any) {
       toast.error(error.message);

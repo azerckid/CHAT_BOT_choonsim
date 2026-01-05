@@ -9,6 +9,7 @@ const giftSchema = z.object({
     itemId: z.string(),
     amount: z.number().min(1),
     message: z.string().optional(),
+    conversationId: z.string(),
 });
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -22,14 +23,12 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: "Invalid request body" }, { status: 400 });
     }
 
-    const { characterId, itemId, amount, message } = result.data;
+    const { characterId, itemId, amount, message, conversationId } = result.data;
     const item = Object.values(ITEMS).find(i => i.id === itemId);
 
     if (!item) {
         return Response.json({ error: "Item not found" }, { status: 404 });
     }
-
-    const totalCost = item.priceCredits * amount;
 
     try {
         return await prisma.$transaction(async (tx) => {
@@ -37,8 +36,6 @@ export async function action({ request }: ActionFunctionArgs) {
             const inventory = await tx.userInventory.findUnique({
                 where: { userId_itemId: { userId: session.user.id, itemId } }
             });
-
-            let usedCredits = false;
 
             if (inventory && inventory.quantity >= amount) {
                 // Use Inventory
@@ -62,7 +59,6 @@ export async function action({ request }: ActionFunctionArgs) {
                 update: {
                     totalHearts: { increment: amount },
                     lastGiftAt: new Date(),
-                    // We could track unique givers properly here if we had a dedicated join table
                 },
             });
 
@@ -80,13 +76,12 @@ export async function action({ request }: ActionFunctionArgs) {
             });
 
             // 5. Create a system message for the chat to acknowledge the gift
-            // This is optional but good for UX
-            await tx.message.create({
+            const systemMsg = await tx.message.create({
                 data: {
                     id: crypto.randomUUID(),
-                    role: "assistant", // Usually assistant or system
+                    role: "assistant",
                     content: `💝 **${session.user.name || "사용자"}**님이 하트 **${amount}**개를 선물했습니다!`,
-                    conversationId: body.conversationId,
+                    conversationId,
                     type: "TEXT",
                     createdAt: new Date(),
                 }
@@ -111,7 +106,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 });
 
                 if (!userMission || (userMission.status === "IN_PROGRESS" && userMission.progress < 100)) {
-                    const newProgress = Math.min((userMission?.progress || 0) + 25, 100); // 4 gifts to complete?
+                    const newProgress = Math.min((userMission?.progress || 0) + 25, 100);
                     await tx.userMission.upsert({
                         where: { userId_missionId: { userId: session.user.id, missionId: mission.id } },
                         create: {
@@ -128,7 +123,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
             }
 
-            return Response.json({ success: true, giftLog });
+            return Response.json({ success: true, giftLog, systemMsg });
         });
     } catch (error: any) {
         console.error("Gifting transaction error:", error);

@@ -12,8 +12,12 @@ const chatSchema = z.object({
     personality: z.enum(["idol", "lover", "hybrid", "roleplay"]).optional(),
     mediaUrl: z.string().optional().nullable().transform(val => val === "" ? null : val),
     characterId: z.string().optional().default("chunsim"),
-}).refine(data => data.message || data.mediaUrl, {
-    message: "Message or media is required",
+    giftContext: z.object({
+        amount: z.number(),
+        itemId: z.string(),
+    }).optional(),
+}).refine(data => data.message || data.mediaUrl || data.giftContext, {
+    message: "Message, media or gift is required",
     path: ["message"],
 });
 
@@ -34,7 +38,7 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: result.error.flatten() }, { status: 400 });
     }
 
-    const { message, conversationId, mediaUrl, characterId } = result.data;
+    const { message, conversationId, mediaUrl, characterId, giftContext } = result.data;
 
     // 1. 대화 내역 및 사용자 정보 조회
     const [history, user] = await Promise.all([
@@ -62,6 +66,21 @@ export async function action({ request }: ActionFunctionArgs) {
         } catch (e) {
             console.error("Bio parsing error:", e);
         }
+    }
+
+    // 1.5 선물 연속성 확인 (최근 10분 이내 선물 횟수 조회)
+    let giftCountInSession = 0;
+    if (giftContext) {
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        giftCountInSession = await prisma.giftLog.count({
+            where: {
+                fromUserId: session.user.id,
+                toCharacterId: characterId,
+                createdAt: { gte: tenMinutesAgo }
+            }
+        });
+        // 현재 선물을 포함하므로 최소 1
+        giftCountInSession = giftCountInSession + 1;
     }
 
     // 멀티모달 히스토리 구성
@@ -102,7 +121,17 @@ export async function action({ request }: ActionFunctionArgs) {
                 let tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
                 let firstMessageId: string | null = null;
 
-                for await (const item of streamAIResponse(message, formattedHistory, personality, memory, mediaUrl, session.user.id, characterId, subscriptionTier)) {
+                for await (const item of streamAIResponse(
+                    message,
+                    formattedHistory,
+                    personality,
+                    memory,
+                    mediaUrl,
+                    session.user.id,
+                    characterId,
+                    subscriptionTier,
+                    giftContext ? { ...giftContext, countInSession: giftCountInSession } : undefined
+                )) {
                     if (item.type === 'content') {
                         fullContent += item.content;
                     } else if (item.type === 'usage' && item.usage) {

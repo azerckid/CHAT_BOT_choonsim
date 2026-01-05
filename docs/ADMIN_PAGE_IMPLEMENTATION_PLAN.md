@@ -102,6 +102,20 @@ model Character {
   Conversation    Conversation[]
 }
 
+// 2.2.1 캐릭터 감정 제어 지침 (Emotion Control Instructions)
+model CharacterEmotionInstruction {
+  id              String   @id @default(uuid())
+  characterId     String
+  triggerType     String   // "GIFT_SMALL", "GIFT_MEDIUM", "GIFT_LARGE", "GIFT_MEGA", "CONTINUOUS_GIFT"
+  instruction     String   @db.Text // AI에게 전달할 구체적인 행동/말투 지침
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  character       Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  
+  @@unique([characterId, triggerType])
+}
+
 // 2.3 캐릭터 미디어 (사진/용도 분류)
 model CharacterMedia {
   id          String   @id @default(uuid())
@@ -337,6 +351,19 @@ export async function requireAdmin(request: Request): Promise<void> {
 4. **사용자 경험 고도화**
    - 홈 화면의 'Quick Access' 버튼(Daily Gift 등) 실제 로직 연동
    - 프로필 페이지에 미션 및 공지사항 바로가기 추가
+
+### Phase 7: 동적 감정 제어 및 프롬프트 관리 (Dynamic Emotion Control)
+
+**목표**: 하드코딩된 AI 리액션 지침을 DB로 이전하고, 어드민에서 실시간으로 수정 가능하게 구현
+
+1. **감정 제어 DB 스키마 적용**
+   - `CharacterEmotionInstruction` 모델을 통해 선물 규모 및 연속성에 따른 지침 저장
+2. **어드민 프롬프트 에디터 구현**
+   - 캐릭터 편집 페이지에 '리액션 설정' 탭 추가
+   - 선물 등급별(Small/Medium/Large/Mega) 및 연속 선물 보너스 지침 편집 UI 제공
+3. **AI 로직 연동 (ai.server.ts)**
+   - 하드코딩된 `giftInstruction` 대신 DB에서 해당 캐릭터의 지침을 조회하여 시스템 명령에 동적으로 삽입
+   - 캐싱 로직(Redis 또는 메모리)을 적용하여 DB 부하 최소화
 
 ---
 
