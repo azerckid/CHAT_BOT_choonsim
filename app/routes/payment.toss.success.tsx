@@ -33,6 +33,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
         if (type === "SUBSCRIPTION" && tier) {
             await import("~/lib/toss.server").then(m => m.processSuccessfulTossSubscription(userId, paymentData, tier));
             return { success: true, type: "SUBSCRIPTION", tier };
+        } else if (type === "ITEM") {
+            const itemId = url.searchParams.get("itemId") || "heart";
+            const quantity = Number(url.searchParams.get("quantity")) || 0;
+            await import("~/lib/toss.server").then(m => m.processSuccessfulTossItemPayment(userId, paymentData, itemId, quantity));
+            return { success: true, type: "ITEM", itemId, quantity };
         } else if (creditsGranted) {
             await processSuccessfulTossPayment(userId, paymentData, creditsGranted);
             return { success: true, type: "TOPUP", creditsGranted };
@@ -53,12 +58,18 @@ export default function TossSuccessPage() {
         if (data.success) {
             if (data.type === "SUBSCRIPTION") {
                 toast.success(`${data.tier} 멤버십 구독이 시작되었습니다!`);
+            } else if (data.type === "ITEM") {
+                toast.success(`${data.quantity}개의 하트가 인벤토리에 추가되었습니다!`);
             } else {
                 toast.success(`${data.creditsGranted} 크레딧이 충전되었습니다!`);
             }
             // 2~3초 후 이동
             const timer = setTimeout(() => {
-                navigate(data.type === "SUBSCRIPTION" ? "/pricing" : "/profile/subscription", { replace: true });
+                let targetPath = "/profile/subscription";
+                if (data.type === "SUBSCRIPTION") targetPath = "/pricing";
+                if (data.type === "ITEM") targetPath = "/profile"; // Go back to profile where they can see hearts
+
+                navigate(targetPath, { replace: true });
             }, 2000);
             return () => clearTimeout(timer);
         }

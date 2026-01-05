@@ -12,6 +12,7 @@ import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import { toast } from "sonner";
+import { ItemStoreModal } from "~/components/payment/ItemStoreModal";
 import { CHARACTERS } from "~/lib/characters";
 import {
   AlertDialog,
@@ -83,7 +84,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     isLiked: likedMessageIds.has(msg.id),
   }));
 
-  return Response.json({ messages: messagesWithLikes, user, conversation });
+  const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+  const tossClientKey = process.env.TOSS_CLIENT_KEY;
+
+  return Response.json({ messages: messagesWithLikes, user, conversation, paypalClientId, tossClientKey });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -128,8 +132,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
   return Response.json({ success: true, message: userMsg });
 }
 
-export default function ChatScreen() {
-  const { messages: initialMessages, user, conversation } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any };
+export default function ChatRoom() {
+  const { messages: initialMessages, user, conversation, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any, paypalClientId: string, tossClientKey: string };
   const fetcher = useFetcher();
   const navigate = useNavigate();
 
@@ -142,6 +146,7 @@ export default function ChatScreen() {
   const [streamingContent, setStreamingContent] = useState<string>("");
   const [streamingMediaUrl, setStreamingMediaUrl] = useState<string | null>(null);
   const [isAiStreaming, setIsAiStreaming] = useState(false);
+  const [isItemStoreOpen, setIsItemStoreOpen] = useState(false);
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [isOptimisticTyping, setIsOptimisticTyping] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -459,9 +464,18 @@ export default function ChatScreen() {
       <MessageInput
         onSend={handleSend}
         onGift={handleGift}
+        onOpenStore={() => setIsItemStoreOpen(true)}
         userCredits={currentUserCredits}
         ownedHearts={currentUserHearts}
         disabled={isAiStreaming || isOptimisticTyping}
+      />
+
+      <ItemStoreModal
+        open={isItemStoreOpen}
+        onOpenChange={setIsItemStoreOpen}
+        itemId="heart"
+        paypalClientId={paypalClientId}
+        tossClientKey={tossClientKey}
       />
 
       {/* Delete Confirmation Modal */}

@@ -5,6 +5,7 @@ import { GiftSelector } from "./GiftSelector";
 interface MessageInputProps {
   onSend?: (message: string, mediaUrl?: string) => void;
   onGift?: (itemId: string, amount: number) => Promise<void>;
+  onOpenStore?: () => void;
   userCredits?: number;
   ownedHearts?: number;
   placeholder?: string;
@@ -15,6 +16,7 @@ interface MessageInputProps {
 export function MessageInput({
   onSend,
   onGift,
+  onOpenStore,
   userCredits = 0,
   ownedHearts = 0,
   placeholder = "메시지를 입력하세요...",
@@ -96,7 +98,7 @@ export function MessageInput({
           isOpen={isGiftOpen}
           onClose={() => setIsGiftOpen(false)}
           onGift={onGift}
-          userCredits={userCredits}
+          onOpenStore={onOpenStore || (() => { })}
           ownedHearts={ownedHearts}
         />
       )}

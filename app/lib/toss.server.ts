@@ -112,3 +112,40 @@ export async function processSuccessfulTossSubscription(
         return { user: updatedUser, payment };
     });
 }
+
+/**
+ * 아이템 구매 처리 (토스 결제 완료 후)
+ */
+export async function processSuccessfulTossItemPayment(
+    userId: string,
+    paymentData: any,
+    itemId: string,
+    quantity: number
+) {
+    return await prisma.$transaction(async (tx) => {
+        // 1. 인벤토리 업데이트
+        const inventory = await tx.userInventory.upsert({
+            where: { userId_itemId: { userId, itemId } },
+            create: { userId, itemId, quantity },
+            update: { quantity: { increment: quantity } },
+        });
+
+        // 2. 결제 로그 기록
+        const payment = await tx.payment.create({
+            data: {
+                userId,
+                transactionId: paymentData.orderId,
+                paymentKey: paymentData.paymentKey,
+                amount: paymentData.totalAmount,
+                currency: "KRW",
+                status: "COMPLETED",
+                provider: "TOSS",
+                type: "ITEM_PURCHASE",
+                description: `아이템 구매: ${itemId} x ${quantity}`,
+                metadata: JSON.stringify({ itemId, quantity, paymentData }),
+            },
+        });
+
+        return { inventory, payment };
+    });
+}

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { DateTime } from "luxon";
 import { CHARACTERS } from "~/lib/characters";
 import { TokenTopUpModal } from "~/components/payment/TokenTopUpModal";
+import { ItemStoreModal } from "~/components/payment/ItemStoreModal";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -162,20 +163,23 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+  const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-  return Response.json({ user, stats, todayUsage, mainCharacterName, paypalClientId });
+  return Response.json({ user, stats, todayUsage, mainCharacterName, paypalClientId, tossClientKey });
 }
 
 export default function ProfileScreen() {
-  const { user, stats, todayUsage, mainCharacterName, paypalClientId } = useLoaderData<typeof loader>() as {
+  const { user, stats, todayUsage, mainCharacterName, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as {
     user: any;
     stats: any;
     todayUsage: { totalTokens: number; promptTokens: number; completionTokens: number; messageCount: number };
     mainCharacterName: string;
-    paypalClientId?: string; // Optional because it might not be set in env
+    paypalClientId?: string;
+    tossClientKey?: string;
   };
   const navigate = useNavigate();
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
+  const [isItemStoreOpen, setIsItemStoreOpen] = useState(false);
 
   // 토큰 수를 읽기 쉬운 형식으로 포맷팅 (예: 1.2K, 5.3M)
   const formatTokenCount = (count: number): string => {
@@ -279,7 +283,7 @@ export default function ProfileScreen() {
                 <span className="text-xs text-white/50 font-medium">친밀도</span>
               </div>
               <button
-                onClick={() => setIsTopUpModalOpen(true)}
+                onClick={() => setIsItemStoreOpen(true)}
                 className="flex flex-col items-center gap-1 px-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer py-1 -my-1"
               >
                 <span className="text-2xl font-bold text-white tracking-tight">
@@ -453,6 +457,13 @@ export default function ProfileScreen() {
         open={isTopUpModalOpen}
         onOpenChange={setIsTopUpModalOpen}
         paypalClientId={paypalClientId}
+      />
+      <ItemStoreModal
+        open={isItemStoreOpen}
+        onOpenChange={setIsItemStoreOpen}
+        itemId="heart"
+        paypalClientId={paypalClientId}
+        tossClientKey={tossClientKey}
       />
     </div>
   );
