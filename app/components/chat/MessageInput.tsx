@@ -1,8 +1,12 @@
 import { useState, useRef } from "react";
 import { cn } from "~/lib/utils";
+import { GiftSelector } from "./GiftSelector";
 
 interface MessageInputProps {
   onSend?: (message: string, mediaUrl?: string) => void;
+  onGift?: (itemId: string, amount: number) => Promise<void>;
+  userCredits?: number;
+  ownedHearts?: number;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -10,6 +14,9 @@ interface MessageInputProps {
 
 export function MessageInput({
   onSend,
+  onGift,
+  userCredits = 0,
+  ownedHearts = 0,
   placeholder = "메시지를 입력하세요...",
   disabled = false,
   className,
@@ -18,6 +25,7 @@ export function MessageInput({
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [isGiftOpen, setIsGiftOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
@@ -79,10 +87,20 @@ export function MessageInput({
   return (
     <footer
       className={cn(
-        "flex-none bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 pb-8 pt-2 px-3",
+        "flex-none bg-background-light dark:bg-background-dark border-t border-gray-200 dark:border-white/5 pb-8 pt-2 px-3 relative",
         className
       )}
     >
+      {onGift && (
+        <GiftSelector
+          isOpen={isGiftOpen}
+          onClose={() => setIsGiftOpen(false)}
+          onGift={onGift}
+          userCredits={userCredits}
+          ownedHearts={ownedHearts}
+        />
+      )}
+
       {previewUrl && (
         <div className="px-4 py-2 flex items-center gap-3">
           <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-primary shadow-lg group">
@@ -111,14 +129,29 @@ export function MessageInput({
           accept="image/*"
           className="hidden"
         />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || isUploading}
-          className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary transition-colors shrink-0 disabled:opacity-50"
-        >
-          <span className="material-symbols-outlined text-[28px]">add_circle</span>
-        </button>
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || isUploading}
+            className="flex items-center justify-center w-10 h-10 rounded-full text-gray-400 hover:text-primary transition-colors shrink-0 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-[28px]">add_circle</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsGiftOpen(!isGiftOpen)}
+            disabled={disabled}
+            className={cn(
+              "flex items-center justify-center w-10 h-10 rounded-full transition-all shrink-0 disabled:opacity-50",
+              isGiftOpen ? "text-primary scale-110" : "text-gray-400 hover:text-primary"
+            )}
+          >
+            <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: isGiftOpen ? "'FILL' 1" : "'FILL' 0" }}>
+              favorite
+            </span>
+          </button>
+        </div>
         <div className="flex-1 bg-white dark:bg-surface-dark rounded-[24px] min-h-[40px] flex items-center px-4 py-1 border border-transparent focus-within:border-primary/50 transition-colors shadow-sm focus-within:shadow-md">
           <input
             type="text"

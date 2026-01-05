@@ -32,6 +32,7 @@ interface Message {
   content: string;
   mediaUrl?: string | null;
   createdAt: string | Date;
+  isLiked?: boolean;
 }
 
 const sendSchema = z.object({
@@ -48,26 +49,32 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { id } = params;
   if (!id) throw new Response("Not Found", { status: 404 });
 
-  const [messages, conversation, userLikes] = await Promise.all([
+  const [messages, user, conversation] = await Promise.all([
     prisma.message.findMany({
       where: { conversationId: id },
       orderBy: { createdAt: "asc" },
     }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      // @ts-ignore
+      include: { UserInventory: true },
+    }),
     prisma.conversation.findUnique({
       where: { id },
     }),
-    prisma.messageLike.findMany({
-      where: {
-        userId: session.user.id,
-        Message: {
-          conversationId: id,
-        },
-      },
-      select: {
-        messageId: true,
-      },
-    }),
   ]);
+
+  const userLikes = await prisma.messageLike.findMany({
+    where: {
+      userId: session.user.id,
+      Message: {
+        conversationId: id,
+      },
+    },
+    select: {
+      messageId: true,
+    },
+  });
 
   const likedMessageIds = new Set(userLikes.map(like => like.messageId));
 
@@ -76,14 +83,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     isLiked: likedMessageIds.has(msg.id),
   }));
 
-  if (!conversation) {
-    if (messages.length > 0) {
-      // If messages exist but conversation record missing (orphan), handle gracefully if needed or throw
-      // For now, assume consistent DB
-    }
-  }
-
-  return Response.json({ messages: messagesWithLikes, user: session.user, conversation });
+  return Response.json({ messages: messagesWithLikes, user, conversation });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -94,6 +94,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (!id) return new Response("Missing ID", { status: 400 });
 
   const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "gift") {
+    // This part is handled by the dedicated /api/items/gift route usually,
+    // but if we want to handle it here we can.
+    // However, the /api/items/gift is already implemented.
+    // Let's keep it separate for now.
+  }
+
   const result = sendSchema.safeParse({
     message: formData.get("message"),
     mediaUrl: formData.get("mediaUrl") || null,
@@ -138,6 +147,15 @@ export default function ChatScreen() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Hearts state
+  const [currentUserHearts, setCurrentUserHearts] = useState(user?.UserInventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
+  const [currentUserCredits, setCurrentUserCredits] = useState(user?.credits || 0);
+
+  // Re-sync states when loader data updates
+  useEffect(() => {
+    setCurrentUserHearts(user?.UserInventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
+    setCurrentUserCredits(user?.credits || 0);
+  }, [user]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -152,7 +170,10 @@ export default function ChatScreen() {
   useEffect(() => {
     setMessages(initialMessages);
     setIsOptimisticTyping(false);
-  }, [initialMessages]);
+    if (user?.credits !== undefined) {
+      setCurrentUserCredits(user.credits);
+    }
+  }, [initialMessages, user]);
 
   const handleSend = async (content: string, mediaUrl?: string) => {
     // 1. 사용자 메시지 낙관적 업데이트
@@ -231,7 +252,7 @@ export default function ChatScreen() {
                     createdAt: new Date().toISOString(),
                     isLiked: false,
                   };
-                  
+
                   setMessages(prev => [...prev, completedMessage]);
                   setStreamingContent(""); // 다음 말풍선을 위해 초기화
                   setStreamingMediaUrl(null); // 다음 말풍선을 위해 초기화
@@ -270,6 +291,46 @@ export default function ChatScreen() {
         setMessages(prev => [...prev, partialMsg]);
         setStreamingContent("");
       }
+    }
+  };
+
+  const handleGift = async (itemId: string, amount: number) => {
+    try {
+      const response = await fetch("/api/items/gift", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterId: character.id,
+          itemId,
+          amount,
+          conversationId,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Gifting failed");
+      }
+
+      toast.success(`${amount}개의 하트를 보냈습니다! 💖`);
+
+      // Update local state
+      if (currentUserHearts >= amount) {
+        setCurrentUserHearts((prev: number) => prev - amount);
+      } else {
+        const cost = 100 * amount;
+        setCurrentUserCredits((prev: number) => prev - cost);
+      }
+
+      // Refresh messages to show the system notification
+      navigate(".", { replace: true });
+
+    } catch (error: any) {
+      toast.error(error.message);
+      throw error;
+    } finally {
+      // Re-fetch loader data to update hearts/credits
+      navigate(".", { replace: true });
     }
   };
 
@@ -359,7 +420,7 @@ export default function ChatScreen() {
                       headers: { "Content-Type": "application/json" },
                     });
                     if (response.ok) {
-                      setMessages(prev => prev.map(m => 
+                      setMessages(prev => prev.map(m =>
                         m.id === messageId ? { ...m, isLiked: !liked } : m
                       ));
                     }
@@ -395,7 +456,13 @@ export default function ChatScreen() {
         )}
       </main>
 
-      <MessageInput onSend={handleSend} disabled={isAiStreaming || isOptimisticTyping} />
+      <MessageInput
+        onSend={handleSend}
+        onGift={handleGift}
+        userCredits={currentUserCredits}
+        ownedHearts={currentUserHearts}
+        disabled={isAiStreaming || isOptimisticTyping}
+      />
 
       {/* Delete Confirmation Modal */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -437,7 +504,7 @@ export default function ChatScreen() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>취소</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => handleDeleteConversation(true)}
               disabled={isDeleting}
               className="disabled:opacity-50 disabled:cursor-not-allowed"
