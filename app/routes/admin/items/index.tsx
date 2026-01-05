@@ -3,7 +3,6 @@ import { useLoaderData, Link } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { auth } from "~/lib/auth.server";
 import * as schema from "~/db/schema";
 import { desc } from "drizzle-orm";
 

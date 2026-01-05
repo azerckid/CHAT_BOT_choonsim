@@ -1,18 +1,14 @@
-import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, Link, Form, useSubmit } from "react-router";
-import { AdminLayout } from "~/components/admin/AdminLayout";
-import { requireAdmin } from "~/lib/auth.server";
-import { cn } from "~/lib/utils";
-import { db } from "~/lib/db.server";
-import { auth } from "~/lib/auth.server";
-import * as schema from "~/db/schema";
-import { desc, or, like } from "drizzle-orm";
+// import { requireAdmin } from "~/lib/auth.server";
+// import { db } from "~/lib/db.server";
+// import * as schema from "~/db/schema";
+// import { desc, or, like } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-    await requireAdmin(request);
+    // await requireAdmin(request);
     const url = new URL(request.url);
     const search = url.searchParams.get("q") || "";
 
+    /*
     const users = await db.query.user.findMany({
         where: search ? or(
             like(schema.user.email, `%${search}%`),
@@ -21,6 +17,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
         orderBy: [desc(schema.user.createdAt)],
         limit: 50,
     });
+    */
+    const users: any[] = [];
 
     return { users, search };
 }
