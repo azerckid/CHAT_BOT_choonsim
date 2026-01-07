@@ -87,8 +87,6 @@ async function migrate() {
                 id: crypto.randomUUID(),
                 characterId: id,
                 totalHearts: 0,
-                totalMessages: 0,
-                totalFollowers: 0,
                 updatedAt: new Date(),
             });
             console.log(`✅ Initial stats created.`);
