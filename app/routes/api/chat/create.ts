@@ -2,7 +2,6 @@ import type { ActionFunctionArgs } from "react-router";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
-import { CHARACTERS } from "~/lib/characters";
 import * as schema from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -32,7 +31,9 @@ export async function action({ request }: ActionFunctionArgs) {
         const { characterId } = result.data;
 
         // 존재하는 캐릭터인지 확인
-        const character = CHARACTERS[characterId];
+        const character = await db.query.character.findFirst({
+            where: eq(schema.character.id, characterId)
+        });
         if (!character) {
             return Response.json({ error: "Character not found" }, { status: 404 });
         }

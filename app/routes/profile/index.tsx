@@ -7,7 +7,6 @@ import { useLoaderData, useNavigate } from "react-router";
 import { signOut } from "~/lib/auth-client";
 import { toast } from "sonner";
 import { DateTime } from "luxon";
-import { CHARACTERS } from "~/lib/characters";
 import { TokenTopUpModal } from "~/components/payment/TokenTopUpModal";
 import { ItemStoreModal } from "~/components/payment/ItemStoreModal";
 import * as schema from "~/db/schema";
@@ -60,7 +59,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }
       });
 
-      const character = CHARACTERS[mostUsedCharId];
+      const character = await db.query.character.findFirst({
+        where: eq(schema.character.id, mostUsedCharId)
+      });
       if (character) {
         mainCharacterName = character.name;
       }

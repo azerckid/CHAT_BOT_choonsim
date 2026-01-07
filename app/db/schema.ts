@@ -490,12 +490,16 @@ export const userRelations = relations(user, ({ many }) => ({
 
 export const characterRelations = relations(character, ({ one, many }) => ({
     media: many(characterMedia),
-    stats: one(characterStat, {
-        fields: [character.id],
-        references: [characterStat.characterId],
-    }),
+    stats: one(characterStat),
     gifts: many(giftLog),
     conversations: many(conversation),
+}));
+
+export const characterMediaRelations = relations(characterMedia, ({ one }) => ({
+    character: one(character, {
+        fields: [characterMedia.characterId],
+        references: [character.id],
+    }),
 }));
 
 export const conversationRelations = relations(conversation, ({ one, many }) => ({
@@ -517,6 +521,13 @@ export const messageRelations = relations(message, ({ one, many }) => ({
     }),
     likes: many(messageLike),
     agentExecutions: many(agentExecution),
+}));
+
+export const agentExecutionRelations = relations(agentExecution, ({ one }) => ({
+    message: one(message, {
+        fields: [agentExecution.messageId],
+        references: [message.id],
+    }),
 }));
 
 export const itemRelations = relations(item, ({ many }) => ({
@@ -605,6 +616,35 @@ export const tweetRelations = relations(tweet, ({ one, many }) => ({
     }),
 }));
 
+export const mediaRelations = relations(media, ({ one }) => ({
+    tweet: one(tweet, {
+        fields: [media.tweetId],
+        references: [tweet.id],
+    }),
+}));
+
+export const likeRelations = relations(like, ({ one }) => ({
+    user: one(user, {
+        fields: [like.userId],
+        references: [user.id],
+    }),
+    tweet: one(tweet, {
+        fields: [like.tweetId],
+        references: [tweet.id],
+    }),
+}));
+
+export const retweetRelations = relations(retweet, ({ one }) => ({
+    user: one(user, {
+        fields: [retweet.userId],
+        references: [user.id],
+    }),
+    tweet: one(tweet, {
+        fields: [retweet.tweetId],
+        references: [tweet.id],
+    }),
+}));
+
 export const travelPlanRelations = relations(travelPlan, ({ one, many }) => ({
     user: one(user, {
         fields: [travelPlan.userId],
@@ -642,6 +682,25 @@ export const userMissionRelations = relations(userMission, ({ one }) => ({
     }),
 }));
 
+export const missionRelations = relations(mission, ({ many }) => ({
+    userMissions: many(userMission),
+}));
+
+export const tweetTravelTagRelations = relations(tweetTravelTag, ({ one }) => ({
+    tweet: one(tweet, {
+        fields: [tweetTravelTag.tweetId],
+        references: [tweet.id],
+    }),
+    travelTag: one(travelTag, {
+        fields: [tweetTravelTag.travelTagId],
+        references: [travelTag.id],
+    }),
+}));
+
+export const travelTagRelations = relations(travelTag, ({ many }) => ({
+    tweetTags: many(tweetTravelTag),
+}));
+
 export const noticeRelations = relations(notice, ({ one }) => ({
     // If notice has relations, define them here. Currently it seems standalone or related to admin/user implicitly?
     // Based on usage, notice seems standalone but let's check if it needs 'author' or similar.
@@ -666,6 +725,25 @@ export const followRelations = relations(follow, ({ one }) => ({
 export const fanPostRelations = relations(fanPost, ({ one }) => ({
     user: one(user, {
         fields: [fanPost.userId],
+        references: [user.id],
+    }),
+}));
+
+export const bookmarkCollectionRelations = relations(bookmarkCollection, ({ one, many }) => ({
+    user: one(user, {
+        fields: [bookmarkCollection.userId],
+        references: [user.id],
+    }),
+    bookmarks: many(bookmark),
+}));
+
+export const messageLikeRelations = relations(messageLike, ({ one }) => ({
+    message: one(message, {
+        fields: [messageLike.messageId],
+        references: [message.id],
+    }),
+    user: one(user, {
+        fields: [messageLike.userId],
         references: [user.id],
     }),
 }));

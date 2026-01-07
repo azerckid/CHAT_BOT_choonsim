@@ -41,7 +41,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
         storage: "Operational",
         api: "Healthy",
         uptime: process.uptime(),
-        memoryUsage: process.memoryUsage().rss
+        memoryUsage: process.memoryUsage().rss,
+        nodeVersion: process.version
     };
 
     return {
@@ -240,7 +241,7 @@ export default function AdminSystem() {
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-white/20 uppercase">Running Process</p>
-                                    <p className="text-xs font-medium text-white/60">Node.js {process.version}</p>
+                                    <p className="text-xs font-medium text-white/60">Node.js {health.nodeVersion}</p>
                                 </div>
                             </div>
                         </div>

@@ -13,7 +13,6 @@ import type { LoaderFunctionArgs } from "react-router";
 import * as schema from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { useNavigate } from "react-router";
-import { CHARACTERS } from "~/lib/characters";
 import {
   Dialog,
   DialogContent,
@@ -33,22 +32,28 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
 
-  const conversations = await db.query.conversation.findMany({
-    where: eq(schema.conversation.userId, session.user.id),
-    with: {
-      messages: {
-        orderBy: [desc(schema.message.createdAt)],
-        limit: 1,
+  const [conversations, allCharacters] = await Promise.all([
+    db.query.conversation.findMany({
+      where: eq(schema.conversation.userId, session.user.id),
+      with: {
+        messages: {
+          orderBy: [desc(schema.message.createdAt)],
+          limit: 1,
+        },
+        character: { with: { media: true } }
       },
-    },
-    orderBy: [desc(schema.conversation.updatedAt)],
-  });
+      orderBy: [desc(schema.conversation.updatedAt)],
+    }),
+    db.query.character.findMany({
+      with: { media: true }
+    })
+  ]);
 
-  return Response.json({ conversations });
+  return Response.json({ conversations, allCharacters });
 }
 
 export default function ChatListScreen() {
-  const { conversations } = useLoaderData<typeof loader>() as { conversations: any[] };
+  const { conversations, allCharacters } = useLoaderData<typeof loader>() as { conversations: any[], allCharacters: any[] };
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const navigate = useNavigate();
@@ -79,10 +84,10 @@ export default function ChatListScreen() {
     }
   };
 
-  const onlineIdols = Object.values(CHARACTERS).map((char) => ({
+  const onlineIdols = allCharacters.map((char: any) => ({
     id: char.id,
     name: char.name,
-    avatarUrl: char.avatarUrl,
+    avatarUrl: (char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url,
     isOnline: char.isOnline,
   }));
 
@@ -158,19 +163,20 @@ export default function ChatListScreen() {
         ) : (
           conversations.map((chat: any) => {
             const lastMsg = chat.messages?.[0];
-            const character = CHARACTERS[chat.characterId || "chunsim"] || CHARACTERS["chunsim"];
+            const character = chat.character;
+            const avatarUrl = (character?.media?.find((m: any) => m.type === "AVATAR")?.url) || character?.media?.[0]?.url;
 
             return (
               <ChatListItem
                 key={chat.id}
                 id={chat.id}
-                name={character.name}
+                name={character?.name || "AI"}
                 lastMessage={lastMsg?.content || "대화를 시작해보세요"}
                 timestamp={lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-                avatarUrl={character.avatarUrl}
+                avatarUrl={avatarUrl}
                 isRead={lastMsg ? lastMsg.read : true}
-                isOnline={character.isOnline}
-                characterId={character.id}
+                isOnline={character?.isOnline || false}
+                characterId={character?.id}
               />
             );
           })
@@ -190,7 +196,7 @@ export default function ChatListScreen() {
             <DialogTitle>새 대화 시작하기</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {Object.values(CHARACTERS).map((char) => (
+            {allCharacters.map((char: any) => (
               <button
                 key={char.id}
                 onClick={() => {
@@ -201,7 +207,7 @@ export default function ChatListScreen() {
               >
                 <div className="relative flex-none">
                   <img
-                    src={char.avatarUrl}
+                    src={(char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
                     alt={char.name}
                     className="w-12 h-12 rounded-full object-cover"
                   />

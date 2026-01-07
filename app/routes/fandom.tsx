@@ -4,7 +4,6 @@ import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useFetcher } from "react-router";
-import { CHARACTERS } from "~/lib/characters";
 import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
 import { toast } from "sonner";
@@ -18,8 +17,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   const url = new URL(request.url);
-  const characterId = url.searchParams.get("characterId") || "yuna";
-  const selectedCharacter = CHARACTERS[characterId] || CHARACTERS["chunsim"];
+  const characterId = url.searchParams.get("characterId") || "chunsim";
+
+  // 0. All Characters for Selector
+  const allCharacters = await db.query.character.findMany({
+    with: { media: true }
+  });
+
+  const selectedCharacter = allCharacters.find(c => c.id === characterId) || allCharacters[0];
 
   // 1. Character Stats (Hearts)
   const characterStat = await db.query.characterStat.findFirst({
@@ -99,6 +104,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   return Response.json({
     user: session.user,
+    allCharacters,
     selectedCharacter,
     characterStat,
     missions,
@@ -164,14 +170,14 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function FandomScreen() {
-  const { selectedCharacter, characterStat, missions, notices, leaderboard, feedPosts, characterId } = useLoaderData<typeof loader>() as any;
+  const { allCharacters, selectedCharacter, characterStat, missions, notices, leaderboard, feedPosts, characterId } = useLoaderData<typeof loader>() as any;
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const [feedFilter, setFeedFilter] = useState("All");
   const [isPosting, setIsPosting] = useState(false);
   const [postContent, setPostContent] = useState("");
 
-  const characters = Object.values(CHARACTERS);
+  const characters = allCharacters;
 
   useEffect(() => {
     if (fetcher.data?.success) {
@@ -236,7 +242,7 @@ export default function FandomScreen() {
                     )}>
                       <img
                         className="w-full h-full object-cover"
-                        src={char.avatarUrl}
+                        src={(char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
                         alt={char.name}
                       />
                     </div>

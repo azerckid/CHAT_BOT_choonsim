@@ -3,7 +3,6 @@ import { auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import type { LoaderFunctionArgs } from "react-router";
 import type { Route } from "./+types/home";
-import { CHARACTERS } from "~/lib/characters";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { DateTime } from "luxon";
 import { cn } from "~/lib/utils";
@@ -26,6 +25,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
     recentConversations = await db.query.conversation.findMany({
       where: eq(schema.conversation.userId, session.user.id),
       with: {
+        character: {
+          with: {
+            media: true
+          }
+        },
         messages: {
           orderBy: [desc(schema.message.createdAt)],
           limit: 1,
@@ -36,14 +40,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
 
-  // Today's Pick: Rina (디자인에 맞춤)
-  const todaysPick = CHARACTERS.rina || CHARACTERS.chunsim;
+  // 모든 캐릭터 가져오기
+  const allCharacters = await db.query.character.findMany({
+    with: {
+      media: true,
+    }
+  });
 
-  // Trending Idols: 인기 캐릭터들 (Yuna, Mina, Sora, Rina)
-  const trendingIds = ["yuna", "mina", "sora", "rina"];
-  const trendingIdols = trendingIds
-    .map(id => CHARACTERS[id])
-    .filter(Boolean);
+  // Today's Pick: Rina (or first character)
+  const todaysPick = allCharacters.find(c => c.id === "rina") || allCharacters[0];
+
+  // Trending Idols: DB에 있는 캐릭터들 (최대 4개)
+  const trendingIdols = allCharacters.slice(0, 4);
 
   // 공지사항 및 이벤트 가져오기
   const notices = await db.query.notice.findMany({
@@ -104,8 +112,7 @@ export default function HomeScreen() {
   };
 
   const getCharacterFromConversation = (conversation: any) => {
-    const characterId = conversation.characterId || "chunsim";
-    return CHARACTERS[characterId] || CHARACTERS.chunsim;
+    return conversation.character;
   };
 
   return (
@@ -140,7 +147,13 @@ export default function HomeScreen() {
         <div className="relative w-full overflow-hidden rounded-2xl bg-surface-dark shadow-lg">
           <div
             className="absolute inset-0 h-full w-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${todaysPick.photoGallery?.[0] || todaysPick.avatarUrl})` }}
+            style={{
+              backgroundImage: `url(${todaysPick?.media
+                  ?.filter((m: any) => m.type === "COVER")
+                  ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                || todaysPick?.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                })`
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/40 to-transparent"></div>
           <div className="relative flex min-h-[420px] flex-col justify-end p-6">
@@ -232,7 +245,12 @@ export default function HomeScreen() {
                   <img
                     alt={`Avatar of ${character.name}`}
                     className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/50"
-                    src={character.avatarUrl}
+                    src={
+                      character.media
+                        ?.filter((m: any) => m.type === "AVATAR")
+                        ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                      || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                    }
                   />
                   {character.isOnline && (
                     <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-surface-dark"></span>
@@ -277,7 +295,12 @@ export default function HomeScreen() {
                 <img
                   alt={character.name}
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  src={character.photoGallery?.[0] || character.avatarUrl}
+                  src={
+                    character.media
+                      ?.filter((m: any) => m.type === "COVER")
+                      ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                    || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                  }
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-60"></div>
                 <div className="absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#FFD700] text-black text-xs font-bold">

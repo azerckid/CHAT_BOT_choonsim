@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams, useLoaderData } from "react-router";
 import { cn } from "~/lib/utils";
-import { CHARACTERS } from "~/lib/characters";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { eq, and, sql } from "drizzle-orm";
@@ -15,10 +14,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const userId = session?.user?.id;
   const characterId = params.id || "chunsim";
 
-  // 1. Character Stats (Global)
-  const stats = await db.query.characterStat.findFirst({
-    where: eq(schema.characterStat.characterId, characterId),
+  // 1. Character & Media & Stats
+  const character = await db.query.character.findFirst({
+    where: eq(schema.character.id, characterId),
+    with: {
+      media: true,
+      stats: true,
+    }
   });
+
+  if (!character) {
+    throw new Response("Character not found", { status: 404 });
+  }
+
+  const stats = character.stats;
 
   // 2. My Contribution (Total Hearts Sent)
   let myContribution = 0;
@@ -41,8 +50,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const fandomLevelValue = Math.floor(Math.sqrt(myContribution)) + 1; // Lv.1 start, Lv.10 at 81 hearts, Lv.30 at 900 hearts
 
   return {
-    characterId,
-    stats: stats || { totalHearts: 0, totalUniqueGivers: 0 },
+    character,
     myContribution,
     affinityValue,
     fandomLevelValue,
@@ -52,23 +60,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function CharacterProfileScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { stats, myContribution, affinityValue, fandomLevelValue } = useLoaderData<typeof loader>();
+  const { character, myContribution, affinityValue, fandomLevelValue } = useLoaderData<typeof loader>();
   const [activeTab, setActiveTab] = useState<Tab>("about");
   const [isFavorite, setIsFavorite] = useState(true);
 
-  // CHARACTERS에서 실제 캐릭터 데이터 가져오기
-  const characterData = CHARACTERS[id || "chunsim"] || CHARACTERS["chunsim"];
-
-  // 프로필 화면에 필요한 추가 정보 (기본값 또는 characterData에서 가져오기)
-  const character = {
-    id: characterData.id,
-    name: characterData.name,
-    role: characterData.role,
-    relationship: fandomLevelValue > 10 ? "Close Friend" : "Fan", // Dynamic relation
+  // 프로필 화면에 필요한 추가 정보 가공
+  const displayChar = {
+    id: character.id,
+    name: character.name,
+    role: character.role,
+    relationship: fandomLevelValue > 10 ? "Close Friend" : "Fan",
     affinity: `${affinityValue}%`,
     fandomLevel: `Lv. ${fandomLevelValue}`,
-    intro: characterData.bio || `안녕! 나는 ${characterData.name}야. 만나서 반가워!`,
-    backstory: characterData.bio || `${characterData.name}에 대한 이야기입니다.`,
+    intro: character.bio,
+    backstory: character.bio,
     personalityTraits: [
       { icon: "sentiment_satisfied", color: "text-yellow-500", label: "#Cheerful" },
       { icon: "volunteer_activism", color: "text-pink-500", label: "#Empathetic" },
@@ -79,11 +84,11 @@ export default function CharacterProfileScreen() {
       { icon: "headphones", label: "Music", sublabel: "Favorite", color: "bg-blue-500/10 text-blue-500" },
       { icon: "favorite", label: "Fans", sublabel: "Loved", color: "bg-pink-500/10 text-pink-500" },
     ],
-    heroImage: characterData.avatarUrl, // avatarUrl을 heroImage로 사용
+    heroImage: character.media?.find((m: any) => m.type === "AVATAR")?.url || character.media?.[0]?.url,
   };
 
   const handleMessage = () => {
-    navigate(`/chat/${character.id}`);
+    navigate(`/chat/${displayChar.id}`);
   };
 
   return (
@@ -118,7 +123,7 @@ export default function CharacterProfileScreen() {
       <div className="relative w-full h-[55vh] min-h-[400px]">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url('${character.heroImage}')` }}
+          style={{ backgroundImage: `url('${displayChar.heroImage}')` }}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent" />
         </div>
@@ -132,35 +137,35 @@ export default function CharacterProfileScreen() {
         {/* Global Stats Badge (New!) */}
         <div className="absolute top-0 right-5 -translate-y-1/2 bg-surface-dark border border-white/10 rounded-full px-3 py-1 flex items-center gap-2 shadow-lg">
           <span className="material-symbols-outlined text-pink-500 text-sm">favorite</span>
-          <span className="text-white text-xs font-bold">{stats.totalHearts.toLocaleString()} Hearts</span>
+          <span className="text-white text-xs font-bold">{(character.stats?.totalHearts || 0).toLocaleString()} Hearts</span>
         </div>
 
         {/* Header Info */}
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{character.name}</h1>
-            <p className="text-primary font-medium text-sm tracking-wide uppercase">{character.role}</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">{displayChar.name}</h1>
+            <p className="text-primary font-medium text-sm tracking-wide uppercase">{displayChar.role}</p>
           </div>
           {/* Relationship Badge */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20">
             <span className="material-symbols-outlined text-primary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
-            <span className="text-xs font-bold text-primary">{character.relationship}</span>
+            <span className="text-xs font-bold text-primary">{displayChar.relationship}</span>
           </div>
         </div>
 
         {/* Intro Text */}
         <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6 font-body">
-          "{character.intro}"
+          "{displayChar.intro}"
         </p>
 
         {/* Stats / Quick Info */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5">
-            <span className="text-xl font-bold text-gray-900 dark:text-white">{character.affinity}</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">{displayChar.affinity}</span>
             <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Affinity</span>
           </div>
           <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5">
-            <span className="text-xl font-bold text-gray-900 dark:text-white">{character.fandomLevel}</span>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">{displayChar.fandomLevel}</span>
             <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Fandom</span>
           </div>
           <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition bg-gradient-to-br from-primary/5 to-transparent">
@@ -173,7 +178,7 @@ export default function CharacterProfileScreen() {
         <div className="mb-8">
           <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Personality Traits</h3>
           <div className="flex flex-wrap gap-2">
-            {character.personalityTraits.map((trait, index) => (
+            {displayChar.personalityTraits.map((trait, index) => (
               <div key={index} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/5 shadow-sm">
                 <span className={cn("material-symbols-outlined text-[18px]", trait.color)}>{trait.icon}</span>
                 <span className="text-xs font-medium dark:text-gray-200">{trait.label}</span>
@@ -207,7 +212,7 @@ export default function CharacterProfileScreen() {
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Backstory</h3>
               <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300 font-body whitespace-pre-line">
-                {character.backstory}
+                {displayChar.backstory}
               </p>
             </div>
 
@@ -217,7 +222,7 @@ export default function CharacterProfileScreen() {
                 <span className="material-symbols-outlined text-white text-6xl">graphic_eq</span>
               </div>
               <h4 className="text-sm font-semibold text-white mb-1">Morning Greeting</h4>
-              <p className="text-xs text-gray-400 mb-3">0:12 • Listen to {character.name}'s voice</p>
+              <p className="text-xs text-gray-400 mb-3">0:12 • Listen to {displayChar.name}'s voice</p>
               <div className="flex items-center gap-3">
                 <button className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white shadow-lg hover:scale-105 transition">
                   <span className="material-symbols-outlined text-[20px] ml-0.5">play_arrow</span>
@@ -232,7 +237,7 @@ export default function CharacterProfileScreen() {
             <div>
               <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Interests</h3>
               <div className="grid grid-cols-2 gap-3">
-                {character.interests.map((interest, index) => (
+                {displayChar.interests.map((interest, index) => (
                   <div key={index} className="p-3 rounded-lg bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 flex items-center gap-3">
                     <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", interest.color.replace(' text-', ' '))}>
                       <span className="material-symbols-outlined">{interest.icon}</span>
@@ -262,7 +267,7 @@ export default function CharacterProfileScreen() {
             className="flex-1 flex items-center justify-center gap-2 h-14 bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-2xl shadow-lg shadow-primary/30 animate-glow transition transform active:scale-95"
           >
             <span className="material-symbols-outlined">chat_bubble</span>
-            Message {character.name}
+            Message {displayChar.name}
           </button>
           <button className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 text-gray-400 hover:text-primary transition active:scale-95">
             <span className="material-symbols-outlined">videocam</span>

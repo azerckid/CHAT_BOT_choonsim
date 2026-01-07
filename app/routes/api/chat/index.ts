@@ -156,7 +156,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
 
                 // 전체 응답에서 사진 마커 먼저 추출
-                const firstPhotoMarker = extractPhotoMarker(fullContent, characterId);
+                const firstPhotoMarker = await extractPhotoMarker(fullContent, characterId);
                 const photoUrl = firstPhotoMarker.photoUrl;
                 const contentWithoutPhotoMarker = photoUrl ? firstPhotoMarker.content : fullContent;
 

@@ -13,7 +13,6 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ItemStoreModal } from "~/components/payment/ItemStoreModal";
-import { CHARACTERS } from "~/lib/characters";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -106,6 +105,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }),
     db.query.conversation.findFirst({
       where: eq(schema.conversation.id, id),
+      with: {
+        character: {
+          with: {
+            media: true
+          }
+        }
+      }
     }),
   ]);
 
@@ -178,9 +184,9 @@ export default function ChatRoom() {
   const navigate = useNavigate();
 
   const conversationId = conversation?.id || useParams().id;
-  const character = CHARACTERS[conversation?.characterId || "chunsim"] || CHARACTERS["chunsim"];
-  const characterName = character.name;
-  const avatarUrl = character.avatarUrl;
+  const dbCharacter = conversation?.character;
+  const characterName = dbCharacter?.name || "AI";
+  const avatarUrl = dbCharacter?.media?.find((m: any) => m.type === "AVATAR")?.url || dbCharacter?.media?.[0]?.url;
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [streamingContent, setStreamingContent] = useState<string>("");
@@ -319,7 +325,7 @@ export default function ChatRoom() {
         message: content,
         mediaUrl: mediaUrl || "",
         createdAt: newUserMsg.createdAt
-      },
+      } as any,
       { method: "post" }
     );
 
@@ -341,7 +347,7 @@ export default function ChatRoom() {
           message: userMessage,
           conversationId,
           mediaUrl,
-          characterId: character.id, // Pass characterId to API
+          characterId: dbCharacter?.id, // Pass characterId to API
           giftContext
         }),
       });
@@ -436,7 +442,7 @@ export default function ChatRoom() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          characterId: character.id,
+          characterId: dbCharacter?.id,
           itemId,
           amount,
           conversationId,
@@ -520,7 +526,7 @@ export default function ChatRoom() {
 
       <ChatHeader
         characterName={characterName}
-        characterId={character.id}
+        characterId={dbCharacter?.id}
         isOnline={true}
         statusText={EMOTION_MAP[currentEmotion]?.text || "Active Now"}
         statusClassName={EMOTION_MAP[currentEmotion]?.color}

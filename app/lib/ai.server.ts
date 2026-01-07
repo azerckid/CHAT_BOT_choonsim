@@ -5,7 +5,7 @@ import axios from "axios";
 import { DateTime } from "luxon";
 import { db } from "./db.server";
 import * as schema from "../db/schema";
-import { CHARACTERS } from "./characters";
+import { eq } from "drizzle-orm";
 
 // 춘심 캐릭터 핵심 페르소나 정의
 const CORE_CHUNSIM_PERSONA = `
@@ -104,7 +104,7 @@ function removeEmojis(text: string): string {
  * @param characterId 캐릭터 ID
  * @returns { content: string, photoUrl: string | null } 마커가 제거된 텍스트와 이미지 URL
  */
-export function extractPhotoMarker(content: string, characterId: string = "chunsim"): { content: string; photoUrl: string | null } {
+export async function extractPhotoMarker(content: string, characterId: string = "chunsim"): Promise<{ content: string; photoUrl: string | null }> {
     // [PHOTO:0], [PHOTO:O], [PHOTO:o] 모두 인식 (O/o는 0으로 처리)
     const photoMarkerRegex = /\[PHOTO:([0-9Oo]+)\]/gi;
     const matches = Array.from(content.matchAll(photoMarkerRegex));
@@ -122,13 +122,17 @@ export function extractPhotoMarker(content: string, characterId: string = "chuns
     }
     const photoIndex = parseInt(photoIndexStr, 10);
 
-    const character = CHARACTERS[characterId];
-    if (!character || !character.photoGallery || photoIndex >= character.photoGallery.length) {
+    const character = await db.query.character.findFirst({
+        where: eq(schema.character.id, characterId),
+        with: { media: { where: eq(schema.characterMedia.type, "GALLERY") } }
+    });
+
+    if (!character || !character.media || photoIndex >= character.media.length) {
         // 마커는 제거하되 이미지는 없음
         return { content: content.replace(photoMarkerRegex, "").trim(), photoUrl: null };
     }
 
-    const photoUrl = character.photoGallery[photoIndex];
+    const photoUrl = character.media[photoIndex].url;
     // 마커 제거
     const cleanedContent = content.replace(photoMarkerRegex, "").trim();
 
@@ -238,11 +242,27 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
     let systemInstruction = "";
 
     // 캐릭터별 페르소나 적용
-    if (state.characterId && state.characterId !== "chunsim") {
-        const character = CHARACTERS[state.characterId];
+    if (state.characterId) {
+        const character = await db.query.character.findFirst({
+            where: eq(schema.character.id, state.characterId)
+        });
+
         if (character) {
             systemInstruction = character.personaPrompt;
-            // 다른 캐릭터에도 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
+
+            // 춘심이(기본 캐릭터)일 경우 기존 로직 유지 (여행 모드 등)
+            if (state.characterId === "chunsim") {
+                let effectiveMode = state.personaMode;
+                const travelKeywords = ["여행", "비행기", "호텔", "숙소", "일정", "가고 싶어", "추천해줘", "도쿄", "오사카", "제주도"];
+                if (travelKeywords.some(kw => lastMessageText.includes(kw))) {
+                    effectiveMode = "concierge";
+                }
+                const modePrompt = PERSONA_PROMPTS[effectiveMode] || PERSONA_PROMPTS.hybrid;
+                const memoryInfo = state.summary ? `\n\n이전 대화 요약: ${state.summary}` : "";
+                systemInstruction = `${character.personaPrompt}\n\n${modePrompt}${memoryInfo}`;
+            }
+
+            // 모든 캐릭터에 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
             if (!systemInstruction.includes("안전 가이드라인") && !systemInstruction.includes("Guardrails")) {
                 systemInstruction += `\n\n안전 가이드라인 (Guardrails):
 - 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
@@ -251,23 +271,9 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
 - 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.`;
             }
         } else {
-            // Fallback to Chunsim if character not found
+            // Fallback to Chunsim persona if character not found
             systemInstruction = CORE_CHUNSIM_PERSONA;
         }
-    } else {
-        // 춘심이(기본 캐릭터)일 경우 기존 로직 유지 (여행 모드 등)
-        let effectiveMode = state.personaMode;
-
-        const travelKeywords = ["여행", "비행기", "호텔", "숙소", "일정", "가고 싶어", "추천해줘", "도쿄", "오사카", "제주도"];
-        if (travelKeywords.some(kw => lastMessageText.includes(kw))) {
-            effectiveMode = "concierge";
-        }
-
-        const modePrompt = PERSONA_PROMPTS[effectiveMode] || PERSONA_PROMPTS.hybrid;
-
-        // 요약된 기억이 있다면 시스템 프롬프트에 포함
-        const memoryInfo = state.summary ? `\n\n이전 대화 요약: ${state.summary}` : "";
-        systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
     }
 
     // 이미지가 있다면 관련 지침 추가
@@ -532,9 +538,19 @@ export async function* streamAIResponse(
 
     let systemInstruction = "";
 
-    if (characterId && characterId !== "chunsim") {
-        const character = CHARACTERS[characterId];
-        systemInstruction = character ? character.personaPrompt : CORE_CHUNSIM_PERSONA;
+    const character = await db.query.character.findFirst({
+        where: eq(schema.character.id, characterId)
+    });
+
+    if (character) {
+        systemInstruction = character.personaPrompt;
+
+        if (characterId === "chunsim") {
+            const modePrompt = PERSONA_PROMPTS[personaMode] || PERSONA_PROMPTS.hybrid;
+            const memoryInfo = currentSummary ? `\n\n이전 대화 요약: ${currentSummary}` : "";
+            systemInstruction = `${character.personaPrompt}\n\n${modePrompt}${memoryInfo}`;
+        }
+
         // 다른 캐릭터에도 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
         if (!systemInstruction.includes("안전 가이드라인") && !systemInstruction.includes("Guardrails")) {
             systemInstruction += `\n\n안전 가이드라인 (Guardrails):
@@ -544,9 +560,7 @@ export async function* streamAIResponse(
 - 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.`;
         }
     } else {
-        const modePrompt = PERSONA_PROMPTS[personaMode] || PERSONA_PROMPTS.hybrid;
-        const memoryInfo = currentSummary ? `\n\n이전 대화 요약: ${currentSummary}` : "";
-        systemInstruction = `${CORE_CHUNSIM_PERSONA}\n\n${modePrompt}${memoryInfo}`;
+        systemInstruction = CORE_CHUNSIM_PERSONA;
     }
 
     if (mediaUrl) {
