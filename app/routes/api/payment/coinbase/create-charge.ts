@@ -1,19 +1,10 @@
 import type { ActionFunctionArgs } from "react-router";
-import coinbase from "coinbase-commerce-node";
-const { Client, resources } = coinbase;
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 
-const { Charge } = resources;
-
-// Coinbase Commerce 클라이언트 초기화
-// API KEY가 없을 경우 런타임 에러 방지 위해 가드 로직 포함
 const COINBASE_API_KEY = process.env.COINBASE_COMMERCE_API_KEY || "";
-if (COINBASE_API_KEY) {
-    Client.init(COINBASE_API_KEY);
-}
 
 const createChargeSchema = z.object({
     amount: z.number().positive(),
@@ -49,22 +40,42 @@ export async function action({ request }: ActionFunctionArgs) {
         const { amount, credits, description } = result.data;
         const userId = session.user.id;
 
-        // Charge 생성
-        const chargeData = {
-            name: description || `${credits} Credits Top-up`,
-            description: `Purchase ${credits} credits for $${amount}`,
-            local_price: {
-                amount: amount.toFixed(2),
-                currency: "USD",
+        // Coinbase API를 사용하여 Charge 생성 (Fetch 방식)
+        const response = await fetch("https://api.commerce.coinbase.com/charges", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CC-Api-Key": COINBASE_API_KEY,
+                "X-CC-Version": "2018-03-22",
             },
-            pricing_type: "fixed_price",
-            metadata: {
-                userId,
-                credits: credits.toString(),
-            },
-        };
+            body: JSON.stringify({
+                name: description || `${credits} Credits Top-up`,
+                description: `Purchase ${credits} credits for $${amount}`,
+                local_price: {
+                    amount: amount.toFixed(2),
+                    currency: "USD",
+                },
+                pricing_type: "fixed_price",
+                metadata: {
+                    userId,
+                    credits: credits.toString(),
+                },
+                redirect_url: `${new URL(request.url).origin}/profile/subscription`,
+                cancel_url: `${new URL(request.url).origin}/profile/subscription`,
+            }),
+        });
 
-        const charge = await Charge.create(chargeData);
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Coinbase API Error Response:", data);
+            return Response.json(
+                { error: data.error?.message || "Failed to create charge from Coinbase" },
+                { status: response.status }
+            );
+        }
+
+        const charge = data.data;
 
         // Pending Payment 레코드 생성
         await db.insert(schema.payment).values({
@@ -77,7 +88,7 @@ export async function action({ request }: ActionFunctionArgs) {
             provider: "COINBASE",
             transactionId: charge.id,
             creditsGranted: credits,
-            description: chargeData.name,
+            description: charge.name,
             metadata: JSON.stringify({
                 chargeId: charge.id,
                 hostedUrl: charge.hosted_url,
@@ -89,12 +100,12 @@ export async function action({ request }: ActionFunctionArgs) {
             success: true,
             chargeId: charge.id,
             hostedUrl: charge.hosted_url,
-            expiresAt: (charge as any).expires_at,
+            expiresAt: charge.expires_at,
         });
     } catch (error) {
         console.error("Coinbase charge creation error:", error);
         return Response.json(
-            { error: "Failed to create charge" },
+            { error: "Internal Server Error during charge creation" },
             { status: 500 }
         );
     }

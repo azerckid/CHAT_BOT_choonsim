@@ -1,9 +1,8 @@
 import type { ActionFunctionArgs } from "react-router";
-import coinbase from "coinbase-commerce-node";
-const { Webhook } = coinbase;
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
+import crypto from "node:crypto";
 
 export async function action({ request }: ActionFunctionArgs) {
     if (request.method !== "POST") {
@@ -24,14 +23,17 @@ export async function action({ request }: ActionFunctionArgs) {
             return Response.json({ error: "Missing signature" }, { status: 401 });
         }
 
-        // Webhook 서명 검증
-        let event;
-        try {
-            event = Webhook.verifyEventBody(rawBody, signature, WEBHOOK_SECRET);
-        } catch (err) {
-            console.error("Coinbase webhook verification failed:", err);
+        // Webhook 서명 검증 (Manual HMAC SHA256)
+        const hmac = crypto.createHmac("sha256", WEBHOOK_SECRET);
+        hmac.update(rawBody);
+        const expectedSignature = hmac.digest("hex");
+
+        if (signature !== expectedSignature) {
+            console.error("Coinbase webhook verification failed: Signature mismatch");
             return Response.json({ error: "Invalid signature" }, { status: 401 });
         }
+
+        const event = JSON.parse(rawBody).event;
 
         // charge:confirmed 이벤트 처리 (블록체인 확인 완료 시)
         if (event.type === "charge:confirmed") {

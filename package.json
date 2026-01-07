@@ -30,7 +30,6 @@
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
-    "coinbase-commerce-node": "^1.0.4",
     "drizzle-orm": "^0.45.1",
     "formidable": "^3.5.4",
     "isbot": "^5.1.31",
