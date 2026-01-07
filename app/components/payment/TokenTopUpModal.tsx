@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useFetcher, useRevalidator } from "react-router";
 import { CREDIT_PACKAGES } from "~/lib/subscription-plans";
 import { cn } from "~/lib/utils";
+import { CoinbaseCommerceButton } from "./CoinbaseCommerceButton";
 
 interface TokenTopUpModalProps {
     open?: boolean;
@@ -33,7 +34,7 @@ export function TokenTopUpModal({
     const [selectedPackageId, setSelectedPackageId] = useState<string>(
         CREDIT_PACKAGES[1].id
     ); // Default to Medium pack
-    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS">("TOSS");
+    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS" | "CRYPTO">("TOSS");
     const fetcher = useFetcher<{ success: boolean; newCredits?: number; error?: string }>();
     const revalidator = useRevalidator();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -163,24 +164,33 @@ export function TokenTopUpModal({
                     </div>
 
                     <div className="space-y-4">
-                        <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10">
+                        <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 overflow-x-auto scrollbar-hide">
                             <button
                                 onClick={() => setPaymentMethod("TOSS")}
                                 className={cn(
-                                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                    "flex-1 min-w-[100px] py-2 text-[11px] font-bold rounded-lg transition-all",
                                     paymentMethod === "TOSS" ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white"
                                 )}
                             >
-                                국내 결제 (토스/카드)
+                                국내 (카드)
                             </button>
                             <button
                                 onClick={() => setPaymentMethod("PAYPAL")}
                                 className={cn(
-                                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                                    "flex-1 min-w-[100px] py-2 text-[11px] font-bold rounded-lg transition-all",
                                     paymentMethod === "PAYPAL" ? "bg-[#ffc439] text-[#003087] shadow-lg" : "text-white/50 hover:text-white"
                                 )}
                             >
-                                Global (PayPal)
+                                해외 (PayPal)
+                            </button>
+                            <button
+                                onClick={() => setPaymentMethod("CRYPTO")}
+                                className={cn(
+                                    "flex-1 min-w-[100px] py-2 text-[11px] font-bold rounded-lg transition-all",
+                                    paymentMethod === "CRYPTO" ? "bg-[#0052ff] text-white shadow-lg" : "text-white/50 hover:text-white"
+                                )}
+                            >
+                                Crypto (BTC)
                             </button>
                         </div>
 
@@ -225,7 +235,7 @@ export function TokenTopUpModal({
                                 ) : (
                                     <div className="text-center text-red-500 py-4 text-xs font-bold">PayPal Client ID 없음</div>
                                 )
-                            ) : (
+                            ) : paymentMethod === "TOSS" ? (
                                 <Button
                                     onClick={handleTossPayment}
                                     disabled={isProcessing}
@@ -243,6 +253,12 @@ export function TokenTopUpModal({
                                         </>
                                     )}
                                 </Button>
+                            ) : (
+                                <CoinbaseCommerceButton
+                                    amount={selectedPackage.price}
+                                    credits={selectedPackage.credits + selectedPackage.bonus}
+                                    packageName={selectedPackage.name}
+                                />
                             )}
                             <p className="text-center text-[10px] text-slate-400 mt-3 px-1">
                                 결제 시 이용약관에 동의하게 됩니다.
