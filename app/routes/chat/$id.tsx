@@ -240,10 +240,17 @@ export default function ChatRoom() {
     return () => clearInterval(timer);
   }, [emotionExpiresAt, currentEmotion]);
 
-  // 스크롤 동기화
+  // 스크롤 동기화 및 스마트 스크롤 제어
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    // 현재 사용자가 바닥 근처에 있는지 확인 (임계값 150px)
+    const isAtBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 150;
+
+    // 사용자가 직접 메시지를 보냈거나 (isOptimisticTyping), 이미 바닥 근처를 보고 있는 경우에만 스크롤 이동
+    if (isAtBottom || isOptimisticTyping) {
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
   }, [messages, streamingContent, isOptimisticTyping]);
 
@@ -484,8 +491,9 @@ export default function ChatRoom() {
 
       <main
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-6 space-y-4 relative no-scrollbar scroll-smooth"
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-4 relative no-scrollbar"
         style={{
+          scrollBehavior: 'auto',
           background: "radial-gradient(circle at 50% 50%, rgba(238, 43, 140, 0.05) 0%, transparent 100%)",
         }}
       >
