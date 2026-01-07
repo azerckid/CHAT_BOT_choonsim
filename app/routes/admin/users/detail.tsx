@@ -23,6 +23,9 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
                 with: {
                     item: true
                 }
+            },
+            payments: {
+                orderBy: (payments, { desc }) => [desc(payments.createdAt)]
             }
         }
     });
@@ -117,7 +120,7 @@ export default function UserDetail() {
     const revalidator = useRevalidator();
     const isSubmitting = navigation.state !== "idle";
 
-    const [activeTab, setActiveTab] = useState<"profile" | "inventory">("profile");
+    const [activeTab, setActiveTab] = useState<"profile" | "inventory" | "payments">("profile");
 
     useEffect(() => {
         if (actionData?.success) {
@@ -149,13 +152,13 @@ export default function UserDetail() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-2 p-1 bg-[#1A1821] rounded-2xl w-fit border border-white/5">
-                    {(["profile", "inventory"] as const).map((tab) => (
+                <div className="flex gap-2 p-1 bg-[#1A1821] rounded-2xl w-fit border border-white/5 overflow-x-auto scrollbar-hide">
+                    {(["profile", "inventory", "payments"] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={cn(
-                                "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                                "px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap",
                                 activeTab === tab
                                     ? "bg-primary text-black shadow-lg shadow-primary/20"
                                     : "text-white/40 hover:text-white"
@@ -306,7 +309,7 @@ export default function UserDetail() {
                                     </div>
                                 </Form>
                             </div>
-                        ) : (
+                        ) : activeTab === "inventory" ? (
                             <div className="space-y-8 animate-in fade-in duration-500">
                                 {/* Grant Item Form */}
                                 <div className="bg-[#1A1821] border border-white/5 rounded-[40px] p-8 space-y-6">
@@ -364,6 +367,60 @@ export default function UserDetail() {
                                             ))
                                         )}
                                     </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-[#1A1821] border border-white/5 rounded-[40px] overflow-hidden animate-in fade-in duration-500">
+                                <h3 className="p-8 pb-4 text-xs font-black text-white/60 uppercase tracking-[0.3em] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary text-sm font-bold">receipt_long</span>
+                                    Payment History
+                                </h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b border-white/5 bg-white/2">
+                                                <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">Date</th>
+                                                <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">Provider</th>
+                                                <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">Amount</th>
+                                                <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">Credits</th>
+                                                <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest text-right">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {user.payments.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="px-8 py-20 text-center text-white/10 italic text-xs font-bold uppercase tracking-widest">No payment records.</td>
+                                                </tr>
+                                            ) : (
+                                                user.payments.map((p) => (
+                                                    <tr key={p.id} className="hover:bg-white/1 transition-colors">
+                                                        <td className="px-8 py-4 text-[11px] text-white/40 font-medium whitespace-nowrap">
+                                                            {new Date(p.createdAt).toLocaleDateString()}
+                                                        </td>
+                                                        <td className="px-8 py-4">
+                                                            <span className="text-[10px] font-black text-white uppercase tracking-tighter bg-white/5 px-2 py-0.5 rounded">{p.provider}</span>
+                                                        </td>
+                                                        <td className="px-8 py-4">
+                                                            <span className="text-xs font-bold text-white">${p.amount}</span>
+                                                        </td>
+                                                        <td className="px-8 py-4">
+                                                            <span className="text-xs font-black text-primary italic">+{p.creditsGranted}</span>
+                                                        </td>
+                                                        <td className="px-8 py-4 text-right">
+                                                            <span className={cn(
+                                                                "text-[9px] font-black uppercase px-2 py-0.5 rounded shadow-sm",
+                                                                p.status === "COMPLETED" ? "bg-green-500/20 text-green-400 border border-green-500/20" :
+                                                                    p.status === "PENDING" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/20" :
+                                                                        "bg-red-500/20 text-red-400 border border-red-500/20"
+                                                            )}>
+                                                                {p.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         )}
