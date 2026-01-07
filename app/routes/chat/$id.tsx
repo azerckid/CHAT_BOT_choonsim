@@ -189,6 +189,7 @@ export default function ChatRoom() {
   const [emotionExpiresAt, setEmotionExpiresAt] = useState<string | null>(characterStat?.emotionExpiresAt || null);
   const [auraOpacity, setAuraOpacity] = useState(1);
   const [isOptimisticTyping, setIsOptimisticTyping] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -213,6 +214,11 @@ export default function ChatRoom() {
       setEmotionExpiresAt(characterStat.emotionExpiresAt || null);
     }
   }, [characterStat]);
+
+  // 대화방 변경 시 초기 로드 상태 초기화
+  useEffect(() => {
+    setIsInitialLoad(true);
+  }, [conversationId]);
 
   useEffect(() => {
     if (!emotionExpiresAt || currentEmotion === "JOY") return;
@@ -248,11 +254,16 @@ export default function ChatRoom() {
     // 현재 사용자가 바닥 근처에 있는지 확인 (임계값 150px)
     const isAtBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 150;
 
-    // 사용자가 직접 메시지를 보냈거나 (isOptimisticTyping), 이미 바닥 근처를 보고 있는 경우에만 스크롤 이동
-    if (isAtBottom || isOptimisticTyping) {
+    // [격리 로직]
+    if (isInitialLoad && messages.length > 0) {
+      // 상황 A: 대화방 진입 혹은 초기 데이터 로딩 시 (무조건 하단 이동 후 가드 해제)
+      scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      setIsInitialLoad(false);
+    } else if (isAtBottom || isOptimisticTyping) {
+      // 상황 B: 대화 진행 중 (사용자가 이미 바닥을 보고 있을 때만 동기화)
       scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
-  }, [messages, streamingContent, isOptimisticTyping]);
+  }, [messages, streamingContent, isOptimisticTyping, isInitialLoad]);
 
   // Loader 데이터 변경 시 메시지 리스트 업데이트
   useEffect(() => {
