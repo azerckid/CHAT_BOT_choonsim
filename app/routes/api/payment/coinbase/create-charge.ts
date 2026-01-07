@@ -32,7 +32,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
         if (!result.success) {
             return Response.json(
-                { error: "Invalid request data", details: result.error.errors },
+                { error: "Invalid request data", details: result.error.flatten() },
                 { status: 400 }
             );
         }

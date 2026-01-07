@@ -87,8 +87,32 @@ export default function CharacterProfileScreen() {
     heroImage: character.media?.find((m: any) => m.type === "AVATAR")?.url || character.media?.[0]?.url,
   };
 
-  const handleMessage = () => {
-    navigate(`/chat/${displayChar.id}`);
+  const handleMessage = async () => {
+    try {
+      const response = await fetch("/api/chat/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ characterId: displayChar.id }),
+      });
+
+      if (response.status === 401) {
+        navigate("/login");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to create or get conversation");
+      }
+
+      const data = await response.json();
+      if (data.conversationId) {
+        navigate(`/chat/${data.conversationId}`);
+      }
+    } catch (error) {
+      console.error("Navigation error:", error);
+    }
   };
 
   return (
