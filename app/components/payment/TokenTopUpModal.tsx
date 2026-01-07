@@ -15,6 +15,7 @@ import { useFetcher, useRevalidator } from "react-router";
 import { CREDIT_PACKAGES } from "~/lib/subscription-plans";
 import { cn } from "~/lib/utils";
 import { CoinbaseCommerceButton } from "./CoinbaseCommerceButton";
+import { SolanaPayButton } from "./SolanaPayButton";
 
 interface TokenTopUpModalProps {
     open?: boolean;
@@ -34,7 +35,7 @@ export function TokenTopUpModal({
     const [selectedPackageId, setSelectedPackageId] = useState<string>(
         CREDIT_PACKAGES[1].id
     ); // Default to Medium pack
-    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS" | "CRYPTO">("TOSS");
+    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS" | "CRYPTO" | "SOLANA">("TOSS");
     const fetcher = useFetcher<{ success: boolean; newCredits?: number; error?: string }>();
     const revalidator = useRevalidator();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -192,6 +193,15 @@ export function TokenTopUpModal({
                             >
                                 Crypto (BTC)
                             </button>
+                            <button
+                                onClick={() => setPaymentMethod("SOLANA")}
+                                className={cn(
+                                    "flex-1 min-w-[100px] py-2 text-[11px] font-bold rounded-lg transition-all",
+                                    paymentMethod === "SOLANA" ? "bg-gradient-to-r from-[#14F195] to-[#9945FF] text-black shadow-lg" : "text-white/50 hover:text-white"
+                                )}
+                            >
+                                Solana (SOL)
+                            </button>
                         </div>
 
                         <div className="bg-white rounded-2xl p-4 shadow-sm min-h-[100px] flex flex-col justify-center">
@@ -253,11 +263,23 @@ export function TokenTopUpModal({
                                         </>
                                     )}
                                 </Button>
-                            ) : (
+                            ) : paymentMethod === "CRYPTO" ? (
                                 <CoinbaseCommerceButton
                                     amount={selectedPackage.price}
                                     credits={selectedPackage.credits + selectedPackage.bonus}
                                     packageName={selectedPackage.name}
+                                />
+                            ) : (
+                                <SolanaPayButton
+                                    amount={selectedPackage.price}
+                                    credits={selectedPackage.credits + selectedPackage.bonus}
+                                    description={selectedPackage.name}
+                                    onSuccess={() => {
+                                        if (onOpenChange) {
+                                            setTimeout(() => onOpenChange(false), 2000);
+                                        }
+                                        revalidator.revalidate();
+                                    }}
                                 />
                             )}
                             <p className="text-center text-[10px] text-slate-400 mt-3 px-1">
