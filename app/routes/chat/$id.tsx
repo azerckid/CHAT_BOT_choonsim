@@ -127,7 +127,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const messagesWithLikes = messages.map(msg => ({
     ...msg,
     isLiked: likedMessageIds.has(msg.id),
-  }));
+  })).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
   const tossClientKey = process.env.TOSS_CLIENT_KEY;
@@ -149,19 +149,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
     mediaUrl: formData.get("mediaUrl") || null,
   });
 
+  const clientId = formData.get("id") as string;
+  const clientCreatedAt = formData.get("createdAt") as string;
+
   if (!result.success && !formData.get("mediaUrl")) {
     return Response.json({ error: "Message or image is required" }, { status: 400 });
   }
 
   // 1. 사용자 메시지 저장
   const [userMsg] = await db.insert(schema.message).values({
-    id: crypto.randomUUID(),
+    id: clientId || crypto.randomUUID(),
     role: "user",
     content: result.data?.message || "",
     mediaUrl: result.data?.mediaUrl,
     conversationId: id,
     senderId: session.user.id,
-    createdAt: new Date(),
+    createdAt: clientCreatedAt ? new Date(clientCreatedAt) : new Date(),
   }).returning();
 
   if (!userMsg) throw new Error("Failed to create user message Record");
@@ -251,23 +254,45 @@ export default function ChatRoom() {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
 
-    // 현재 사용자가 바닥 근처에 있는지 확인 (임계값 150px)
-    const isAtBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 150;
+    const handleScroll = () => {
+      const isAtBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight < 200;
 
-    // [격리 로직]
-    if (isInitialLoad && messages.length > 0) {
-      // 상황 A: 대화방 진입 혹은 초기 데이터 로딩 시 (무조건 하단 이동 후 가드 해제)
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      setIsInitialLoad(false);
-    } else if (isAtBottom || isOptimisticTyping) {
-      // 상황 B: 대화 진행 중 (사용자가 이미 바닥을 보고 있을 때만 동기화)
-      scrollContainer.scrollTop = scrollContainer.scrollHeight;
-    }
+      if (isInitialLoad && messages.length > 0) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        // 이미지가 로드될 수 있으므로 약간의 지연 후 한 번 더 체크
+        setTimeout(() => {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          setIsInitialLoad(false);
+        }, 100);
+      } else if (isAtBottom || isOptimisticTyping) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    };
+
+    // 메시지나 내용 변경 시 실행
+    handleScroll();
+
+    // 이미지 로딩 등으로 인한 높이 변화 감지
+    const resizeObserver = new ResizeObserver(handleScroll);
+    resizeObserver.observe(scrollContainer);
+
+    return () => resizeObserver.disconnect();
   }, [messages, streamingContent, isOptimisticTyping, isInitialLoad]);
 
-  // Loader 데이터 변경 시 메시지 리스트 업데이트
+  // Loader 데이터 변경 시 메시지 리스트 업데이트 및 낙관적 메시지 병합 로직
   useEffect(() => {
-    setMessages(initialMessages);
+    setMessages(prev => {
+      // 서버에서 온 메시지 ID 목록
+      const incomingIds = new Set(initialMessages.map(m => m.id));
+      // 아직 서버에 반영되지 않은(낙관적) 내 메시지만 필터링하여 유지
+      const optimisticMessages = prev.filter(m => m.role === "user" && !incomingIds.has(m.id));
+
+      const merged = [...initialMessages, ...optimisticMessages].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      return merged;
+    });
+
     setIsOptimisticTyping(false);
     if (user?.credits !== undefined) {
       setCurrentUserCredits(user.credits);
@@ -287,9 +312,14 @@ export default function ChatRoom() {
     };
     setMessages(prev => [...prev, newUserMsg]);
 
-    // 2. DB에 사용자 메시지 저장
+    // 2. DB에 사용자 메시지 저장 (ID와 시간 동기화)
     fetcher.submit(
-      { message: content, mediaUrl: mediaUrl || "" },
+      {
+        id: userMsgId,
+        message: content,
+        mediaUrl: mediaUrl || "",
+        createdAt: newUserMsg.createdAt
+      },
       { method: "post" }
     );
 
