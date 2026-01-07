@@ -16,6 +16,7 @@ import { CREDIT_PACKAGES } from "~/lib/subscription-plans";
 import { cn } from "~/lib/utils";
 import { CoinbaseCommerceButton } from "./CoinbaseCommerceButton";
 import { SolanaPayButton } from "./SolanaPayButton";
+import { NearPayButton } from "./NearPayButton";
 
 interface TokenTopUpModalProps {
     open?: boolean;
@@ -35,7 +36,7 @@ export function TokenTopUpModal({
     const [selectedPackageId, setSelectedPackageId] = useState<string>(
         CREDIT_PACKAGES[1].id
     ); // Default to Medium pack
-    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS" | "CRYPTO" | "SOLANA">("TOSS");
+    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS" | "CRYPTO" | "SOLANA" | "NEAR">("TOSS");
     const fetcher = useFetcher<{ success: boolean; newCredits?: number; error?: string }>();
     const revalidator = useRevalidator();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -202,6 +203,15 @@ export function TokenTopUpModal({
                             >
                                 Solana (SOL)
                             </button>
+                            <button
+                                onClick={() => setPaymentMethod("NEAR")}
+                                className={cn(
+                                    "flex-1 min-w-[100px] py-2 text-[11px] font-bold rounded-lg transition-all",
+                                    paymentMethod === "NEAR" ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white"
+                                )}
+                            >
+                                NEAR
+                            </button>
                         </div>
 
                         <div className="bg-white rounded-2xl p-4 shadow-sm min-h-[100px] flex flex-col justify-center">
@@ -269,8 +279,20 @@ export function TokenTopUpModal({
                                     credits={selectedPackage.credits + selectedPackage.bonus}
                                     packageName={selectedPackage.name}
                                 />
-                            ) : (
+                            ) : paymentMethod === "SOLANA" ? (
                                 <SolanaPayButton
+                                    amount={selectedPackage.price}
+                                    credits={selectedPackage.credits + selectedPackage.bonus}
+                                    description={selectedPackage.name}
+                                    onSuccess={() => {
+                                        if (onOpenChange) {
+                                            setTimeout(() => onOpenChange(false), 2000);
+                                        }
+                                        revalidator.revalidate();
+                                    }}
+                                />
+                            ) : (
+                                <NearPayButton
                                     amount={selectedPackage.price}
                                     credits={selectedPackage.credits + selectedPackage.bonus}
                                     description={selectedPackage.name}

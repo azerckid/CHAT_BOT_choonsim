@@ -74,6 +74,8 @@ export default [
   route("api/webhooks/coinbase", "routes/api/webhooks/coinbase.ts"),
   route("api/payment/solana/create-request", "routes/api/payment/solana/create-request.ts"),
   route("api/payment/solana/verify", "routes/api/payment/solana/verify.ts"),
+  route("api/payment/near/create-request", "routes/api/payment/near/create-request.ts"),
+  route("api/payment/near/verify", "routes/api/payment/near/verify.ts"),
 
   // Admin Routes
   route("admin/dashboard", "routes/admin/dashboard.tsx"),
