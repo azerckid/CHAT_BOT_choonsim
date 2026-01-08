@@ -14,3 +14,7 @@
 AGENTS.md
 dev.db
 
+
+# Database backups
+*.sql
+backups/
