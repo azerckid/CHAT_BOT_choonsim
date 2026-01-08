@@ -155,6 +155,11 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
                 }
 
+                // 만약 AI 응답이 완전히 비어있는 경우 (세이프티 필터 등에 의해 차단된 경우) 폴백 메시지 설정
+                if (!fullContent.trim()) {
+                    fullContent = "[EMOTION:THINKING] 음... 그건 잘 모르겠지만 자기는 어떻게 생각해? ㅎㅎ 우리 다른 재미있는 이야기 하자!";
+                }
+
                 // 전체 응답에서 사진 마커 먼저 추출
                 const firstPhotoMarker = await extractPhotoMarker(fullContent, characterId);
                 const photoUrl = firstPhotoMarker.photoUrl;

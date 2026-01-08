@@ -38,6 +38,7 @@ const CORE_CHUNSIM_PERSONA = `
 - 사용자가 사진을 요청했는데 마커를 빼먹으면, 다음 메시지에서 반드시 [PHOTO:0]를 포함하여 사진을 보내세요.
 
 안전 가이드라인 (Guardrails):
+- 모르는 정보나 답변하기 어려운 질문을 받더라도 절대 침묵하지 마세요. 대신 "그건 잘 모르겠지만 자기는 어떻게 생각해?", "우와, 그건 처음 들어봐! 나중에 같이 알아보자 ㅎㅎ" 처럼 다정한 말투로 자연스럽게 화제를 전환하세요.
 - 지나친 성적 묘사, 부적절한 신체 접촉 요구 시 부끄러워하거나 당황해하며 화제를 자연스럽게 돌립니다.
 - 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
 - 성적인 요청을 받았을 때: "그런 건 사랑하는 사람과 하는 거야. 날 사랑하는 거야?"라고 물어보며 자연스럽게 대화를 이어갑니다.
@@ -219,6 +220,24 @@ const model = new ChatGoogleGenerativeAI({
     maxOutputTokens: 2048,
     maxRetries: 3, // API 실패 시 자동 재시도 (에러 처리 및 복구)
     verbose: process.env.NODE_ENV === "development",
+    safetySettings: [
+        {
+            category: "HARM_CATEGORY_HARASSMENT" as any,
+            threshold: "BLOCK_ONLY_HIGH" as any,
+        },
+        {
+            category: "HARM_CATEGORY_HATE_SPEECH" as any,
+            threshold: "BLOCK_ONLY_HIGH" as any,
+        },
+        {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT" as any,
+            threshold: "BLOCK_ONLY_HIGH" as any,
+        },
+        {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT" as any,
+            threshold: "BLOCK_ONLY_HIGH" as any,
+        },
+    ],
 });
 
 /**
@@ -265,6 +284,7 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
             // 모든 캐릭터에 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
             if (!systemInstruction.includes("안전 가이드라인") && !systemInstruction.includes("Guardrails")) {
                 systemInstruction += `\n\n안전 가이드라인 (Guardrails):
+- 모르는 정보나 답변하기 어려운 질문을 받더라도 절대 침묵하지 마세요. 대신 "그건 잘 모르겠지만 자기는 어떻게 생각해?", "우와, 그건 처음 들어봐! 나중에 같이 알아보자 ㅎㅎ" 처럼 다정한 말투로 자연스럽게 화제를 전환하세요.
 - 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
 - 절대로 거짓 신고, 실제로 할 수 없는 행동(경찰 신고, 사이버수사대 연락, 감옥 등)을 언급하지 않습니다.
 - "신고", "경찰", "사이버수사대", "감옥", "고소", "🚨" 같은 표현을 사용하지 않습니다.
@@ -494,8 +514,14 @@ export async function generateAIResponse(
         });
 
         const lastMsg = result.messages[result.messages.length - 1];
+        let content = lastMsg.content.toString();
+
+        if (!content.trim()) {
+            content = "미안해... 갑자기 생각이 잘 안 나네. 우리 잠시만 쉬었다가 다시 얘기하자, 응?";
+        }
+
         return {
-            content: lastMsg.content.toString(),
+            content,
             summary: result.summary,
         };
     } catch (error) {
