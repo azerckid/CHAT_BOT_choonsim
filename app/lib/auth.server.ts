@@ -28,7 +28,6 @@ export const auth = betterAuth({
         google: {
             clientId: process.env.GOOGLE_CLIENT_ID || "",
             clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-            redirectURI: process.env.GOOGLE_REDIRECT_URL,
             overrideUserInfoOnSignIn: true, // 로그인할 때마다 사용자 정보 업데이트
             mapProfileToUser: (profile) => {
                 return {
@@ -42,7 +41,6 @@ export const auth = betterAuth({
         twitter: {
             clientId: process.env.TWITTER_CLIENT_ID || "",
             clientSecret: process.env.TWITTER_CLIENT_SECRET || "",
-            redirectURI: process.env.TWITTER_REDIRECT_URL,
             overrideUserInfoOnSignIn: true, // 로그인할 때마다 사용자 정보 업데이트
             // Twitter API v2를 사용하여 사용자 정보 직접 가져오기
             getUserInfo: async (token) => {
@@ -117,7 +115,6 @@ export const auth = betterAuth({
         kakao: {
             clientId: process.env.KAKAO_CLIENT_ID || "",
             clientSecret: process.env.KAKAO_CLIENT_SECRET || "",
-            redirectURI: process.env.KAKAO_REDIRECT_URL,
             overrideUserInfoOnSignIn: true, // 로그인할 때마다 사용자 정보 업데이트
             mapProfileToUser: (profile) => {
                 return {

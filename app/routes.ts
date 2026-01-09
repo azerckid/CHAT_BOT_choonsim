@@ -44,10 +44,7 @@ export default [
 
   // OAuth 콜백 라우트 (Better Auth와의 경로 매핑을 위한 별도 파일)
   // AGENTS.md의 "Authentication & Routing Setup" 섹션 참조
-  route("auth/google/callback", "routes/auth/google/callback.ts"),
-  route("auth/kakao/callback", "routes/auth/kakao/callback.ts"),
-  route("auth/twitter/callback", "routes/auth/twitter/callback.ts"),
-  route("auth/*", "routes/api/auth/$.ts"), // Better Auth의 다른 경로들
+  route("auth/*", "routes/api/auth/$.ts"), // Better Auth의 모든 경로 처리
 
   // API 라우트
   route("api/chat", "routes/api/chat/index.ts"),
