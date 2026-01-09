@@ -90,6 +90,7 @@ export async function action({ request }: ActionFunctionArgs) {
         role: msg.role,
         content: msg.content,
         mediaUrl: msg.mediaUrl,
+        isInterrupted: msg.isInterrupted,
     }));
 
     // SSE 스트리밍 설정
@@ -97,9 +98,16 @@ export async function action({ request }: ActionFunctionArgs) {
     const stream = new ReadableStream({
         async start(controller) {
             let fullContent = "";
+            let isAborted = false;
+
+            const abortHandler = () => {
+                isAborted = true;
+                controller.close();
+            };
+            request.signal.addEventListener("abort", abortHandler);
 
             try {
-                // 1. 크레딧 잔액 확인 (최소 실행 비용)
+                // 1. 크레딧 잔액 확인 (최근 10분 이내 선물 횟수 조회 시 이미 확인했으나 한 번 더 안전 확인)
                 const MIN_REQUIRED_CREDITS = 10;
                 if (!currentUser || (currentUser.credits ?? 0) < MIN_REQUIRED_CREDITS) {
                     logger.warn({
@@ -125,13 +133,20 @@ export async function action({ request }: ActionFunctionArgs) {
                     session.user.id,
                     characterId,
                     subscriptionTier,
-                    giftContext ? { ...giftContext, countInSession: giftCountInSession } : undefined
+                    giftContext ? { ...giftContext, countInSession: giftCountInSession } : undefined,
+                    request.signal // AbortSignal 전달
                 )) {
+                    if (isAborted) break;
+
                     if (item.type === 'content') {
                         fullContent += item.content;
                     } else if (item.type === 'usage' && item.usage) {
                         tokenUsage = item.usage;
                     }
+                }
+
+                if (isAborted) {
+                    return;
                 }
 
                 // 3단계. 토큰 사용량에 따른 크레딧 차감 (스트리밍 완료 후)
@@ -279,7 +294,10 @@ export async function action({ request }: ActionFunctionArgs) {
                 if (history.length >= 8) {
                     const allMessagesForSummary: BaseMessage[] = [
                         ...formattedHistory.map(h => {
-                            const content = h.content || (h.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+                            let content = h.content || (h.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+                            if (h.role === "assistant" && h.isInterrupted && content.endsWith("...")) {
+                                content = content.slice(0, -3).trim();
+                            }
                             return h.role === "user" ? new HumanMessage(content) : new AIMessage(content);
                         }),
                         new HumanMessage(message || (mediaUrl ? "이 사진(그림)을 확인해줘." : " ")),

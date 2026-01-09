@@ -202,6 +202,8 @@ export default function ChatRoom() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isInterrupting, setIsInterrupting] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   // Add heart burst state
 
   // Hearts state
@@ -305,7 +307,63 @@ export default function ChatRoom() {
     }
   }, [initialMessages, user]);
 
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const saveInterruptedMessage = async (content: string, mediaUrl: string | null) => {
+    try {
+      await fetch("/api/chat/interrupt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          content,
+          mediaUrl
+        }),
+      });
+    } catch (e) {
+      console.error("Failed to save interrupted message:", e);
+    }
+  };
+
   const handleSend = async (content: string, mediaUrl?: string) => {
+    // 0. AI가 답변 중이라면 중단 처리
+    if (isAiStreaming) {
+      setIsInterrupting(true);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // 현재까지의 내용을 저장 및 목록에 추가
+      if (streamingContent.trim()) {
+        const interruptedContent = streamingContent.endsWith("...") ? streamingContent : streamingContent + "...";
+        const userMsgId = crypto.randomUUID();
+        const interruptedMsg: Message = {
+          id: userMsgId,
+          role: "assistant",
+          content: interruptedContent,
+          mediaUrl: streamingMediaUrl || null,
+          createdAt: new Date().toISOString(),
+          isLiked: false,
+        };
+        setMessages(prev => [...prev, interruptedMsg]);
+        await saveInterruptedMessage(streamingContent, streamingMediaUrl);
+      }
+
+      setStreamingContent("");
+      setStreamingMediaUrl(null);
+      setIsAiStreaming(false);
+      setIsInterrupting(false);
+
+      // 짧은 지연 후 새 메시지 처리 (상태 반영 시간 확보)
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
     // 1. 사용자 메시지 낙관적 업데이트
     const userMsgId = crypto.randomUUID();
     const newUserMsg: Message = {
@@ -318,7 +376,7 @@ export default function ChatRoom() {
     };
     setMessages(prev => [...prev, newUserMsg]);
 
-    // 2. DB에 사용자 메시지 저장 (ID와 시간 동기화)
+    // 2. DB에 사용자 메시지 저장
     fetcher.submit(
       {
         id: userMsgId,
@@ -329,7 +387,7 @@ export default function ChatRoom() {
       { method: "post" }
     );
 
-    // 3. AI 스트리밍 요청 처리 루틴 시작 (낙관적 타이핑 포함)
+    // 3. AI 스트리밍 요청 처리 루틴 시작
     setIsOptimisticTyping(true);
     startAiStreaming(content, mediaUrl);
   };
@@ -340,14 +398,19 @@ export default function ChatRoom() {
     setStreamingMediaUrl(null);
 
     try {
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           message: userMessage,
           conversationId,
           mediaUrl,
-          characterId: dbCharacter?.id, // Pass characterId to API
+          characterId: dbCharacter?.id,
           giftContext
         }),
       });
@@ -416,18 +479,22 @@ export default function ChatRoom() {
           }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log("Stream aborted locally");
+        return;
+      }
       console.error("Streaming error:", err);
       toast.error("답변을 가져오는 중 오류가 발생했습니다.");
       setIsAiStreaming(false);
       setIsOptimisticTyping(false);
 
-      // 중간에 끊겼다면 현재까지의 내용이라도 유지
-      if (streamingContent) {
+      // 중간에 끊겼다면 (에러로 발생한 경우) 현재까지의 내용이라도 유지
+      if (streamingContent && !isInterrupting) {
         const partialMsg: Message = {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: streamingContent,
+          content: streamingContent + "...",
           createdAt: new Date().toISOString(),
         };
         setMessages(prev => [...prev, partialMsg]);
@@ -622,7 +689,7 @@ export default function ChatRoom() {
         onOpenStore={() => setIsItemStoreOpen(true)}
         userCredits={currentUserCredits}
         ownedHearts={currentUserHearts}
-        disabled={isAiStreaming || isOptimisticTyping}
+        disabled={isOptimisticTyping || isInterrupting}
       />
 
       <ItemStoreModal

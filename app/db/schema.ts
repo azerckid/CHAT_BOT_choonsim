@@ -184,6 +184,8 @@ export const message = sqliteTable("Message", {
     senderId: text("senderId"),
     roomId: text("roomId"),
     read: integer("read", { mode: "boolean" }).notNull().default(false),
+    isInterrupted: integer("isInterrupted", { mode: "boolean" }).notNull().default(false),
+    interruptedAt: integer("interruptedAt", { mode: "timestamp" }),
 });
 
 export const messageLike = sqliteTable("MessageLike", {

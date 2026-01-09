@@ -124,7 +124,7 @@ turso db show <OLD_DB_NAME>
 **백업 명령어**:
 ```bash
 # 기존 DB 명칭을 <OLD_DB_NAME>에 입력
-OLD_DB_NAME="choonsim-dev"  # 실제 데이터베이스 이름으로 변경
+OLD_DB_NAME="nomad-ai"  # 실제 데이터베이스 이름으로 변경
 BACKUP_FILE="backup_before_migration_$(date +%Y%m%d_%H%M%S).sql"
 
 turso db dump $OLD_DB_NAME > $BACKUP_FILE

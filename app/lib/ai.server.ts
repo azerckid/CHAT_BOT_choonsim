@@ -458,6 +458,7 @@ interface HistoryMessage {
     role: string;
     content: string;
     mediaUrl?: string | null;
+    isInterrupted?: boolean;
 }
 
 /**
@@ -478,7 +479,12 @@ export async function generateAIResponse(
 
     // 안전한 메시지 변환 함수 (비동기 처리)
     const toBaseMessage = async (msg: HistoryMessage): Promise<BaseMessage> => {
-        const content = msg.content || (msg.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+        let content = msg.content || (msg.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+
+        // 중단된 메시지의 경우 AI가 자연스럽게 이어갈 수 있도록 '...' 제거
+        if (msg.role === "assistant" && msg.isInterrupted && content.endsWith("...")) {
+            content = content.slice(0, -3).trim();
+        }
 
         if (msg.role === "user") {
             if (msg.mediaUrl) {
@@ -555,13 +561,15 @@ export async function* streamAIResponse(
     userId: string | null = null,
     characterId: string = "chunsim",
     subscriptionTier: SubscriptionTier = "FREE",
-    giftContext?: { amount: number; itemId: string; countInSession?: number }
+    giftContext?: { amount: number; itemId: string; countInSession?: number },
+    abortSignal?: AbortSignal
 ) {
     // 선물하기 상황에서 사용자 메시지가 비어있다면, 시스템 행동 지문(명령어)으로 대체하여 AI가 상황을 명확히 인지하도록 함
     if (giftContext && !userMessage.trim()) {
         userMessage = `(시스템: 사용자가 하트 ${giftContext.amount}개를 선물했습니다. 이에 대해 당신의 페르소나와 현재 감정에 맞춰 격렬하게 반응하세요.)`;
     }
 
+    // ... (중간 지침 생성 로직 동일) ...
     let systemInstruction = "";
 
     const character = await db.query.character.findFirst({
@@ -673,7 +681,12 @@ export async function* streamAIResponse(
 
     // 안전한 메시지 변환 함수 (비동기 처리)
     const toBaseMessage = async (msg: HistoryMessage): Promise<BaseMessage> => {
-        const content = msg.content || (msg.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+        let content = msg.content || (msg.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+
+        // 중단된 메시지의 경우 AI가 자연스럽게 이어갈 수 있도록 '...' 제거
+        if (msg.role === "assistant" && msg.isInterrupted && content.endsWith("...")) {
+            content = content.slice(0, -3).trim();
+        }
 
         if (msg.role === "user") {
             if (msg.mediaUrl) {
@@ -700,10 +713,13 @@ export async function* streamAIResponse(
     messages.push(lastMessage);
 
     try {
-        const stream = await model.stream(messages);
+        const stream = await model.stream(messages, { signal: abortSignal });
         let lastChunk: any = null;
 
         for await (const chunk of stream) {
+            if (abortSignal?.aborted) {
+                break;
+            }
             if (chunk.content) {
                 const cleaned = removeEmojis(chunk.content.toString());
                 if (cleaned) {
@@ -714,7 +730,7 @@ export async function* streamAIResponse(
         }
 
         // 마지막 청크에서 usage metadata 추출
-        if (lastChunk) {
+        if (lastChunk && !abortSignal?.aborted) {
             // 여러 경로 시도
             let usage: any = null;
 
@@ -739,15 +755,13 @@ export async function* streamAIResponse(
                 };
                 console.log("Token usage extracted:", tokenUsage);
                 yield { type: 'usage', usage: tokenUsage };
-            } else {
-                console.warn("Usage metadata not found in last chunk. Available paths checked:", {
-                    hasResponseMetadata: !!lastChunk.response_metadata,
-                    hasKwargs: !!(lastChunk as any).kwargs,
-                    hasUsageMetadata: !!(lastChunk as any).usage_metadata,
-                });
             }
         }
     } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+            console.log("AI Streaming aborted by signal");
+            return;
+        }
         console.error("Stream Error:", error);
         yield { type: 'content', content: "아... 갑자기 머리가 핑 돌아... 미안해, 잠시만 이따가 다시 불러줄래?" };
     }

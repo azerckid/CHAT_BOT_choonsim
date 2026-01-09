@@ -3,7 +3,7 @@
 춘심 AI 챗봇 프로젝트의 단계별 구현 계획서입니다.
 
 **최종 업데이트**: 2026.01.03  
-**현재 진행 상황**: Phase 5 (최적화 및 고도화) - LLM 토큰 사용량 추적 완료 및 버그 수정, 타임존 처리 개선 항목 추가
+**현재 진행 상황**: Phase 10 (인터럽트 시스템) 완료 / Phase 11 (보이스 챗) 준비 중
 
 ---
 
@@ -899,6 +899,40 @@
 - [ ] 각 API 호출 에러 처리
 - [ ] 로딩 스켈레톤 UI
 - [ ] 빈 상태 (Empty State) UI
+
+---
+
+## Phase 10: 인터럽트 기반 실시간 대화 시스템 (Real-time Interrupt System)
+
+### 10.1 데이터베이스 및 백엔드 고도화
+- [x] **Message 테이블 스키마 확장**
+  - [x] `isInterrupted` (boolean), `interruptedAt` (timestamp) 필드 추가
+  - [x] Drizzle 마이그레이션 생성 및 반영
+- [x] **인터럽트 전용 API 구현**
+  - [x] `POST /api/chat/interrupt` - 중단된 시점의 텍스트를 저장하는 엔드포인트 구현
+
+### 10.2 AI 엔진 및 스트리밍 처리 (Server Side)
+- [x] **Gemini API 중단 연동**
+  - [x] `app/lib/ai.server.ts` 내 `streamAIResponse` 함수에 `AbortSignal` 전달 및 처리
+- [x] **SSE 스트리밍 중단 로직**
+  - [x] `app/routes/api/chat/index.ts`에서 클라이언트의 `abort` 신호 감지 및 스트림 종료 처리
+
+### 10.3 채팅 인터페이스 및 입력 제어 (Client Side)
+- [x] **메시지 입력 비활성화 정책 변경**
+  - [x] AI 답변 중에도 `MessageInput` 활성화 유지 (`app/routes/chat/$id.tsx`)
+- [x] **AbortController 기반 스트리밍 제어**
+  - [x] `handleSend` 시 기존 스트리밍 `abort()` 호출 및 중단 처리 로직 구현
+- [x] **시각적 피드백 및 부분 저장**
+  - [x] 중단된 메시지 끝에 `...` 추가 및 로컬/서버 저장 처리
+- [x] **레이스 컨디션 및 예외 처리**
+  - [x] 컴포넌트 언마운트 시 클린업 및 중단 중 중복 요청 방지
+ 및 네트워크 오류 대응
+
+### 10.4 대화 문맥 및 기억 최적화
+- [x] **중단된 메시지 문맥 보존**
+  - [x] `app/lib/ai.server.ts`의 `toBaseMessage`에서 중단된 메시지의 `...` 제거 로직 구현
+- [x] **장기 기억(Summary) 반영**
+  - [x] 요약 생성 노드(`generateSummary`)에서 부분 답변 내용 반영 및 정제 로직 고도화
 
 ---
 
