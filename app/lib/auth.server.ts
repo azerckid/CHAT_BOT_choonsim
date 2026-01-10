@@ -148,6 +148,46 @@ export const auth = betterAuth({
     },
     // Database hooks: account가 업데이트될 때 User 테이블도 업데이트
     databaseHooks: {
+        user: {
+            create: {
+                after: async (user) => {
+                    // 신규 가입 시 지갑 자동 생성
+                    console.log(`[Auth Hook] user.create.after triggered for user: ${user.id} (${user.email})`);
+                    try {
+                        const { ensureNearWallet } = await import("./near/wallet.server");
+                        const accountId = await ensureNearWallet(user.id);
+                        if (accountId) {
+                            console.log(`[Auth Hook] Wallet created successfully for new user: ${accountId}`);
+                        } else {
+                            console.error(`[Auth Hook] Failed to create wallet for new user: ${user.id}`);
+                        }
+                    } catch (error: any) {
+                        console.error(`[Auth Hook] Error in user.create.after hook:`, error);
+                        // 에러가 발생해도 회원가입은 성공하도록 함
+                    }
+                }
+            }
+        },
+        session: {
+            create: {
+                after: async (session) => {
+                    // 로그인 시 지갑이 없으면 자동 생성 (기존 유저 구제)
+                    console.log(`[Auth Hook] session.create.after triggered for user: ${session.userId}`);
+                    try {
+                        const { ensureNearWallet } = await import("./near/wallet.server");
+                        const accountId = await ensureNearWallet(session.userId);
+                        if (accountId) {
+                            console.log(`[Auth Hook] Wallet created successfully for existing user: ${accountId}`);
+                        } else {
+                            console.log(`[Auth Hook] Wallet already exists or creation skipped for user: ${session.userId}`);
+                        }
+                    } catch (error: any) {
+                        console.error(`[Auth Hook] Error in session.create.after hook:`, error);
+                        // 에러가 발생해도 로그인은 성공하도록 함
+                    }
+                }
+            }
+        },
         account: {
             create: {
                 after: async (account) => {
@@ -263,8 +303,9 @@ export async function isAdmin(userId: string): Promise<boolean> {
 
     if (!userResult) return false;
 
-    // Super Admin (환경 변수) 또는 DB Role Admin
-    return isAdminEmail(userResult.email) || userResult.role === "ADMIN";
+    // Super Admin (환경 변수) 또는 DB Role Admin (대소문자 무시)
+    const isAdminRole = userResult.role?.toUpperCase() === "ADMIN";
+    return isAdminEmail(userResult.email) || isAdminRole;
 }
 
 /**

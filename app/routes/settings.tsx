@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import * as schema from "~/db/schema";
 import { eq } from "drizzle-orm";
+import { Input } from "~/components/ui/input";
+import { Copy, AlertTriangle, Wallet } from "lucide-react";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -29,6 +31,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const user = await db.query.user.findFirst({
     where: eq(schema.user.id, session.user.id),
+    columns: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      nearAccountId: true,
+    },
   });
 
   return Response.json({ user });
@@ -42,6 +51,10 @@ export default function SettingsScreen() {
 
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+  const [exportWalletDialogOpen, setExportWalletDialogOpen] = useState(false);
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
+  const [isLoadingPrivateKey, setIsLoadingPrivateKey] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const handleLogout = async () => {
     try {
@@ -63,6 +76,40 @@ export default function SettingsScreen() {
     toast.error("계정이 삭제되었습니다");
     setDeleteAccountDialogOpen(false);
     // navigate("/login");
+  };
+
+  const handleExportWallet = async () => {
+    setIsLoadingPrivateKey(true);
+    setExportError(null);
+    setPrivateKey(null);
+
+    try {
+      const response = await fetch("/api/wallet/export-private-key");
+      const data = await response.json();
+
+      if (!response.ok) {
+        setExportError(data.message || data.error || "프라이빗 키를 가져오는데 실패했습니다.");
+        return;
+      }
+
+      setPrivateKey(data.privateKey);
+      toast.success("프라이빗 키를 불러왔습니다. 안전하게 보관하세요.");
+    } catch (error: any) {
+      setExportError(error.message || "프라이빗 키를 가져오는데 실패했습니다.");
+    } finally {
+      setIsLoadingPrivateKey(false);
+    }
+  };
+
+  const handleCopyPrivateKey = async () => {
+    if (!privateKey) return;
+
+    try {
+      await navigator.clipboard.writeText(privateKey);
+      toast.success("프라이빗 키가 클립보드에 복사되었습니다.");
+    } catch (error) {
+      toast.error("복사에 실패했습니다.");
+    }
   };
 
   return (
@@ -144,6 +191,139 @@ export default function SettingsScreen() {
               label="채팅 화면 설정"
               href="/settings/chat"
             />
+          </div>
+        </div>
+
+        <div className="px-4 pt-4 pb-2">
+          <h3 className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider px-2 pb-2">
+            지갑 관리
+          </h3>
+          <div className="flex flex-col overflow-hidden rounded-2xl bg-surface-light dark:bg-surface-dark shadow-sm dark:shadow-none border border-black/5 dark:border-white/5">
+            <Dialog open={exportWalletDialogOpen} onOpenChange={setExportWalletDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="flex items-center gap-4 p-4 min-h-14 justify-between border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors w-full text-left">
+                  <div className="flex items-center gap-3">
+                    <div className="text-primary flex items-center justify-center rounded-full bg-primary/10 shrink-0 size-8">
+                      <Wallet className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <p className="text-slate-900 dark:text-white text-base font-medium">
+                        지갑 내보내기
+                      </p>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs">
+                        프라이빗 키 조회 및 내보내기
+                      </p>
+                    </div>
+                  </div>
+                  <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">chevron_right</span>
+                </button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>지갑 내보내기</DialogTitle>
+                  <DialogDescription>
+                    NEAR 지갑의 프라이빗 키를 확인하고 내보낼 수 있습니다.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {user?.nearAccountId && (
+                    <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">지갑 주소</p>
+                      <p className="text-sm font-mono text-slate-900 dark:text-white break-all">
+                        {user.nearAccountId}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-1">
+                          보안 경고
+                        </h4>
+                        <p className="text-xs text-red-800 dark:text-red-200">
+                          프라이빗 키는 극비 정보입니다. 절대 공유하지 마시고, 안전한 곳에 보관하세요.
+                          누군가 이 키를 알게 되면 지갑의 모든 자산을 제어할 수 있습니다.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!privateKey && !isLoadingPrivateKey && !exportError && (
+                    <Button
+                      onClick={handleExportWallet}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      프라이빗 키 불러오기
+                    </Button>
+                  )}
+
+                  {isLoadingPrivateKey && (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">프라이빗 키를 불러오는 중...</p>
+                    </div>
+                  )}
+
+                  {exportError && (
+                    <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-1">
+                            오류
+                          </h4>
+                          <p className="text-xs text-red-800 dark:text-red-200">
+                            {exportError}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {privateKey && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-slate-900 dark:text-white">
+                          프라이빗 키
+                        </label>
+                        <Button
+                          onClick={handleCopyPrivateKey}
+                          size="sm"
+                          variant="outline"
+                          className="h-7"
+                        >
+                          <Copy className="w-3 h-3 mr-1" />
+                          복사
+                        </Button>
+                      </div>
+                      <Input
+                        type="text"
+                        value={privateKey}
+                        readOnly
+                        className="font-mono text-xs"
+                      />
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        프라이빗 키를 복사하여 안전한 곳에 보관하세요. 다른 지갑으로 자산을 옮기려면 이 키를 사용할 수 있습니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setExportWalletDialogOpen(false);
+                      setPrivateKey(null);
+                      setExportError(null);
+                    }}
+                  >
+                    닫기
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
 

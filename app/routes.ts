@@ -39,6 +39,9 @@ export default [
   // 설정
   route("settings", "routes/settings.tsx"),
 
+  // 테스트 페이지
+  route("test-wallet", "routes/test-wallet.tsx"),
+
   // 캐릭터
   route("character/:id", "routes/character/$id.tsx"),
 
@@ -54,6 +57,8 @@ export default [
   route("api/messages/:id/like", "routes/api/messages/$id.like.ts"),
   route("api/upload", "routes/api/upload.ts"),
   route("api/test-cron", "routes/api/test-cron.ts"),
+  route("api/test-wallet", "routes/api/test-wallet.ts"),
+  route("api/wallet/export-private-key", "routes/api/wallet/export-private-key.ts"),
   route("api/push-subscription", "routes/api/push-subscription.ts"),
   route("api/stats/usage", "routes/api/stats/usage.ts"),
   route("api/items/gift", "routes/api/items/gift.ts"),

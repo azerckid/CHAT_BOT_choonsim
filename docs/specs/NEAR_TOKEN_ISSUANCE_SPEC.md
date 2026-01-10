@@ -445,6 +445,15 @@ export async function linkNearWallet(
 - ✅ 에러 발생 시에도 DB 업데이트는 진행 (로깅만 남김)
 - ✅ 임베디드 지갑 생성 로직은 아직 구현되지 않음 (Phase 4에서 구현 예정)
 
+### 7.3 프로덕션 보안 권고 사항 (Relayer)
+
+1. **Access Key 권한 분리**:
+   - `Full Access Key`는 멀티시그 지갑에 안전하게 보관하십시오.
+   - 서버에는 특정 컨트랙트의 특정 메서드(`ft_transfer_call`)만 호출하고 가스비를 지불할 수 있는 `FunctionCall Access Key`를 발급하여 사용하십시오.
+2. **잔액 모니터링**:
+   - 릴레이어 계정 잔액이 1 NEAR 미만으로 떨어질 경우 즉시 알림을 받도록 설정하십시오.
+3. **Rate Limit 조정**:
+   - 서비스 규모에 따라 `submit.ts`의 `RATE_LIMIT_PER_HOUR` 값을 조정하여 비용을 관리하십시오.
 ```typescript
 export async function initializeUserWallet(userId: string, email: string) {
     // 임베디드 지갑 생성 (Privy/Magic 등)
@@ -595,12 +604,9 @@ export async function initializeUserWallet(userId: string, email: string) {
 
 - [x] **Relayer Server 구축**: 서비스 계정을 사용하여 가스비 대납 (`app/lib/near/relayer.server.ts`) ✅
 - [x] **Meta Transaction 구현**: 사용자는 서명만 하고, 실제 트랜잭션 전송은 Relayer가 수행 (`app/routes/api/relayer/submit.ts`) ✅
-- [x] **사용자 가스비 0원 구현**: 사용자가 NEAR 없이도 CHOCO 토큰을 입금/사용할 수 있도록 함 ✅
-- [x] **UI 통합**: `PaymentSheet` 및 `use-x402.ts`에 가스비 대납 로직 적용 ✅
- *   Rate Limiting 적용
-- [ ] **모니터링**
-    *   가스비 사용량 추적
-    *   비용 최적화
+- [x] **보안 및 남용 방지**: 사용자별 시간당 요청 제한(Rate Limiting) 및 로깅 구현 ✅
+- [x] **모니터링**: 서비스 계정 잔액 모니터링 및 운영 안정성 강화 ✅
+- [ ] **운영 최적화**: 가스비 사용량 통계 및 자동 충전 검토
 
 ### Phase 6: 메인넷 배포 (예상 소요: 1주)
 

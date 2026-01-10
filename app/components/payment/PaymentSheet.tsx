@@ -74,8 +74,8 @@ export function PaymentSheet({
                 setError("지갑 연결에 실패했습니다.");
             }
         } catch (e: any) {
-            console.error("Wallet connection error:", e);
-            setError(e.message || "지갑 연결 중 오류가 발생했습니다.");
+            console.error("Wallet connection error details:", e);
+            setError(`지갑 연결 실패: ${e.message || "알 수 없는 오류"}`);
         } finally {
             setIsProcessing(false);
         }

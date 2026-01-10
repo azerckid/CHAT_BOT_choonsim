@@ -61,6 +61,7 @@ export default function AdminUsers() {
                             <thead>
                                 <tr className="border-b border-white/5 bg-white/2">
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">User</th>
+                                    <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">NEAR Address</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Role / Tier</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Credits</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Joined</th>
@@ -70,7 +71,7 @@ export default function AdminUsers() {
                             <tbody className="divide-y divide-white/5">
                                 {users.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-8 py-20 text-center">
+                                        <td colSpan={6} className="px-8 py-20 text-center">
                                             <p className="text-white/20 font-bold italic uppercase tracking-widest">No users found</p>
                                         </td>
                                     </tr>
@@ -86,6 +87,21 @@ export default function AdminUsers() {
                                                         <span className="text-white font-bold tracking-tight">{user.name || "Unnamed User"}</span>
                                                         <span className="text-white/40 text-xs font-medium">{user.email}</span>
                                                     </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-5">
+                                                <div className="flex flex-col gap-1 max-w-[150px]">
+                                                    {user.nearAccountId ? (
+                                                        <>
+                                                            <span className="text-white text-[11px] font-mono break-all leading-tight opacity-80">{user.nearAccountId}</span>
+                                                            <span className="text-[9px] text-green-500/60 font-black uppercase tracking-tighter italic">Linked Account</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-white/20 text-[10px] font-bold italic uppercase tracking-widest">No Wallet</span>
+                                                            <span className="text-[9px] text-white/10 font-black uppercase tracking-tighter italic">Auto-creation pending</span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">

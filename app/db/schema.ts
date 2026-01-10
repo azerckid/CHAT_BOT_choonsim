@@ -32,6 +32,7 @@ export const user = sqliteTable("User", {
     role: text("role").default("USER"),
     nearAccountId: text("nearAccountId").unique(),
     nearPublicKey: text("nearPublicKey"),
+    nearPrivateKey: text("nearPrivateKey"), // Encrypted private key
     chocoBalance: text("chocoBalance").notNull().default("0"), // BigNumber string
     chocoLastSyncAt: integer("chocoLastSyncAt", { mode: "timestamp" }),
     heartsCount: integer("heartsCount").notNull().default(0),

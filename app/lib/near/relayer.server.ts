@@ -1,5 +1,8 @@
-import { connect, keyStores, KeyPair, transactions } from "near-api-js";
+import { connect, keyStores, KeyPair, transactions, utils } from "near-api-js";
 import { NEAR_CONFIG } from "./client.server";
+import { db } from "../db.server";
+import { relayerLog } from "../../db/schema";
+import { nanoid } from "nanoid";
 
 /**
  * 서비스 계정을 활용한 가스비 대납(Relayer) 서비스
@@ -51,5 +54,52 @@ export async function submitMetaTransaction(signedDelegateSerialized: string) {
             success: false,
             error: error instanceof Error ? error.message : "Unknown error",
         };
+    }
+}
+/**
+ * 릴레이어 계정의 현재 NEAR 잔액 조회
+ */
+export async function getRelayerBalance() {
+    const networkId = NEAR_CONFIG.networkId;
+    const nodeUrl = NEAR_CONFIG.nodeUrl;
+    const serviceAccountId = NEAR_CONFIG.serviceAccountId;
+
+    const near = await connect({
+        networkId,
+        nodeUrl,
+        keyStore: new keyStores.InMemoryKeyStore(),
+    });
+
+    const account = await near.account(serviceAccountId);
+    const balance = await account.getAccountBalance();
+
+    return {
+        total: utils.format.formatNearAmount(balance.total),
+        available: utils.format.formatNearAmount(balance.available),
+    };
+}
+
+/**
+ * 릴레이 활동 로깅
+ */
+export async function logRelayerAction(data: {
+    userId: string;
+    requestIp?: string;
+    txHash?: string;
+    error?: string;
+    status: "SUCCESS" | "FAILED";
+}) {
+    try {
+        await db.insert(relayerLog).values({
+            id: nanoid(),
+            userId: data.userId,
+            requestIp: data.requestIp,
+            txHash: data.txHash,
+            error: data.error,
+            status: data.status,
+            createdAt: new Date(),
+        });
+    } catch (e) {
+        console.error("Failed to log relayer action:", e);
     }
 }

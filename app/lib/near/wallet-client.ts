@@ -209,8 +209,8 @@ export async function requestWalletConnection(): Promise<string | null> {
 
         return wallet.getAccountId();
     } catch (error) {
-        console.error("Failed to connect wallet:", error);
-        return null;
+        console.error("Critical: Failed to connect wallet:", error);
+        throw error; // UI에서 상세 에러를 잡을 수 있도록 throw
     }
 }
 /**
