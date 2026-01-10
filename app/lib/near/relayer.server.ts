@@ -1,0 +1,55 @@
+import { connect, keyStores, KeyPair, transactions } from "near-api-js";
+import { NEAR_CONFIG } from "./client.server";
+
+/**
+ * 서비스 계정을 활용한 가스비 대납(Relayer) 서비스
+ * 사용자가 서명한 Meta Transaction(SignedDelegate)을 대신 네트워크에 전송합니다.
+ */
+export async function submitMetaTransaction(signedDelegateSerialized: string) {
+    const networkId = NEAR_CONFIG.networkId;
+    const nodeUrl = NEAR_CONFIG.nodeUrl;
+    const serviceAccountId = NEAR_CONFIG.serviceAccountId;
+    const privateKey = process.env.NEAR_SERVICE_PRIVATE_KEY;
+
+    if (!privateKey) {
+        throw new Error("NEAR_SERVICE_PRIVATE_KEY is not set.");
+    }
+
+    // 1. 서비스 계정(Relayer) 설정
+    const keyStore = new keyStores.InMemoryKeyStore();
+    const keyPair = KeyPair.fromString(privateKey as any);
+    await keyStore.setKey(networkId, serviceAccountId, keyPair);
+
+    const near = await connect({
+        networkId,
+        nodeUrl,
+        keyStore,
+    });
+
+    const relayerAccount = await near.account(serviceAccountId);
+
+    try {
+        // 2. 직렬화된 SignedDelegate 복원
+        // near-api-js 버전에 따라 타입 정의가 누락될 수 있으므로 any 처리
+        const signedDelegate = (transactions as any).SignedDelegate.decode(
+            Buffer.from(signedDelegateSerialized, "base64")
+        );
+
+        console.log(`Relaying meta transaction for user: ${signedDelegate.delegateAction.senderId}`);
+
+        // 3. 트랜잭션 전송 (Relayer가 가스비 지불)
+        const result = (await relayerAccount.signedDelegate(signedDelegate)) as any;
+
+        return {
+            success: true,
+            txHash: result.transaction_outcome?.id || result.transaction?.hash,
+            result: result.status,
+        };
+    } catch (error) {
+        console.error("Failed to relay meta transaction:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : "Unknown error",
+        };
+    }
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, CheckCircle2, ShieldCheck, ArrowRight, Wallet } from "lucide-react";
-import { transferChocoToken, requestWalletConnection, isWalletConnected, getChocoBalance, getCurrentAccountId } from "~/lib/near/wallet-client";
+import { transferChocoToken, transferChocoTokenGasless, requestWalletConnection, isWalletConnected, getChocoBalance, getCurrentAccountId } from "~/lib/near/wallet-client";
 
 interface PaymentSheetProps {
     isOpen: boolean;
@@ -29,6 +29,7 @@ export function PaymentSheet({
     const [accountId, setAccountId] = useState<string | null>(null);
     const [balance, setBalance] = useState<string>("0");
     const [error, setError] = useState<string | null>(null);
+    const [useRelayer, setUseRelayer] = useState(true);
 
     // 지갑 연결 상태 확인
     useEffect(() => {
@@ -40,11 +41,11 @@ export function PaymentSheet({
     const checkWalletStatus = async () => {
         const connected = await isWalletConnected();
         setWalletConnected(connected);
-        
+
         if (connected) {
             const account = await getCurrentAccountId();
             setAccountId(account);
-            
+
             if (account) {
                 try {
                     const bal = await getChocoBalance(account, invoice.tokenContract);
@@ -61,7 +62,7 @@ export function PaymentSheet({
     const handleConnectWallet = async () => {
         setIsProcessing(true);
         setError(null);
-        
+
         try {
             const account = await requestWalletConnection();
             if (account) {
@@ -88,25 +89,38 @@ export function PaymentSheet({
 
         setIsProcessing(true);
         setError(null);
-        
+
         try {
             // 잔액 확인
             const currentBalance = parseFloat(balance);
             const requiredAmount = parseFloat(invoice.amount);
-            
+
             if (currentBalance < requiredAmount) {
                 setError(`잔액이 부족합니다. (보유: ${balance} CHOCO, 필요: ${invoice.amount} CHOCO)`);
                 setIsProcessing(false);
                 return;
             }
 
-            // CHOCO 토큰 전송
-            const txHashResult = await transferChocoToken(
-                accountId,
-                invoice.recipient,
-                invoice.amount,
-                invoice.tokenContract
-            );
+            // CHOCO 토큰 전송 (가스비 대납 적용 여부에 따라 분기)
+            let txHashResult: string;
+
+            if (useRelayer) {
+                // Phase 5: 가스비 대납(Relayer) 사용
+                txHashResult = await transferChocoTokenGasless(
+                    accountId,
+                    invoice.recipient,
+                    invoice.amount,
+                    invoice.tokenContract
+                );
+            } else {
+                // 기존 방식 (사용자가 가스비 부담)
+                txHashResult = await transferChocoToken(
+                    accountId,
+                    invoice.recipient,
+                    invoice.amount,
+                    invoice.tokenContract
+                );
+            }
 
             // 서버에 결제 검증 요청
             const res = await fetch("/api/x402/verify", {

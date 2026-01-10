@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { parseX402Headers, type X402Invoice, type X402Allowance } from "./x402-client";
-import { transferChocoToken, requestWalletConnection, isWalletConnected, getCurrentAccountId } from "./wallet-client";
+import { transferChocoTokenGasless, requestWalletConnection, isWalletConnected, getCurrentAccountId } from "./wallet-client";
 
 export function useX402() {
     const [isOpen, setIsOpen] = useState(false);
@@ -37,8 +37,8 @@ export function useX402() {
                                 return handlePaymentSheet(x402, originalFetch, input, init);
                             }
 
-                            // 자동 결제 실행
-                            const txHash = await transferChocoToken(
+                            // 자동 결제 실행 (가스비 대납 사용)
+                            const txHash = await transferChocoTokenGasless(
                                 accountId,
                                 x402.invoice.recipient,
                                 x402.invoice.amount,
