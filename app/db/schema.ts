@@ -520,6 +520,21 @@ export const fanPost = sqliteTable("FanPost", {
     updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
 });
 
+export const relayerLog = sqliteTable("RelayerLog", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    requestIp: text("requestIp"),
+    txHash: text("txHash"),
+    error: text("error"),
+    status: text("status").notNull().default("SUCCESS"), // SUCCESS, FAILED
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+}, (table) => {
+    return [
+        index("RelayerLog_userId_createdAt_idx").on(table.userId, table.createdAt),
+        index("RelayerLog_requestIp_createdAt_idx").on(table.requestIp, table.createdAt),
+    ];
+});
+
 // ---------------------------------------------------------
 // Relations Definitions
 // ---------------------------------------------------------
@@ -539,6 +554,7 @@ export const userRelations = relations(user, ({ many }) => ({
     payments: many(payment),
     tokenTransfers: many(tokenTransfer),
     x402Invoices: many(x402Invoice),
+    relayerLogs: many(relayerLog),
     retweets: many(retweet),
     travelPlans: many(travelPlan),
     tweets: many(tweet),
@@ -831,5 +847,12 @@ export const characterStatRelations = relations(characterStat, ({ one }) => ({
     character: one(character, {
         fields: [characterStat.characterId],
         references: [character.id],
+    }),
+}));
+
+export const relayerLogRelations = relations(relayerLog, ({ one }) => ({
+    user: one(user, {
+        fields: [relayerLog.userId],
+        references: [user.id],
     }),
 }));
