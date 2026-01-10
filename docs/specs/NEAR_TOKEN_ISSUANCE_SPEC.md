@@ -198,29 +198,53 @@ export const tokenConfig = sqliteTable("TokenConfig", {
 
 **구현 위치**: `app/routes/api/token/balance.ts`
 
+**실제 구현** (완료됨):
 ```typescript
 export async function loader({ request }: LoaderFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
-    if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    
-    const user = await db.query.user.findFirst({
-        where: eq(schema.user.id, session.user.id),
-    });
-    
-    if (!user?.nearAccountId) {
-        return Response.json({ balance: "0", needsWallet: true });
+    if (!session || !session.user) {
+        return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
-    // 온체인 잔액 동기화 (캐싱 적용)
-    const balance = await syncTokenBalance(user.nearAccountId, user.chocoLastSyncAt);
-    
-    return Response.json({ 
-        balance,
-        symbol: "CHOCO",
-        decimals: 18,
+
+    const userId = session.user.id;
+    const user = await db.query.user.findFirst({
+        where: eq(schema.user.id, userId),
+        columns: { nearAccountId: true, chocoBalance: true },
+    });
+
+    if (!user?.nearAccountId) {
+        return Response.json({
+            chocoBalance: user?.chocoBalance || "0",
+            nearAccountId: null,
+            isSynced: false,
+            message: "NEAR wallet not linked"
+        });
+    }
+
+    // 1. 온체인 잔액 조회
+    const onChainBalance = await getChocoBalance(user.nearAccountId);
+
+    // 2. DB 동기화 (값이 다를 경우만)
+    if (onChainBalance !== user.chocoBalance) {
+        await db.update(schema.user)
+            .set({
+                chocoBalance: onChainBalance,
+                chocoLastSyncAt: new Date(),
+                updatedAt: new Date(),
+            })
+            .where(eq(schema.user.id, userId));
+    }
+
+    return Response.json({
+        chocoBalance: onChainBalance,
+        nearAccountId: user.nearAccountId,
+        isSynced: true,
+        lastSyncAt: new Date().toISOString()
     });
 }
 ```
+
+**참고**: 실제 구현에서는 캐싱 전략이 명시적으로 구현되지 않았으나, DB의 `chocoLastSyncAt` 필드로 추적 가능합니다.
 
 ### 6.2 토큰 전송 (X402 결제용)
 
@@ -360,7 +384,12 @@ export async function ensureStorageDeposit(nearAccountId: string) {
 
 ### 7.2 사용자 가입 시 자동 실행
 
-**구현 위치**: `app/lib/auth/wallet-init.server.ts`
+**구현 위치**: `app/lib/auth/wallet-init.server.ts` (미구현)
+
+**현재 상태**: 
+- `app/lib/near/wallet.server.ts`에 `linkNearWallet` 함수는 구현됨 ✅
+- 하지만 Storage Deposit 자동 실행 로직은 없음 ❌
+- 임베디드 지갑 생성 로직도 아직 구현되지 않음 ❌
 
 ```typescript
 export async function initializeUserWallet(userId: string, email: string) {
@@ -445,20 +474,22 @@ export async function initializeUserWallet(userId: string, email: string) {
 
 ### Phase 3: 백엔드 Integration (예상 소요: 2주)
 
-- [ ] **Storage Deposit 자동화**
-    *   `app/lib/near/storage-deposit.server.ts` 구현
-    *   사용자 가입 시 자동 실행 로직 추가
-- [ ] **토큰 잔액 동기화**
-    *   `app/lib/near/token-balance.server.ts` 구현
-    *   온체인 잔액 조회 및 DB 동기화 로직
-    *   캐싱 전략 적용 (5분 캐시)
-- [ ] **API 엔드포인트 구현**
-    *   `GET /api/token/balance`: 잔액 조회
-    *   `POST /api/token/transfer`: 토큰 전송 (X402용)
-    *   `POST /api/webhooks/near/token-deposit`: 입금 감지
-- [ ] **토큰 입금 감지 로직**
-    *   NEAR Indexer 연동 또는 폴링 방식 구현
-    *   입금 시 자동 크레딧 지급 로직
+- [ ] **Storage Deposit 자동화** (부분 완료)
+    *   `app/lib/near/storage-deposit.server.ts` 구현 필요
+    *   사용자 가입 시 자동 실행 로직 추가 필요
+    *   **현재 상태**: `app/lib/near/wallet.server.ts`에 지갑 매핑 로직만 구현됨
+- [x] **토큰 잔액 동기화** ✅ 완료
+    *   `app/lib/near/token.server.ts`에 `getChocoBalance` 함수 구현됨 ✅
+    *   `app/lib/near/client.server.ts`에 NEAR 연결 및 설정 구현됨 ✅
+    *   온체인 잔액 조회 및 DB 동기화 로직 구현됨 ✅
+    *   **참고**: 캐싱 전략은 명시적으로 구현되지 않았으나, DB에 `chocoLastSyncAt` 필드로 추적 가능
+- [x] **API 엔드포인트 구현** (부분 완료)
+    *   `GET /api/token/balance`: 잔액 조회 ✅ 구현 완료 (`app/routes/api/token/balance.ts`)
+    *   `POST /api/token/transfer`: 토큰 전송 (X402용) - 미구현
+    *   `POST /api/webhooks/near/token-deposit`: 입금 감지 - 미구현
+- [ ] **토큰 입금 감지 로직** (미구현)
+    *   NEAR Indexer 연동 또는 폴링 방식 구현 필요
+    *   입금 시 자동 크레딧 지급 로직 구현 필요
 
 ### Phase 4: X402 프로토콜 연동 (예상 소요: 2주)
 

@@ -1,6 +1,7 @@
 import { db } from "../db.server";
 import * as schema from "../../db/schema";
 import { eq } from "drizzle-orm";
+import { ensureStorageDeposit } from "./storage-deposit.server";
 
 /**
  * 사용자의 Better Auth 세션 ID와 NEAR 계정 주소를 연결합니다.
@@ -13,6 +14,15 @@ export async function linkNearWallet(
     nearAccountId: string,
     publicKey?: string
 ) {
+    // 1. NEAR 토큰 실령을 위한 Storage Deposit 자동 처리
+    try {
+        await ensureStorageDeposit(nearAccountId);
+    } catch (e) {
+        console.error("Failed to ensure storage deposit during linking:", e);
+        // 비즈니스 로직에 따라 에러를 던질지, 무시할지 결정 (여기서는 로그만 남김)
+    }
+
+    // 2. DB 업데이트
     await db.update(schema.user)
         .set({
             nearAccountId,
