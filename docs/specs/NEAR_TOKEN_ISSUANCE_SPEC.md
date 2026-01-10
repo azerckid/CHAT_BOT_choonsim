@@ -179,12 +179,12 @@ export const tokenConfig = sqliteTable("TokenConfig", {
     tokenSymbol: text("tokenSymbol").notNull().default("CHOCO"),
     tokenName: text("tokenName").notNull().default("CHOONSIM Token"),
     decimals: integer("decimals").notNull().default(18),
-    network: text("network").notNull().default("testnet"), // testnet, mainnet
-    isActive: integer("isActive", { mode: "boolean" }).notNull().default(true),
+    isEnabled: integer("isEnabled", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
-    updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
 });
 ```
+
+**참고**: 실제 구현에서는 `network`, `updatedAt` 필드가 생략되었고, `isActive` 대신 `isEnabled`를 사용합니다. 네트워크 정보는 환경 변수(`NEAR_NETWORK_ID`)로 관리하는 것으로 보입니다.
 
 ---
 
@@ -411,35 +411,37 @@ export async function initializeUserWallet(userId: string, email: string) {
 
 ### Phase 1: 테스트넷 토큰 발행 (예상 소요: 1주)
 
-- [ ] **토큰 팩토리를 통한 발행**
-    *   NEAR Testnet에 `CHOCO.testnet` 발행
-    *   Ref Finance Token Factory 또는 NEAR Token Factory 사용
+- [x] **토큰 팩토리를 통한 발행** ✅ 완료
+    *   NEAR Testnet에 `choco.token.primitives.testnet` 발행 완료
+    *   `token.primitives.testnet` 팩토리 사용 (near-cli-rs)
     *   메타데이터 설정:
-        - 이름: "CHOONSIM Token"
-        - 심볼: "CHOCO"
-        - Decimals: 18
-        - 총 발행량: 1,000,000,000 CHOCO
-        - 아이콘: 춘심 캐릭터 이미지 (Cloudinary URL)
-    *   발행 후 컨트랙트 주소를 환경 변수에 저장 (`CHOCO_TOKEN_CONTRACT`)
-- [ ] **메타데이터 검증**
-    *   NEAR Explorer에서 토큰 정보 확인
-    *   지갑 앱에서 토큰 표시 확인
-- [ ] **초기 유통량 설정**
-    *   서비스 운영 계정으로 100M CHOCO 전송
-    *   나머지 900M CHOCO는 컨트랙트에 잠금
+        - 이름: "CHOONSIM Token" ✅
+        - 심볼: "CHOCO" ✅
+        - Decimals: 18 ✅
+        - 총 발행량: 1,000,000,000 CHOCO ✅
+        - 아이콘: (추후 추가 가능)
+    *   발행 후 컨트랙트 주소: `choco.token.primitives.testnet`
+    *   트랜잭션 ID: `6rkNPkREnpuoSbZ6PKjmjALmDArz8xLa5qykZXFGynWH`
+- [x] **메타데이터 검증** ✅ 완료
+    *   NEAR Explorer에서 토큰 정보 확인 가능
+    *   MyNearWallet에서 토큰 표시 확인 가능
+- [ ] **초기 유통량 설정** (선택사항)
+    *   서비스 운영 계정으로 100M CHOCO 전송 (필요 시)
+    *   나머지 900M CHOCO는 컨트랙트에 잠금 (현재 전체가 `rogulus.testnet`에 있음)
 
 ### Phase 2: 데이터베이스 스키마 확장 (예상 소요: 2일)
 
-- [ ] **스키마 수정**
-    *   User 테이블에 `chocoBalance`, `chocoLastSyncAt` 필드 추가
-    *   TokenTransfer 테이블 생성
-    *   TokenConfig 테이블 생성
-- [ ] **마이그레이션 생성 및 적용**
-    *   `npx drizzle-kit generate`
-    *   `npx drizzle-kit push`
-- [ ] **환경 변수 설정**
-    *   `.env.development`에 `CHOCO_TOKEN_CONTRACT` 추가
-    *   `.env.production`에도 동일하게 설정
+- [x] **스키마 수정** ✅ 완료
+    *   User 테이블에 `chocoBalance`, `chocoLastSyncAt` 필드 추가 ✅
+    *   TokenTransfer 테이블 생성 ✅
+    *   TokenConfig 테이블 생성 ✅
+- [x] **마이그레이션 생성 및 적용** ✅ 완료
+    *   `npx drizzle-kit generate` 실행 완료 (0002_complex_human_fly.sql)
+    *   `npx drizzle-kit push` 적용 완료
+- [ ] **환경 변수 설정** (확인 필요)
+    *   `.env.development`에 `CHOCO_TOKEN_CONTRACT=choco.token.primitives.testnet` 추가 필요
+    *   `.env.production`에도 동일하게 설정 필요
+    *   **참고**: `.env` 파일은 `.gitignore`에 포함되어 있어 직접 확인 필요
 
 ### Phase 3: 백엔드 Integration (예상 소요: 2주)
 
