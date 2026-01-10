@@ -551,24 +551,39 @@ export async function initializeUserWallet(userId: string, email: string) {
     *   **개선 필요**: `calculateCreditsFromChoco` 함수 분리 필요 (현재 1:1 가정)
 
 ### Phase 4: X402 프로토콜 연동 (예상 소요: 2주)
-- [x] **X402 Interceptor 구현** ✅ 완료
-    *   `app/lib/near/x402-client.ts` 및 `use-x402.ts` 구현 완료
-    *   글로벌 fetch 가로채기 및 402 에러 처리 로직 통합
-- [x] **Silent Payment (Payment Allowance) 로직** ✅ 완료
-    *   `app/lib/near/silent-payment.server.ts` 구현 완료
-    *   한도 조회 및 체크 로직 서버 사이드 준비 완료
-- [x] **결제 완료 후 Credits 차감 로직** ✅ 완료
-    *   `app/lib/near/x402.server.ts` 내 `verifyX402Payment`에서 차감 및 동기화 구현
+
+- [x] **X402 Gatekeeper (서버 사이드)** ✅ 완료
+    *   `app/lib/near/x402.server.ts` 구현 완료
+    *   `createX402Invoice`, `createX402Response`, `verifyX402Payment` 함수 구현 ✅
+    *   CHOCO 토큰 인보이스 생성 및 검증 로직 완료 ✅
+    *   `app/routes/api/chat/index.ts`에 통합됨 ✅
+- [x] **X402 Interceptor (클라이언트 사이드)** ✅ 완료
+    *   `app/lib/near/x402-client.ts` 및 `use-x402.ts` 구현 완료 ✅
+    *   글로벌 fetch 가로채기 및 402 에러 처리 로직 통합 ✅
+    *   `app/root.tsx`에 전역 통합 완료 ✅
+- [x] **결제 검증 API** ✅ 완료
+    *   `app/routes/api/x402/verify.ts` 구현 완료 ✅
+    *   트랜잭션 검증 및 크레딧 자동 충전 로직 완료 ✅
 - [x] **UI 통합** ✅ 완료
-    *   `app/components/wallet/WalletBalance.tsx`: 잔액 대시보드
-    *   `app/components/payment/PaymentSheet.tsx`: 원클릭 결제 시트
-    *   `app/root.tsx` 전역 통합 완료
-es/api/payment/near/create-request.ts`: CHOCO 토큰 지원 추가
-    *   `app/routes/api/payment/near/verify.ts`: 토큰 전송 검증 로직 추가
+    *   `app/components/payment/PaymentSheet.tsx`: 원클릭 결제 시트 구현 완료 ✅
+    *   `app/root.tsx` 전역 통합 완료 ✅
+    *   ⚠️ 실제 지갑 연동은 시뮬레이션 모드 (임베디드 지갑 통합 필요)
+- [x] **Silent Payment (Payment Allowance) 로직** ⚠️ 부분 완료
+    *   `app/lib/near/silent-payment.server.ts` 구현 완료 ✅
+    *   한도 조회 및 체크 로직 서버 사이드 준비 완료 ✅
+    *   ⚠️ 채팅 API에서 실제 사용되지 않음 (import만 되어 있음)
+    *   ⚠️ 자동 결제 로직 미구현 (한도 내 자동 `ft_transfer_call` 실행 필요)
+- [ ] **토큰 전송 API** (미구현)
+    *   `POST /api/token/transfer`: 미구현
+    *   `ft_transfer_call` 트랜잭션 생성 로직 미구현
+    *   **참고**: 현재는 클라이언트에서 직접 지갑 연동 필요
+- [ ] **기존 NEAR 결제 코드 리팩토링** (부분 완료)
+    *   `app/routes/api/payment/near/create-request.ts`: CHOCO 토큰 지원 추가 필요
+    *   `app/routes/api/payment/near/verify.ts`: 토큰 전송 검증 로직 추가 필요
 - [ ] **테스트**
-    *   테스트넷에서 전체 플로우 테스트
-    *   한도 내 자동 결제 테스트
-    *   한도 초과 시 사용자 승인 플로우 테스트
+    *   테스트넷에서 전체 플로우 테스트 필요
+    *   한도 내 자동 결제 테스트 필요
+    *   한도 초과 시 사용자 승인 플로우 테스트 필요
 
 ### Phase 5: 가스비 대납 (Relayer) 구현 (예상 소요: 1주)
 

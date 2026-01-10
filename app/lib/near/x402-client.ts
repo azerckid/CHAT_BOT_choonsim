@@ -11,18 +11,34 @@ export interface X402Invoice {
     tokenContract: string;
 }
 
+export interface X402Allowance {
+    canAutoPay: boolean;
+    remainingAllowance?: number;
+}
+
 /**
  * 402 응답에서 X402 메타데이터를 추출합니다.
  */
 export function parseX402Headers(response: Response) {
     const token = response.headers.get("X-x402-Token");
     const invoiceRaw = response.headers.get("X-x402-Invoice");
+    const allowanceRaw = response.headers.get("X-x402-Allowance");
 
     if (!token || !invoiceRaw) return null;
 
     try {
         const invoice: X402Invoice = JSON.parse(invoiceRaw);
-        return { token, invoice };
+        let allowance: X402Allowance | null = null;
+        
+        if (allowanceRaw) {
+            try {
+                allowance = JSON.parse(allowanceRaw);
+            } catch (e) {
+                console.warn("Failed to parse X402 Allowance header", e);
+            }
+        }
+        
+        return { token, invoice, allowance };
     } catch (e) {
         console.error("Failed to parse X402 Invoice header", e);
         return null;

@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
-import { parseX402Headers, type X402Invoice } from "./x402-client";
+import { parseX402Headers, type X402Invoice, type X402Allowance } from "./x402-client";
+import { transferChocoToken, requestWalletConnection, isWalletConnected, getCurrentAccountId } from "./wallet-client";
 
 export function useX402() {
     const [isOpen, setIsOpen] = useState(false);
     const [activeInvoice, setActiveInvoice] = useState<X402Invoice | null>(null);
     const [activeToken, setActiveToken] = useState<string | null>(null);
+    const [activeAllowance, setActiveAllowance] = useState<X402Allowance | null>(null);
     const [retryFn, setRetryFn] = useState<(() => void) | null>(null);
 
     /**
@@ -19,21 +21,77 @@ export function useX402() {
             if (response.status === 402) {
                 const x402 = parseX402Headers(response);
                 if (x402) {
-                    return new Promise((resolve) => {
-                        setActiveInvoice(x402.invoice);
-                        setActiveToken(x402.token);
-                        setIsOpen(true);
+                    // 한도 내 자동 결제 시도
+                    if (x402.allowance?.canAutoPay && x402.invoice) {
+                        try {
+                            const connected = await isWalletConnected();
+                            if (!connected) {
+                                // 지갑 연결 필요 - 결제 시트 표시
+                                return handlePaymentSheet(x402, originalFetch, input, init);
+                            }
 
-                        // 결제 성공 후 실행할 재시도 함수 정의
-                        setRetryFn(() => async () => {
-                            const retriedResponse = await originalFetch(input, init);
-                            resolve(retriedResponse);
-                        });
-                    });
+                            // 계정 ID 가져오기
+                            const accountId = await getCurrentAccountId();
+                            if (!accountId) {
+                                // 계정 ID 없음 - 결제 시트 표시
+                                return handlePaymentSheet(x402, originalFetch, input, init);
+                            }
+
+                            // 자동 결제 실행
+                            const txHash = await transferChocoToken(
+                                accountId,
+                                x402.invoice.recipient,
+                                x402.invoice.amount,
+                                x402.invoice.tokenContract
+                            );
+
+                            // 결제 검증
+                            const verifyRes = await fetch("/api/x402/verify", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ token: x402.token, txHash }),
+                            });
+
+                            if (verifyRes.ok) {
+                                // 원래 요청 재시도
+                                return originalFetch(input, init);
+                            } else {
+                                // 검증 실패 시 결제 시트 표시
+                                return handlePaymentSheet(x402, originalFetch, input, init);
+                            }
+                        } catch (error) {
+                            console.error("Auto payment failed:", error);
+                            // 자동 결제 실패 시 결제 시트 표시
+                            return handlePaymentSheet(x402, originalFetch, input, init);
+                        }
+                    } else {
+                        // 한도 초과 또는 한도 없음 - 결제 시트 표시
+                        return handlePaymentSheet(x402, originalFetch, input, init);
+                    }
                 }
             }
 
             return response;
+        };
+
+        const handlePaymentSheet = (
+            x402: { token: string; invoice: X402Invoice; allowance?: X402Allowance | null },
+            originalFetch: typeof fetch,
+            input: RequestInfo | URL,
+            init?: RequestInit
+        ): Promise<Response> => {
+            return new Promise((resolve) => {
+                setActiveInvoice(x402.invoice);
+                setActiveToken(x402.token);
+                setActiveAllowance(x402.allowance || null);
+                setIsOpen(true);
+
+                // 결제 성공 후 실행할 재시도 함수 정의
+                setRetryFn(() => async () => {
+                    const retriedResponse = await originalFetch(input, init);
+                    resolve(retriedResponse);
+                });
+            });
         };
 
         return () => {
@@ -59,6 +117,7 @@ export function useX402() {
         isOpen,
         token: activeToken,
         invoice: activeInvoice,
+        allowance: activeAllowance,
         handleSuccess,
         handleClose
     };

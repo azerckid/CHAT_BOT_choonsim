@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, CheckCircle2, ShieldCheck, ArrowRight, Wallet } from "lucide-react";
+import { transferChocoToken, requestWalletConnection, isWalletConnected, getChocoBalance, getCurrentAccountId } from "~/lib/near/wallet-client";
 
 interface PaymentSheetProps {
     isOpen: boolean;
@@ -24,40 +25,109 @@ export function PaymentSheet({
     const [isProcessing, setIsProcessing] = useState(false);
     const [step, setStep] = useState<'review' | 'success'>('review');
     const [txHash, setTxHash] = useState("");
+    const [walletConnected, setWalletConnected] = useState(false);
+    const [accountId, setAccountId] = useState<string | null>(null);
+    const [balance, setBalance] = useState<string>("0");
+    const [error, setError] = useState<string | null>(null);
+
+    // 지갑 연결 상태 확인
+    useEffect(() => {
+        if (isOpen) {
+            checkWalletStatus();
+        }
+    }, [isOpen]);
+
+    const checkWalletStatus = async () => {
+        const connected = await isWalletConnected();
+        setWalletConnected(connected);
+        
+        if (connected) {
+            const account = await getCurrentAccountId();
+            setAccountId(account);
+            
+            if (account) {
+                try {
+                    const bal = await getChocoBalance(account, invoice.tokenContract);
+                    setBalance(bal);
+                } catch (e) {
+                    console.error("Failed to fetch balance:", e);
+                }
+            }
+        }
+    };
 
     if (!isOpen) return null;
 
-    const handlePay = async () => {
+    const handleConnectWallet = async () => {
         setIsProcessing(true);
+        setError(null);
+        
         try {
-            // 임시 결제 시뮬레이션 (실제로는 임베디드 지갑의 ft_transfer 호출)
-            console.log("Processing payment for invoice:", invoice);
+            const account = await requestWalletConnection();
+            if (account) {
+                setAccountId(account);
+                setWalletConnected(true);
+                const bal = await getChocoBalance(account, invoice.tokenContract);
+                setBalance(bal);
+            } else {
+                setError("지갑 연결에 실패했습니다.");
+            }
+        } catch (e: any) {
+            console.error("Wallet connection error:", e);
+            setError(e.message || "지갑 연결 중 오류가 발생했습니다.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
-            // 2초 대기
-            await new Promise(resolve => setTimeout(resolve, 2000));
+    const handlePay = async () => {
+        if (!walletConnected || !accountId) {
+            await handleConnectWallet();
+            return;
+        }
 
-            // 시뮬레이션된 Tx Hash
-            const fakeTxHash = "Hq8k..." + Math.random().toString(36).substring(7);
+        setIsProcessing(true);
+        setError(null);
+        
+        try {
+            // 잔액 확인
+            const currentBalance = parseFloat(balance);
+            const requiredAmount = parseFloat(invoice.amount);
+            
+            if (currentBalance < requiredAmount) {
+                setError(`잔액이 부족합니다. (보유: ${balance} CHOCO, 필요: ${invoice.amount} CHOCO)`);
+                setIsProcessing(false);
+                return;
+            }
+
+            // CHOCO 토큰 전송
+            const txHashResult = await transferChocoToken(
+                accountId,
+                invoice.recipient,
+                invoice.amount,
+                invoice.tokenContract
+            );
 
             // 서버에 결제 검증 요청
             const res = await fetch("/api/x402/verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ token, txHash: fakeTxHash })
+                body: JSON.stringify({ token, txHash: txHashResult })
             });
 
             if (res.ok) {
-                setTxHash(fakeTxHash);
+                setTxHash(txHashResult);
                 setStep('success');
                 setTimeout(() => {
-                    onSuccess(fakeTxHash);
+                    onSuccess(txHashResult);
                 }, 1500);
             } else {
-                alert("결제 검증에 실패했습니다.");
+                const errorData = await res.json();
+                setError(errorData.error || "결제 검증에 실패했습니다.");
             }
-        } catch (e) {
-            console.error(e);
-            alert("결제 중 오류가 발생했습니다.");
+        } catch (e: any) {
+            console.error("Payment error:", e);
+            setError(e.message || "결제 중 오류가 발생했습니다.");
         } finally {
             setIsProcessing(false);
         }
@@ -88,28 +158,56 @@ export function PaymentSheet({
                                 <div className="info-row">
                                     <span className="label">결제 수단</span>
                                     <span className="value flex-center">
-                                        <Wallet size={14} className="mr-4" /> 춘심 지갑 (NEAR)
+                                        <Wallet size={14} className="mr-4" />
+                                        {walletConnected && accountId ? (
+                                            <span className="truncate">{accountId}</span>
+                                        ) : (
+                                            <span>NEAR 지갑 연결 필요</span>
+                                        )}
                                     </span>
                                 </div>
+                                {walletConnected && accountId && (
+                                    <div className="info-row">
+                                        <span className="label">CHOCO 잔액</span>
+                                        <span className="value">{balance} CHOCO</span>
+                                    </div>
+                                )}
                                 <div className="info-row">
                                     <span className="label">수신처</span>
                                     <span className="value truncate">{invoice.recipient}</span>
                                 </div>
                             </div>
 
+                            {error && (
+                                <div className="error-message">
+                                    {error}
+                                </div>
+                            )}
+
                             <div className="security-badge">
                                 <ShieldCheck size={16} className="text-success" />
                                 <span>온체인 보안 기술로 보호되는 안전한 거래입니다.</span>
                             </div>
 
-                            <button
-                                className={`pay-button ${isProcessing ? 'loading' : ''}`}
-                                onClick={handlePay}
-                                disabled={isProcessing}
-                            >
-                                {isProcessing ? '트랜잭션 승인 중...' : '결제하기'}
-                                {!isProcessing && <ArrowRight size={18} />}
-                            </button>
+                            {!walletConnected ? (
+                                <button
+                                    className={`pay-button ${isProcessing ? 'loading' : ''}`}
+                                    onClick={handleConnectWallet}
+                                    disabled={isProcessing}
+                                >
+                                    {isProcessing ? '지갑 연결 중...' : '지갑 연결하기'}
+                                    {!isProcessing && <ArrowRight size={18} />}
+                                </button>
+                            ) : (
+                                <button
+                                    className={`pay-button ${isProcessing ? 'loading' : ''}`}
+                                    onClick={handlePay}
+                                    disabled={isProcessing}
+                                >
+                                    {isProcessing ? '트랜잭션 승인 중...' : '결제하기'}
+                                    {!isProcessing && <ArrowRight size={18} />}
+                                </button>
+                            )}
                         </>
                     ) : (
                         <div className="success-view">
@@ -296,6 +394,17 @@ export function PaymentSheet({
                     100% { transform: scale(1); opacity: 1; }
                 }
                 .pulse { animation: pulse 2s infinite ease-in-out; }
+
+                .error-message {
+                    background: rgba(239, 68, 68, 0.1);
+                    border: 1px solid rgba(239, 68, 68, 0.3);
+                    border-radius: 12px;
+                    padding: 12px;
+                    margin-bottom: 16px;
+                    color: #fca5a5;
+                    font-size: 14px;
+                    text-align: center;
+                }
             ` }} />
         </div>
     );
