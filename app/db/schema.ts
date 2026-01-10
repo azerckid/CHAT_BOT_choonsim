@@ -30,6 +30,14 @@ export const user = sqliteTable("User", {
     lastTokenRefillAt: integer("lastTokenRefillAt", { mode: "timestamp" }),
     credits: integer("credits").notNull().default(100),
     role: text("role").default("USER"),
+    nearAccountId: text("nearAccountId").unique(),
+    nearPublicKey: text("nearPublicKey"),
+    chocoBalance: text("chocoBalance").notNull().default("0"), // BigNumber string
+    chocoLastSyncAt: integer("chocoLastSyncAt", { mode: "timestamp" }),
+    heartsCount: integer("heartsCount").notNull().default(0),
+    allowanceAmount: real("allowanceAmount").default(0),
+    allowanceCurrency: text("allowanceCurrency").default("USD"),
+    allowanceExpiresAt: integer("allowanceExpiresAt", { mode: "timestamp" }),
 });
 
 export const account = sqliteTable("account", {
@@ -431,6 +439,52 @@ export const systemLog = sqliteTable("SystemLog", {
     createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 });
 
+export const tokenTransfer = sqliteTable("TokenTransfer", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    txHash: text("txHash").notNull().unique(),
+    amount: text("amount").notNull(), // BigNumber
+    tokenContract: text("tokenContract").notNull(),
+    status: text("status").notNull().default("PENDING"), // PENDING, COMPLETED, FAILED
+    purpose: text("purpose").notNull(), // PAYMENT, TOPUP, WITHDRAW
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+}, (table) => {
+    return [
+        index("TokenTransfer_userId_idx").on(table.userId),
+        index("TokenTransfer_txHash_idx").on(table.txHash),
+    ];
+});
+
+export const tokenConfig = sqliteTable("TokenConfig", {
+    id: text("id").primaryKey(),
+    tokenContract: text("tokenContract").notNull().unique(),
+    tokenSymbol: text("tokenSymbol").notNull().default("CHOCO"),
+    tokenName: text("tokenName").notNull().default("CHOONSIM Token"),
+    decimals: integer("decimals").notNull().default(18),
+    isEnabled: integer("isEnabled", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+
+export const x402Invoice = sqliteTable("X402Invoice", {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(), // Invoice identifier token
+    userId: text("userId").notNull(),
+    amount: real("amount").notNull(), // USD
+    currency: text("currency").notNull().default("USD"),
+    chocoAmount: text("chocoAmount").notNull(), // BigNumber
+    recipientAddress: text("recipientAddress").notNull(),
+    status: text("status").notNull().default("PENDING"), // PENDING, PAID, EXPIRED
+    txHash: text("txHash").unique(),
+    expiresAt: integer("expiresAt", { mode: "timestamp" }),
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    paidAt: integer("paidAt", { mode: "timestamp" }),
+}, (table) => {
+    return [
+        index("X402Invoice_token_idx").on(table.token),
+        index("X402Invoice_userId_status_idx").on(table.userId, table.status),
+    ];
+});
+
 export const mission = sqliteTable("Mission", {
     id: text("id").primaryKey(),
     title: text("title").notNull(),
@@ -483,6 +537,8 @@ export const userRelations = relations(user, ({ many }) => ({
     likes: many(like),
     messageLikes: many(messageLike),
     payments: many(payment),
+    tokenTransfers: many(tokenTransfer),
+    x402Invoices: many(x402Invoice),
     retweets: many(retweet),
     travelPlans: many(travelPlan),
     tweets: many(tweet),
@@ -753,6 +809,20 @@ export const messageLikeRelations = relations(messageLike, ({ one }) => ({
 export const paymentRelations = relations(payment, ({ one }) => ({
     user: one(user, {
         fields: [payment.userId],
+        references: [user.id],
+    }),
+}));
+
+export const tokenTransferRelations = relations(tokenTransfer, ({ one }) => ({
+    user: one(user, {
+        fields: [tokenTransfer.userId],
+        references: [user.id],
+    }),
+}));
+
+export const x402InvoiceRelations = relations(x402Invoice, ({ one }) => ({
+    user: one(user, {
+        fields: [x402Invoice.userId],
         references: [user.id],
     }),
 }));

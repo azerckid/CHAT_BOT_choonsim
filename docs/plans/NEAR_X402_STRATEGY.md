@@ -15,6 +15,11 @@
   To-Be: 402 응답 감지 -> 백그라운드 결제 -> 결과 표시 (X402의 정석)
   이 설계는 유저가 블록체인 트랜잭션을 기다리는 지루한 시간을 **'지능형 로딩 인디케이터(캐릭터 애니메이션)'**로 치환하여 감성적 가치까지 더하고 있습니다.
 
+### 4. 자산 동기화 모델 (Asset Synchronization)
+*   **CHOCO(온체인)**와 **크레딧(오프체인)**은 실시간으로 연동되어 함께 줄어듭니다.
+*   **소모 시나리오**: AI 채팅 발생 → 10 크레딧 소모 결정 → X402를 통해 10 CHOCO 전송 → 확인 시 앱 내 10 크레딧 차감.
+*   **격리 원칙**: 하트(Heart)는 선물을 위한 **아이템**이므로 위 결제 흐름(Chat/AI)에 영향을 주지 않으며 독립적으로 관리됩니다.
+
 ---
 
 ## 1. 개요 및 목표
@@ -23,12 +28,19 @@
 
 이 문서는 **CHAT-BOTS** 프로젝트의 NEAR Protocol 통합 전략 문서입니다.
 
+**관련 문서**:
+- `docs/specs/NEAR_X402_UI_SPEC.md`: UI/UX 디자인 사양 (이 문서의 Phase 1-2 구현 가이드)
+- `docs/specs/NEAR_TOKEN_ISSUANCE_SPEC.md`: CHOCO 토큰 발행 및 관리 명세 (x402 프로토콜과 통합)
+- `docs/specs/CHOCO_TOKEN_CREATION_GUIDE.md`: 실제 토큰 발행 성공 가이드 (Testnet)
+
 **현재 프로젝트 상태**:
 - **프레임워크**: React Router v7 (Vite)
 - **인증**: Better Auth (Google, Kakao, Twitter)
 - **데이터베이스**: Turso (libSQL) with Drizzle ORM
 - **AI 엔진**: Google Gemini API (LangChain)
-- **현재 구현 상태**: NEAR 초기 모델링 단계 (패키지 설치 및 기본 결제 API 틀 존재)
+- **현재 구현 상태**: Phase 1 (테스트넷 토큰 발행) 완료
+  - **CHOCO 토큰**: `choco.token.primitives.testnet` (발행일: 2026-01-11)
+  - **소유자**: `rogulus.testnet`
 
 **현재 구현된 기초 내역 (Refactoring 대상)**:
 - NEAR 결제 요청 생성 (`app/routes/api/payment/near/create-request.ts`)
@@ -100,44 +112,55 @@
 
 ### Phase 1: UI 컴포넌트 디자인 및 프로토타입 (예상 소요: 1-2주)
 
-**목표**: UI_SPEC 문서 기반으로 모든 UI 컴포넌트를 디자인하고 프로토타입 구현
+**목표**: `docs/specs/NEAR_X402_UI_SPEC.md` 문서 기반으로 모든 UI 컴포넌트를 디자인하고 프로토타입 구현
+
+**참고 문서**: `docs/specs/NEAR_X402_UI_SPEC.md`의 "4. 주요 UI 컴포넌트 사양" 섹션을 상세 구현 가이드로 사용
 
 **작업 항목**:
 - [ ] **자산 표시기 (Currency/Balance Indicator)** 구현
   - 컴포넌트: `app/components/wallet/WalletBalance.tsx`
+  - UI_SPEC 4.1절 참조: `[하트 아이콘] 1,250` 형식 표시
   - 더미 데이터 사용 (예: `balance: 1250`)
-  - 하트 아이콘 및 툴팁 구현
+  - 하트 아이콘 및 툴팁 구현 ("온체인 보안 기술로 보호되는 소중한 자산입니다.")
   - 지갑 주소 마스킹 표시 (`near...a2b3`)
 - [ ] **하단 결제 시트 (One-Tap Payment Sheet)** 구현
   - 컴포넌트: `app/components/payment/PaymentSheet.tsx`
-  - Bottom Sheet 레이아웃 (shadcn/ui Dialog 활용)
+  - UI_SPEC 4.2절 참조: Bottom Sheet 레이아웃 (shadcn/ui Dialog 활용)
+  - 구조: Header (상품명 및 가격), Body (현재 잔액 vs 결제 후 잔액), Action ("원클릭 결제하기")
   - Glassmorphism 스타일 적용
   - 더미 데이터로 결제 플로우 시뮬레이션
-  - 애니메이션 효과 (펄스, 파티클 등)
+  - 애니메이션 효과 (펄스, 파티클 등) - UI_SPEC 6.2절 참조
 - [ ] **지능형 로딩 인디케이터 (Progressive Loading)** 구현
   - 컴포넌트: `app/components/payment/PaymentLoading.tsx`
-  - 캐릭터 관련 메시지 표시
+  - UI_SPEC 4.3절 참조: 캐릭터 관련 메시지 표시
+    - 예: "춘심이가 하트를 바구니에 담고 있어요...", "온체인 보안 확인 중..."
   - 단계별 피드백 ("보안 연결 중" → "결제 승인 중" → "지급 완료")
   - 애니메이션 효과
 - [ ] **자율 결제(Allowance) 설정 UI** 구현
   - 컴포넌트: `app/components/settings/AllowanceSettings.tsx`
+  - UI_SPEC 4.4절 참조: "오늘 하루 $10까지는 추가 확인 없이 즉시 결제 승인" 옵션
   - 설정 메뉴에 통합
   - 더미 데이터로 한도 설정 시뮬레이션
 - [ ] **지갑 내보내기 UI** 구현
   - 컴포넌트: `app/components/settings/WalletExport.tsx`
-  - 설정 메뉴 깊은 곳에 배치
-  - 2단계 보안 해제 케이스 구현
+  - UI_SPEC 5절 참조: 설정 > 계정 및 보안 > 고급 데이터 관리 > 자산 소유권 확인
+  - 2단계 보안 해제 케이스 구현 (2FA → 경고 팝업 → 10초 대기)
   - 더미 데이터로 내보내기 플로우 시뮬레이션
 
-**디자인 가이드라인**:
-- UI_SPEC 문서의 색상 팔레트 준수 (`#EC4899`, `#10B981` 등)
-- Glassmorphism 스타일 적용
-- Micro-animations 구현
+**디자인 가이드라인** (`docs/specs/NEAR_X402_UI_SPEC.md` 참조):
+- 색상 팔레트: Primary `#EC4899`, Success `#10B981` (UI_SPEC 6.1절)
+- Glassmorphism 스타일 적용 (UI_SPEC 6.1절)
+- Micro-animations 구현 (UI_SPEC 6.2절)
 - 반응형 디자인 (모바일 우선)
+- 용어 추상화: "하트(Hearts)", "초코(Choco)" 사용 (UI_SPEC 1.1절)
 
-**검증**:
+**검증** (`docs/specs/NEAR_X402_UI_SPEC.md` 기준):
 - [ ] 모든 UI 컴포넌트가 UI_SPEC 문서의 사양을 충족하는지 확인
-- [ ] 디자인 시스템 일관성 확인
+  - 4.1절: 자산 표시기 (Currency/Balance Indicator)
+  - 4.2절: 하단 결제 시트 (One-Tap Payment Sheet)
+  - 4.3절: 지능형 로딩 인디케이터 (Progressive Loading)
+  - 4.4절: 자율 결제(Allowance) 설정 UI
+- [ ] 디자인 시스템 일관성 확인 (UI_SPEC 6절 참조)
 - [ ] 사용자 테스트 (프로토타입 단계)
 
 ---
@@ -463,9 +486,10 @@ export async function createX402Invoice(
     // 1. 고유 토큰 생성
     const token = crypto.randomBytes(32).toString("hex");
 
-    // 2. NEAR 금액 계산
-    const nearPrice = await getNearPrice();
-    const nearAmount = amount / nearPrice;
+    // 2. CHOCO 토큰 금액 계산 (NEAR 네이티브 코인 대신 CHOCO 토큰 사용)
+    // 참고: docs/specs/NEAR_TOKEN_ISSUANCE_SPEC.md의 토크노믹스 전략 참조
+    const chocoPrice = await getChocoPrice(); // USD per CHOCO
+    const chocoAmount = amount / chocoPrice;
 
     // 3. 인보이스 생성 (DB 저장)
     const invoiceId = crypto.randomUUID();
@@ -484,8 +508,9 @@ export async function createX402Invoice(
         token,
         invoice: {
             recipient: recipientAddress,
-            amount: nearAmount,
-            currency: "NEAR",
+            amount: chocoAmount,
+            currency: "CHOCO", // CHOCO 토큰 사용 (NEP-141)
+            tokenContract: process.env.CHOCO_TOKEN_CONTRACT!, // CHOCO 토큰 컨트랙트 주소
         },
     };
 }
@@ -528,12 +553,14 @@ export class X402Interceptor {
                 response.headers.get("X-x402-Invoice") || "{}"
             );
 
-            // 한도 확인
-            if (invoice.amount > this.allowance) {
+            // 한도 확인 (USD 기준)
+            const invoiceAmountUSD = invoice.amount * (await getChocoPrice());
+            if (invoiceAmountUSD > this.allowance) {
                 throw new Error("Allowance exceeded");
             }
 
             // 자동 결제 (임베디드 지갑 사용)
+            // CHOCO 토큰 전송: ft_transfer_call 사용
             const txHash = await this.payInvoice(invoice);
 
             // 결제 검증
@@ -553,6 +580,8 @@ export class X402Interceptor {
 
     private async payInvoice(invoice: any): Promise<string> {
         // 임베디드 지갑을 통한 자동 결제
+        // CHOCO 토큰 전송: ft_transfer_call 사용 (NEP-141 표준)
+        // 참고: docs/specs/NEAR_TOKEN_ISSUANCE_SPEC.md의 4.3절 참조
         // Privy 또는 선택된 솔루션의 API 사용
         // ...
         return "tx_hash_here";
