@@ -73,3 +73,27 @@ export function getMonthlyCredits(tier: string): number {
     const plan = SUBSCRIPTION_PLANS[tier as keyof typeof SUBSCRIPTION_PLANS];
     return plan ? plan.creditsPerMonth : 0;
 }
+
+/**
+ * CHOCO 토큰을 크레딧으로 환산합니다.
+ * @param chocoAmount CHOCO 토큰 수량 (인간이 읽을 수 있는 단위, decimals 18 적용된 값)
+ * @returns 크레딧 수량
+ * 
+ * 현재 환율: 1 CHOCO = 1 Credit (임시)
+ * 향후 USD 환율 적용 시 이 함수를 수정하여 실제 환율을 반영할 수 있습니다.
+ */
+export function calculateCreditsFromChoco(chocoAmount: number | string): number {
+    const amount = typeof chocoAmount === "string" ? parseFloat(chocoAmount) : chocoAmount;
+    
+    if (isNaN(amount) || amount <= 0) {
+        return 0;
+    }
+
+    // 현재는 1:1 환율 적용
+    // 향후 USD 환율 적용 시:
+    // const chocoPriceUSD = await getChocoPriceUSD(); // USD per CHOCO
+    // const creditsPerUSD = 10000; // 1 USD = 10,000 Credits (1 Credit = $0.0001)
+    // return Math.floor(amount * chocoPriceUSD * creditsPerUSD);
+    
+    return Math.floor(amount);
+}

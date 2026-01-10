@@ -7,6 +7,8 @@ import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { logger } from "~/lib/logger.server";
 import * as schema from "~/db/schema";
 import { eq, and, sql, desc, gte, count } from "drizzle-orm";
+import { createX402Invoice, createX402Response } from "~/lib/near/x402.server";
+import { checkSilentPaymentAllowance } from "~/lib/near/silent-payment.server";
 
 const chatSchema = z.object({
     message: z.string().optional().default(""),
@@ -51,9 +53,20 @@ export async function action({ request }: ActionFunctionArgs) {
         }),
         db.query.user.findFirst({
             where: eq(schema.user.id, session.user.id),
-            columns: { bio: true, subscriptionTier: true, credits: true },
+            columns: { id: true, bio: true, subscriptionTier: true, credits: true, nearAccountId: true },
         }),
     ]);
+
+    // **X402 결제 체크**
+    const MIN_REQUIRED_CREDITS = 10;
+    if (!currentUser || (currentUser.credits ?? 0) < MIN_REQUIRED_CREDITS) {
+        // 1. 인보이스 생성 ($0.1 = 약 1,000 Credits 충전용 최소 단위 가정)
+        const amountToChargeUSD = 0.1;
+        const { token, invoice } = await createX402Invoice(session.user.id, amountToChargeUSD);
+
+        // 2. 402 Payment Required 응답 반환
+        return createX402Response(token, invoice);
+    }
 
     // bio에서 페르소나 모드 및 기억(Summary) 파싱
     let personality: any = "hybrid";
@@ -107,14 +120,8 @@ export async function action({ request }: ActionFunctionArgs) {
             request.signal.addEventListener("abort", abortHandler);
 
             try {
-                // 1. 크레딧 잔액 확인 (최근 10분 이내 선물 횟수 조회 시 이미 확인했으나 한 번 더 안전 확인)
-                const MIN_REQUIRED_CREDITS = 10;
+                // (이전 단계에서 이미 체크되었으므로 생략 가능하나, 스트림 내 보조 에러 메시지로 유지)
                 if (!currentUser || (currentUser.credits ?? 0) < MIN_REQUIRED_CREDITS) {
-                    logger.warn({
-                        category: "API",
-                        message: `Insufficient credits for user ${session.user.id}`,
-                        metadata: { credits: currentUser?.credits }
-                    });
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Insufficient credits", code: 402 })}\n\n`));
                     controller.close();
                     return;

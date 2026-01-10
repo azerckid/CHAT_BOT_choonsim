@@ -10,6 +10,8 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import { Toaster } from "~/components/ui/sonner";
+import { PaymentSheet } from "~/components/payment/PaymentSheet";
+import { useX402 } from "~/lib/near/use-x402";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -51,7 +53,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  const { isOpen, token, invoice, handleSuccess, handleClose } = useX402();
+
+  return (
+    <>
+      <Outlet />
+      {token && invoice && (
+        <PaymentSheet
+          isOpen={isOpen}
+          onClose={handleClose}
+          token={token}
+          invoice={invoice}
+          onSuccess={handleSuccess}
+        />
+      )}
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
