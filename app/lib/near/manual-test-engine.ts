@@ -9,64 +9,101 @@ async function main() {
     // Dynamically import everything else after env is loaded
     const { db } = await import("../db.server");
     const { user: userTable } = await import("../../db/schema");
-    const { sql, eq } = await import("drizzle-orm");
+    const { eq } = await import("drizzle-orm");
     const { runDepositMonitoring } = await import("./deposit-engine.server");
-    const { getNearConnection } = await import("./client.server");
+    const { getNearConnection, NEAR_CONFIG } = await import("./client.server");
     const { BigNumber } = await import("bignumber.js");
     const nearAPI = await import("near-api-js");
+    const { decrypt } = await import("./key-encryption.server");
 
-    const { utils } = nearAPI;
+    const { utils, KeyPair } = nearAPI;
 
-    console.log("--- Starting Deposit Engine Manual Test ---");
+    console.log("--- Starting Integrated NEAR/CHOCO/X402 Sync Test ---");
 
     try {
-        // 1. Find a test user with a NEAR account
-        const users = await db.select().from(userTable).where(sql`${userTable.nearAccountId} IS NOT NULL`).limit(1);
+        const { ensureNearWallet } = await import("./wallet.server");
+        const { nanoid } = await import("nanoid");
 
-        if (users.length === 0) {
-            console.error("No user with NEAR account found in DB.");
-            return;
-        }
+        // 1. Create a fresh test user
+        const testUserId = `test_${nanoid(8)}`;
+        console.log(`[Test] Creating fresh test user: ${testUserId}`);
 
-        const testUser = users[0];
-        console.log(`Using Test User: ${testUser.id} (${testUser.nearAccountId})`);
-        console.log(`Current DB Balance: NEAR ${testUser.nearLastBalance || '0'}, CHOCO ${testUser.chocoBalance || '0'}`);
+        await db.insert(userTable).values({
+            id: testUserId,
+            email: `${testUserId}@example.com`,
+            credits: 0,
+            chocoBalance: "0",
+            nearLastBalance: "0",
+            updatedAt: new Date(),
+        });
 
-        // 2. Check actual NEAR balance on chain
-        const near = await getNearConnection();
-        const account = await near.account(testUser.nearAccountId!);
-        const state = await account.getState() as any;
-        console.log("Account State (parsed):", state);
+        // 2. Ensure NEAR Wallet
+        console.log(`[Test] Ensuring NEAR wallet...`);
+        const nearAccountId = await ensureNearWallet(testUserId);
 
-        const currentOnChainBalance = (state.amount !== undefined ? state.amount : state.balance?.total).toString();
+        const testUser = (await db.select().from(userTable).where(eq(userTable.id, testUserId)))[0];
+        console.log(`[Test] Wallet: ${testUser.nearAccountId}`);
 
-        console.log(`Actual On-Chain Balance: ${utils.format.formatNearAmount(currentOnChainBalance)} NEAR`);
+        // 3. Simulate Deposit Sync
+        console.log(`[Test] Simulating deposit detection...`);
+        // The sub-account already has ~0.1 NEAR from creation. 
+        // We set DB last balance to 0, so runDepositMonitoring will see the 0.1 NEAR as a new deposit.
+        await runDepositMonitoring();
 
-        // 3. To simulate a deposit
-        if (new BigNumber(currentOnChainBalance).gt(new BigNumber(0))) {
-            const simulatedLastBalance = new BigNumber(currentOnChainBalance).minus(new BigNumber(utils.format.parseNearAmount("0.1")!)).toString();
+        const userAfterDeposit = (await db.select().from(userTable).where(eq(userTable.id, testUserId)))[0];
+        console.log(`[Test] After Deposit - Credits: ${userAfterDeposit.credits}, CHOCO: ${userAfterDeposit.chocoBalance}`);
 
-            console.log(`Simulating deposit: Setting DB nearLastBalance to ${utils.format.formatNearAmount(simulatedLastBalance)} NEAR`);
-
-            await db.update(userTable).set({
-                nearLastBalance: simulatedLastBalance
-            }).where(eq(userTable.id, testUser.id));
-
-            console.log("DB updated. Running engine...");
-
-            // 4. Run the monitoring engine
-            await runDepositMonitoring();
-
-            // 5. Check results
-            const updatedUser = (await db.select().from(userTable).where(eq(userTable.id, testUser.id)))[0];
-            console.log("--- Test Results ---");
-            console.log(`New DB Balance: NEAR ${updatedUser.nearLastBalance}, CHOCO ${updatedUser.chocoBalance}`);
-
-            const chocoDiff = new BigNumber(updatedUser.chocoBalance || "0").minus(new BigNumber(testUser.chocoBalance || "0"));
-            console.log(`CHOCO Amount Increased: ${chocoDiff.toString()}`);
+        if (Number(userAfterDeposit.credits) > 0 && new BigNumber(userAfterDeposit.chocoBalance).gt(0)) {
+            console.log("✅ Deposit Sync Success.");
         } else {
-            console.log("On-chain balance is 0. Please deposit some NEAR to the test account first.");
+            throw new Error("Deposit Sync Failed.");
         }
+
+        // 4. Simulate X402 Payment
+        console.log(`\n[Test] Starting X402 Payment Simulation...`);
+        const { createX402Invoice, verifyX402Payment } = await import("./x402.server");
+
+        const amountUSD = 0.01;
+        const invoiceRes = await createX402Invoice(testUserId, amountUSD);
+        console.log(`[Test] Invoice Created: ${invoiceRes.invoice.amount} CHOCO`);
+
+        // Reconnect to ensure signer is fresh
+        // B. Perform Gasless On-Chain Transfer (The "User Action" via Relayer)
+        const privateKey = decrypt(testUser.nearPrivateKey!);
+
+        console.log(`[Test] Signing gasless ft_transfer for payment (Relayed by ${NEAR_CONFIG.serviceAccountId})...`);
+        const { sendGaslessChocoToken } = await import("./token.server");
+
+        const transferResult = await sendGaslessChocoToken(
+            testUser.nearAccountId!,
+            privateKey as string,
+            invoiceRes.invoice.recipient,
+            new BigNumber(invoiceRes.invoice.amount).multipliedBy(new BigNumber(10).pow(18)).toFixed(0)
+        );
+
+        const txHash = (transferResult as any).transaction.hash;
+        console.log(`[Test] Gasless Payment Success. Tx: ${txHash}`);
+
+        // 5. Verify Mirroring
+        console.log(`[Test] Verifying Payment in DB...`);
+        await verifyX402Payment(invoiceRes.token, txHash);
+
+        const finalUser = (await db.select().from(userTable).where(eq(userTable.id, testUserId)))[0];
+        console.log(`[Test] Final DB - Credits: ${finalUser.credits}, CHOCO: ${finalUser.chocoBalance}`);
+
+        const creditDiff = userAfterDeposit.credits! - finalUser.credits!;
+        const chocoDiff = new BigNumber(userAfterDeposit.chocoBalance).minus(new BigNumber(finalUser.chocoBalance)).toNumber();
+
+        console.log(`[Test] Total Deducted - Credits: ${creditDiff}, CHOCO: ${chocoDiff}`);
+
+        if (creditDiff > 0 && chocoDiff > 0) {
+            console.log("✅ Integrated Test PASSED: Dual Reduction Confirmed.");
+        } else {
+            throw new Error("Integrated Test FAILED: Assets not synced correctly.");
+        }
+
+        console.log("\n--- COMPLETE ---");
+
     } catch (error) {
         console.error("Test failed:", error);
     }

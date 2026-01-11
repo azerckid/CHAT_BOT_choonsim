@@ -102,8 +102,8 @@ export async function verifyX402Payment(token: string, txHash: string) {
         throw new Error("Insufficient payment amount");
     }
 
-    // 3. DB 업데이트: 인보이스 완료 및 유저 크레딧 충전
-    const creditsToAdd = calculateCreditsFromChoco(
+    // 3. DB 업데이트: 인보이스 완료 및 유저 자산 차감 (결제이므로 감소)
+    const creditsToDeduct = calculateCreditsFromChoco(
         new BigNumber(transfer.amount).dividedBy(new BigNumber(10).pow(18)).toNumber()
     );
 
@@ -129,15 +129,18 @@ export async function verifyX402Payment(token: string, txHash: string) {
             createdAt: new Date(),
         });
 
-        // 유저 자산 업데이트 (동기화)
+        // 유저 자산 업데이트 (결제이므로 감소)
+        // CHOCO는 온체인에서 이미 지출되었으므로 DB도 동기화하여 감소
+        const chocoToDeduct = new BigNumber(transfer.amount).dividedBy(new BigNumber(10).pow(18)).toString();
+
         await tx.update(schema.user)
             .set({
-                credits: sql`${schema.user.credits} + ${creditsToAdd}`,
-                chocoBalance: sql`${schema.user.chocoBalance} + ${transfer.amount}`, // 입금 개념이므로 증가
+                credits: sql`${schema.user.credits} - ${creditsToDeduct}`, // 결제이므로 크레딧 감소
+                chocoBalance: sql`${schema.user.chocoBalance} - ${chocoToDeduct}`, // 단위를 맞춰서 감소
                 updatedAt: new Date(),
             })
             .where(eq(schema.user.id, invoice.userId));
     });
 
-    return { success: true, creditsAdded: creditsToAdd };
+    return { success: true, creditsDeducted: creditsToDeduct };
 }

@@ -79,30 +79,25 @@ export async function ensureNearWallet(userId: string) {
             }
         } catch (createError: any) {
             // 계정이 이미 존재하는 경우 처리
-            if (createError.type === 'AccountAlreadyExists' || 
+            const isAccountExists = createError.type === 'AccountAlreadyExists' ||
                 createError.message?.includes("already exists") ||
-                createError.message?.includes("AccountAlreadyExists")) {
-                console.log(`[Wallet] Account ${newAccountId} already exists on-chain. Generating new key pair for user control.`);
-                
-                // 이미 존재하는 계정이지만, 사용자가 프라이빗 키를 내보낼 수 있도록 새 키 페어 생성 및 저장
-                // 이 키는 나중에 계정에 추가할 수 있는 access key로 사용 가능
-                const { encrypt } = await import("./key-encryption.server");
-                const encryptedPrivateKey = encrypt(privateKey);
-                
-                await db.update(schema.user)
-                    .set({
-                        nearAccountId: newAccountId,
-                        nearPublicKey: publicKey, // 새로 생성한 공개키 저장
-                        nearPrivateKey: encryptedPrivateKey, // 새로 생성한 개인키 암호화하여 저장
-                        chocoBalance: "0",
-                        updatedAt: new Date(),
-                    })
-                    .where(eq(schema.user.id, userId));
+                createError.message?.includes("AccountAlreadyExists");
 
-                console.log(`[Wallet] Successfully linked existing wallet with new key pair: ${newAccountId}`);
-                return newAccountId;
+            if (isAccountExists) {
+                console.log(`[Wallet] Account ${newAccountId} already exists on-chain.`);
+
+                // [CRITICAL FIX] 기존에 DB에 저장된 키가 있다면 절대 새로 생성하거나 덮어씌우지 않음
+                if (user.nearAccountId === newAccountId) {
+                    console.log(`[Wallet] User already has this account ID linked. Maintaining existing keys.`);
+                    return newAccountId;
+                }
+
+                // 만약 계정 아이디는 일치하는데 DB에 키가 없는 특수 상황인 경우만 제한적으로 처리 고려
+                // 하지만 안전을 위해 여기서는 추가적인 덮어쓰기를 원천 금지함
+                console.error(`[Wallet] Account exists but ID mismatch or key missing. Manual intervention required to prevent key loss.`);
+                throw new Error(`Account ${newAccountId} already exists. Cannot safely link without verified private key.`);
             }
-            
+
             // 다른 에러는 그대로 throw
             console.error(`[Wallet] Account creation failed for ${newAccountId}:`, createError);
             throw new Error(`Failed to create NEAR account: ${createError.message || createError}`);
@@ -138,7 +133,7 @@ export async function ensureNearWallet(userId: string) {
             networkId,
             nodeUrl,
         });
-        
+
         // 특정 에러 타입에 대한 추가 정보
         if (error.message?.includes("insufficient balance")) {
             console.error(`[Wallet] Service account ${serviceAccountId} has insufficient balance. Please add more NEAR.`);
@@ -150,7 +145,7 @@ export async function ensureNearWallet(userId: string) {
         if (error.message?.includes("Invalid account ID")) {
             console.error(`[Wallet] Invalid account ID format: ${newAccountId}`);
         }
-        
+
         return null;
     }
 }
@@ -199,7 +194,7 @@ export async function regenerateWalletKeys(userId: string): Promise<{
             .where(eq(schema.user.id, userId));
 
         console.log(`[Regenerate Keys] Successfully regenerated keys for ${user.nearAccountId}`);
-        
+
         return {
             publicKey,
             privateKey,

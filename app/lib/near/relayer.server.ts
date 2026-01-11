@@ -2,6 +2,7 @@ import { connect, keyStores, KeyPair, transactions, utils } from "near-api-js";
 import { NEAR_CONFIG } from "./client.server";
 import { db } from "../db.server";
 import { relayerLog } from "../../db/schema";
+import { logger } from "../logger.server";
 import { nanoid } from "nanoid";
 
 /**
@@ -38,18 +39,37 @@ export async function submitMetaTransaction(signedDelegateSerialized: string) {
             Buffer.from(signedDelegateSerialized, "base64")
         );
 
-        console.log(`Relaying meta transaction for user: ${signedDelegate.delegateAction.senderId}`);
+        const senderId = signedDelegate.delegateAction.senderId;
+        logger.info({
+            category: "PAYMENT",
+            message: `Relaying meta transaction for user: ${senderId}`,
+            metadata: { senderId }
+        });
 
         // 3. 트랜잭션 전송 (Relayer가 가스비 지불)
         const result = (await relayerAccount.signedDelegate(signedDelegate)) as any;
+        const txHash = result.transaction_outcome?.id || result.transaction?.hash;
+
+        logger.audit({
+            category: "PAYMENT",
+            message: `Meta transaction relayed successfully`,
+            metadata: { senderId, txHash }
+        });
 
         return {
             success: true,
-            txHash: result.transaction_outcome?.id || result.transaction?.hash,
+            txHash,
             result: result.status,
         };
     } catch (error) {
-        console.error("Failed to relay meta transaction:", error);
+        logger.error({
+            category: "PAYMENT",
+            message: "Failed to relay meta transaction",
+            stackTrace: (error as Error).stack,
+            metadata: { 
+                senderId: (signedDelegate as any).delegateAction?.senderId 
+            }
+        });
         return {
             success: false,
             error: error instanceof Error ? error.message : "Unknown error",
@@ -100,6 +120,10 @@ export async function logRelayerAction(data: {
             createdAt: new Date(),
         });
     } catch (e) {
-        console.error("Failed to log relayer action:", e);
+        logger.error({
+            category: "PAYMENT",
+            message: "Failed to log relayer action",
+            stackTrace: (e as Error).stack
+        });
     }
 }

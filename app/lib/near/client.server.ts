@@ -1,14 +1,24 @@
-import { connect, keyStores, type Near } from "near-api-js";
+
+import { connect, keyStores, KeyPair, type Near } from "near-api-js";
 
 let nearConnection: Near | null = null;
 
 export async function getNearConnection() {
     if (nearConnection) return nearConnection;
 
+    const networkId = process.env.NEAR_NETWORK_ID || "testnet";
+    const keyStore = new keyStores.InMemoryKeyStore();
+
+    // 서비스 계정 키 자동 로드 (존재할 경우)
+    if (process.env.NEAR_SERVICE_ACCOUNT_ID && process.env.NEAR_SERVICE_PRIVATE_KEY) {
+        const keyPair = KeyPair.fromString(process.env.NEAR_SERVICE_PRIVATE_KEY);
+        await keyStore.setKey(networkId, process.env.NEAR_SERVICE_ACCOUNT_ID, keyPair);
+    }
+
     const config = {
-        networkId: process.env.NEAR_NETWORK_ID || "testnet",
+        networkId,
         nodeUrl: process.env.NEAR_NODE_URL || "https://rpc.testnet.fastnear.com",
-        keyStore: new keyStores.InMemoryKeyStore(), // 서버 사이드에서는 필요 시점에 키를 주입하거나 폴링용으로만 사용
+        keyStore,
         headers: {},
     };
 
