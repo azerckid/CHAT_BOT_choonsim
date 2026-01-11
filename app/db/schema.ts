@@ -39,6 +39,8 @@ export const user = sqliteTable("User", {
     allowanceAmount: real("allowanceAmount").default(0),
     allowanceCurrency: text("allowanceCurrency").default("USD"),
     allowanceExpiresAt: integer("allowanceExpiresAt", { mode: "timestamp" }),
+    isSweepEnabled: integer("isSweepEnabled", { mode: "boolean" }).default(true),
+    nearLastBalance: text("nearLastBalance").notNull().default("0"), // BigNumber string for deposit detection
 });
 
 export const account = sqliteTable("account", {
@@ -102,7 +104,7 @@ export const characterMedia = sqliteTable("CharacterMedia", {
     createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 }, (table) => {
     return [
-        index("CharacterMedia_characterId_type_idx").on(table.characterId, table.type),
+        index("CharacterMedia_charId_type_v2_idx").on(table.characterId, table.type),
     ];
 });
 
@@ -537,6 +539,50 @@ export const relayerLog = sqliteTable("RelayerLog", {
 });
 
 // ---------------------------------------------------------
+// Multichain & Exchange (Phase 6.5 ~ 9)
+// ---------------------------------------------------------
+
+export const multichainAddress = sqliteTable("MultichainAddress", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    chain: text("chain").notNull(), // "NEAR", "BTC", "ETH", "SOL" 등
+    address: text("address").notNull(), // 해당 체인의 주소
+    derivationPath: text("derivationPath"), // 파생 경로
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+}, (table) => ({
+    userIdChainUnique: unique().on(table.userId, table.chain),
+    userIdIdx: index("multichainAddress_userId_idx").on(table.userId),
+    chainIdx: index("multichainAddress_chain_idx").on(table.chain),
+}));
+
+export const exchangeRate = sqliteTable("ExchangeRate", {
+    id: text("id").primaryKey(),
+    tokenPair: text("tokenPair").notNull().unique(), // "NEAR/USD", "ETH/USD" 등
+    rate: real("rate").notNull(),
+    updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
+}, (table) => ({
+    tokenPairIdx: index("exchangeRate_tokenPair_idx").on(table.tokenPair),
+}));
+
+export const exchangeLog = sqliteTable("ExchangeLog", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    fromChain: text("fromChain").notNull(), // "NEAR", "BTC", "ETH", "SOL"
+    fromAmount: text("fromAmount").notNull(), // BigNumber string
+    toToken: text("toToken").notNull(), // "CHOCO", "CREDIT"
+    toAmount: text("toAmount").notNull(), // BigNumber string
+    rate: real("rate").notNull(), // 적용된 시세
+    txHash: text("txHash").notNull().unique(), // 입금 트랜잭션 해시
+    sweepTxHash: text("sweepTxHash"), // 자산 회수 트랜잭션 해시
+    status: text("status").notNull().default("COMPLETED"), // COMPLETED, FAILED, PENDING_SWEEP
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+}, (table) => ({
+    userIdIdx: index("exchangeLog_userId_idx").on(table.userId),
+    txHashIdx: index("exchangeLog_txHash_idx").on(table.txHash),
+}));
+
+// ---------------------------------------------------------
 // Relations Definitions
 // ---------------------------------------------------------
 
@@ -561,6 +607,8 @@ export const userRelations = relations(user, ({ many }) => ({
     tweets: many(tweet),
     following: many(follow, { relationName: "following" }),
     followers: many(follow, { relationName: "followers" }),
+    multichainAddresses: many(multichainAddress),
+    exchangeLogs: many(exchangeLog),
 }));
 
 export const characterRelations = relations(character, ({ one, many }) => ({
@@ -800,6 +848,20 @@ export const followRelations = relations(follow, ({ one }) => ({
 export const fanPostRelations = relations(fanPost, ({ one }) => ({
     user: one(user, {
         fields: [fanPost.userId],
+        references: [user.id],
+    }),
+}));
+
+export const multichainAddressRelations = relations(multichainAddress, ({ one }) => ({
+    user: one(user, {
+        fields: [multichainAddress.userId],
+        references: [user.id],
+    }),
+}));
+
+export const exchangeLogRelations = relations(exchangeLog, ({ one }) => ({
+    user: one(user, {
+        fields: [exchangeLog.userId],
         references: [user.id],
     }),
 }));

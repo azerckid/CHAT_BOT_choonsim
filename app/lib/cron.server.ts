@@ -62,48 +62,71 @@ export function initCronJobs() {
                 });
             }
 
-            for (const user of usersToCheckIn) {
-                let conversation = await db.query.conversation.findFirst({
-                    where: eq(schema.conversation.userId, user.id),
-                    orderBy: [desc(schema.conversation.updatedAt)]
-                });
-
-                if (!conversation) {
-                    const [newConv] = await db.insert(schema.conversation).values({
-                        id: crypto.randomUUID(),
-                        title: "춘심이와의 대화",
-                        userId: user.id,
-                        updatedAt: new Date(),
-                    }).returning();
-                    conversation = newConv;
-                }
-
-                if (!conversation) continue;
-
-                let memory = "";
-                let personaMode: any = "hybrid";
-                if (user.bio) {
-                    try {
-                        const bioData = JSON.parse(user.bio);
-                        memory = bioData.memory || "";
-                        personaMode = bioData.personaMode || "hybrid";
-                    } catch (e) { }
-                }
-
-                const messageContent = await generateProactiveMessage(user.name || "친구", memory, personaMode);
-                const messageParts = messageContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
-
-                for (const part of messageParts) {
-                    await db.insert(schema.message).values({
-                        id: crypto.randomUUID(),
-                        role: "assistant",
-                        content: part,
-                        conversationId: conversation.id,
-                        createdAt: new Date(),
+            // 병렬 처리로 변경하여 실행 시간 단축
+            const processUser = async (user: typeof usersToCheckIn[0]) => {
+                try {
+                    let conversation = await db.query.conversation.findFirst({
+                        where: eq(schema.conversation.userId, user.id),
+                        orderBy: [desc(schema.conversation.updatedAt)]
                     });
-                    await sendPushNotification(user, part);
-                    if (messageParts.length > 1) await new Promise(resolve => setTimeout(resolve, 1500));
+
+                    if (!conversation) {
+                        const [newConv] = await db.insert(schema.conversation).values({
+                            id: crypto.randomUUID(),
+                            title: "춘심이와의 대화",
+                            userId: user.id,
+                            updatedAt: new Date(),
+                        }).returning();
+                        conversation = newConv;
+                    }
+
+                    if (!conversation) return;
+
+                    let memory = "";
+                    let personaMode: any = "hybrid";
+                    if (user.bio) {
+                        try {
+                            const bioData = JSON.parse(user.bio);
+                            memory = bioData.memory || "";
+                            personaMode = bioData.personaMode || "hybrid";
+                        } catch (e) { }
+                    }
+
+                    // AI API 호출에 타임아웃 설정 (30초)
+                    const messageContent = await Promise.race([
+                        generateProactiveMessage(user.name || "친구", memory, personaMode),
+                        new Promise<string>((_, reject) =>
+                            setTimeout(() => reject(new Error("AI API timeout")), 30000)
+                        )
+                    ]) as string;
+
+                    const messageParts = messageContent.split('---').map(p => p.trim()).filter(p => p.length > 0);
+
+                    for (const part of messageParts) {
+                        await db.insert(schema.message).values({
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: part,
+                            conversationId: conversation.id,
+                            createdAt: new Date(),
+                        });
+                        await sendPushNotification(user, part);
+                        if (messageParts.length > 1) await new Promise(resolve => setTimeout(resolve, 1500));
+                    }
+                } catch (error) {
+                    logger.error({
+                        category: "SYSTEM",
+                        message: `Failed to process proactive message for user ${user.id}`,
+                        stackTrace: (error as Error).stack
+                    });
                 }
+            };
+
+            // 병렬 처리: 최대 5개씩 동시 처리하여 과부하 방지
+            const BATCH_SIZE = 5;
+            for (let i = 0; i < usersToCheckIn.length; i += BATCH_SIZE) {
+                const batch = usersToCheckIn.slice(i, i + BATCH_SIZE);
+                await Promise.all(batch.map(processUser));
             }
 
             if (usersToCheckIn.length > 0) {
@@ -132,6 +155,20 @@ export function initCronJobs() {
             logger.error({
                 category: "SYSTEM",
                 message: "Credit Refill Cron Error",
+                stackTrace: (error as Error).stack
+            });
+        }
+    });
+
+    // 3. NEAR Deposit Monitor (Every Minute - MVP)
+    cron.schedule("* * * * *", async () => {
+        try {
+            const { runDepositMonitoring } = await import("./near/deposit-engine.server");
+            await runDepositMonitoring();
+        } catch (error) {
+            logger.error({
+                category: "SYSTEM",
+                message: "NEAR Deposit Monitor Cron Error",
                 stackTrace: (error as Error).stack
             });
         }

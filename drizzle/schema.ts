@@ -73,8 +73,18 @@ export const user = sqliteTable("User", {
 	lastTokenRefillAt: integer(),
 	credits: integer().default(100).notNull(),
 	role: text().default("USER"),
+	nearAccountId: text(),
+	nearPublicKey: text(),
+	chocoBalance: text().default("0"),
+	chocoLastSyncAt: integer(),
+	heartsCount: integer().default(0),
+	allowanceAmount: real(),
+	allowanceCurrency: text().default("USD"),
+	allowanceExpiresAt: integer(),
+	nearPrivateKey: text(),
 },
 (table) => [
+	uniqueIndex("User_nearAccountId_unique").on(table.nearAccountId),
 	uniqueIndex("User_subscriptionId_unique").on(table.subscriptionId),
 ]);
 
@@ -416,4 +426,68 @@ export const fanPost = sqliteTable("FanPost", {
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
 });
+
+export const tokenTransfer = sqliteTable("TokenTransfer", {
+	id: text().primaryKey().notNull(),
+	userId: text().notNull(),
+	txHash: text().notNull(),
+	amount: text().notNull(),
+	tokenContract: text().notNull(),
+	status: text().default("PENDING").notNull(),
+	purpose: text().notNull(),
+	createdAt: integer().default(sql`(unixepoch())`).notNull(),
+},
+(table) => [
+	index("TokenTransfer_txHash_idx").on(table.txHash),
+	index("TokenTransfer_userId_idx").on(table.userId),
+	uniqueIndex("TokenTransfer_txHash_unique").on(table.txHash),
+]);
+
+export const tokenConfig = sqliteTable("TokenConfig", {
+	id: text().primaryKey().notNull(),
+	tokenContract: text().notNull(),
+	tokenSymbol: text().default("CHOCO").notNull(),
+	tokenName: text().default("CHOONSIM Token").notNull(),
+	decimals: integer().default(18).notNull(),
+	isEnabled: integer().default(true).notNull(),
+	createdAt: integer().default(sql`(unixepoch())`).notNull(),
+},
+(table) => [
+	uniqueIndex("TokenConfig_tokenContract_unique").on(table.tokenContract),
+]);
+
+export const x402Invoice = sqliteTable("X402Invoice", {
+	id: text().primaryKey().notNull(),
+	token: text().notNull(),
+	userId: text().notNull(),
+	amount: real().notNull(),
+	currency: text().default("USD").notNull(),
+	chocoAmount: text().notNull(),
+	recipientAddress: text().notNull(),
+	status: text().default("PENDING").notNull(),
+	txHash: text(),
+	expiresAt: integer(),
+	createdAt: integer().default(sql`(unixepoch())`).notNull(),
+	paidAt: integer(),
+},
+(table) => [
+	index("X402Invoice_userId_status_idx").on(table.userId, table.status),
+	index("X402Invoice_token_idx").on(table.token),
+	uniqueIndex("X402Invoice_txHash_unique").on(table.txHash),
+	uniqueIndex("X402Invoice_token_unique").on(table.token),
+]);
+
+export const relayerLog = sqliteTable("RelayerLog", {
+	id: text().primaryKey(),
+	userId: text().notNull(),
+	requestIp: text(),
+	txHash: text(),
+	error: text(),
+	status: text().default("SUCCESS").notNull(),
+	createdAt: integer().notNull(),
+},
+(table) => [
+	index("RelayerLog_requestIp_createdAt_idx").on(table.requestIp, table.createdAt),
+	index("RelayerLog_userId_createdAt_idx").on(table.userId, table.createdAt),
+]);
 
