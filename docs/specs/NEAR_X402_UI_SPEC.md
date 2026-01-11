@@ -70,7 +70,7 @@
 *   **Display**: `[초코 아이콘 🍫] 1,250` 식의 표기.
     *   **잔액 동기화**: `1,250 Choco (1,250 Credits)`와 같이 실제 자산과 사용권 단위를 병기하거나 전환하여 표시 가능.
     *   **하트와 구분**: 하트는 통화가 아니므로 여기서 표시하지 않고, '선물 가방' 아이콘 내의 아이템 갯수로 별도 표시.
-    *   참고: `docs/specs/NEAR_TOKEN_ISSUANCE_SPEC.md`의 0.2절 자산 모델
+    *   **참고**: `docs/specs/NEAR_TOKEN_ISSUANCE_SPEC.md`의 0.2절 자산 모델
 *   **Interactions**:
     *   클릭 시 작은 팝업(Tooltip/Popover) 노출.
     *   팝업 내용: "온체인 보안 기술로 보호되는 소중한 자산입니다."
@@ -100,6 +100,16 @@
 *   **Benefit**: X402 인터셉터와 결합하여 끊김 없는 대화 흐름(Flow) 유지.
 *   **구현 위치**: `docs/plans/NEAR_X402_STRATEGY.md`의 Phase 1 작업 항목 및 4.2절 (Better Auth와 NEAR 지갑 매핑) 참조
 
+### 4.5 실시간 잔액 반응형 UI (Real-time Balance Feedback)
+*   **Context**: 채팅방 내 메시지 전송, 답변 수신, 아이템 구매 등 자산 변동이 발생하는 모든 순간.
+*   **Requirement (Optimistic UI)**:
+    1.  **즉시 차감 표시**: 네트워크 컨펌(Finality)을 기다리지 않고, 사용자 액션(버튼 클릭) 즉시 프론트엔드 잔액을 차감하여 표시합니다. (Optimistic Update)
+    2.  **카운터 애니메이션**: 숫자가 줄어들거나 늘어날 때 `Rolling Counter` 애니메이션 적용.
+    3.  **시각적 피드백**: 차감 시 붉은색 텍스트 점멸(`-50`), 충전 시 녹색 텍스트 점멸(`+500`) 등으로 변동 내역을 강조.
+*   **위치**:
+    *   채팅방 헤더(Header): `Credits` / `CHOCO` 잔액 상시 노출.
+    *   메시지 입력창(Input): 전송 버튼 근처에 "예상 소모 비용" 표시 (선택 사항).
+
 ---
 
 ## 5. 고급 설정: 지갑 내보내기 (The Escape Hatch)
@@ -120,7 +130,7 @@
 ### 6.1 Color Palette
 *   **Primary**: `#EC4899` (Deep Pink - 활기차고 감성적인 톤)
 *   **Success**: `#10B981` (Emerald - 안전과 성공의 의미)
-*   **Surface**: Semi-transparent Dark (Glassmorphism 스타일, 춘심의 다크모드와 연동)
+*   **Surface**: Semi-transparent Dark (Glassmorphism 스타일의 춘심의 다크모드와 연동)
 
 ### 6.2 Micro-Animations
 *   **Particle Effect**: 결제 완료 시 버튼 주위에 금색 가루(Gold Dust)가 퍼지는 효과.
@@ -146,6 +156,6 @@
 - CHOCO 토큰 전송: `docs/specs/NEAR_TOKEN_ISSUANCE_SPEC.md`의 4.3절 (ft_transfer_call 사용)
 
 ---
-**최종 업데이트**: 2026-01-10
-**버전**: 1.4 (관련 문서 참조 추가, CHOCO 토큰 통합 명시)
+**최종 업데이트**: 2026-01-11
+**버전**: 1.5 (4.5절 실시간 잔액 반응형 UI 추가)
 **작성**: Antigravity AI Assistant

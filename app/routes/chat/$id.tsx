@@ -209,11 +209,19 @@ export default function ChatRoom() {
   // Hearts state
   const [currentUserHearts, setCurrentUserHearts] = useState(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
   const [currentUserCredits, setCurrentUserCredits] = useState(user?.credits || 0);
+  
+  // 잔액 변동량 추적 (시각적 피드백용)
+  const [creditChange, setCreditChange] = useState<number | undefined>(undefined);
+  const [chocoChange, setChocoChange] = useState<number | undefined>(undefined);
+  const [lastOptimisticDeduction, setLastOptimisticDeduction] = useState<number>(0); // 마지막 낙관적 차감량
 
   // Re-sync states when loader data updates
   useEffect(() => {
     setCurrentUserHearts(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
     setCurrentUserCredits(user?.credits || 0);
+    // loader 업데이트 시 변동량 초기화
+    setCreditChange(undefined);
+    setChocoChange(undefined);
   }, [user]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -334,6 +342,7 @@ export default function ChatRoom() {
   const handleSend = async (content: string, mediaUrl?: string) => {
     // 0. AI가 답변 중이라면 중단 처리
     if (isAiStreaming) {
+      // ... (existing code omitted for brevity but logic implies keeping it effectively)
       setIsInterrupting(true);
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -365,6 +374,13 @@ export default function ChatRoom() {
     }
 
     // 1. 사용자 메시지 낙관적 업데이트
+    // [Optimistic UI] 메시지 전송 즉시 예상 크레딧 차감 (기본 10)
+    // 실제 차감은 나중에 서버 동기화 시 보정됨
+    const estimatedCost = 10;
+    setLastOptimisticDeduction(estimatedCost);
+    setCurrentUserCredits((prev: number) => Math.max(0, prev - estimatedCost));
+    setCreditChange(-estimatedCost); // 변동량 표시
+
     const userMsgId = crypto.randomUUID();
     const newUserMsg: Message = {
       id: userMsgId,
@@ -471,6 +487,34 @@ export default function ChatRoom() {
                 if (data.done) {
                   // 모든 스트리밍 완료
                   setIsAiStreaming(false);
+                  
+                  // 실제 토큰 사용량으로 잔액 조정
+                  if (data.usage && data.usage.totalTokens) {
+                    const actualCost = data.usage.totalTokens;
+                    const adjustment = lastOptimisticDeduction - actualCost; // 차이 계산
+                    
+                    // 실제 비용으로 조정 (예상 비용과의 차이만큼 보정)
+                    if (adjustment !== 0) {
+                      setCurrentUserCredits((prev: number) => Math.max(0, prev + adjustment));
+                    }
+                    
+                    // 변동량 업데이트 (실제 차감량)
+                    setCreditChange(-actualCost);
+                    
+                    // 2초 후 변동량 표시 제거
+                    setTimeout(() => {
+                      setCreditChange(undefined);
+                    }, 2000);
+                    
+                    setLastOptimisticDeduction(0); // 초기화
+                  } else {
+                    // 토큰 사용량 정보가 없으면 예상 비용으로 변동량 표시 유지
+                    // 2초 후 변동량 표시 제거
+                    setTimeout(() => {
+                      setCreditChange(undefined);
+                      setLastOptimisticDeduction(0);
+                    }, 2000);
+                  }
                 }
               } catch (e) {
                 // Ignore parse errors
@@ -488,6 +532,13 @@ export default function ChatRoom() {
       toast.error("답변을 가져오는 중 오류가 발생했습니다.");
       setIsAiStreaming(false);
       setIsOptimisticTyping(false);
+      
+      // 에러 발생 시 낙관적 차감 롤백
+      if (lastOptimisticDeduction > 0) {
+        setCurrentUserCredits((prev: number) => prev + lastOptimisticDeduction);
+        setLastOptimisticDeduction(0);
+        setCreditChange(undefined);
+      }
 
       // 중간에 끊겼다면 (에러로 발생한 경우) 현재까지의 내용이라도 유지
       if (streamingContent && !isInterrupting) {
@@ -601,6 +652,10 @@ export default function ChatRoom() {
         onBack={handleBack}
         onDeleteChat={() => setIsDeleteDialogOpen(true)}
         onResetChat={() => setIsResetDialogOpen(true)}
+        credits={currentUserCredits}
+        chocoBalance={user?.chocoBalance}
+        creditChange={creditChange}
+        chocoChange={chocoChange}
       />
 
       <main

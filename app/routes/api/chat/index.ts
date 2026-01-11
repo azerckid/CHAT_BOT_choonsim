@@ -314,7 +314,9 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
                 }
 
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+                // 스트리밍 완료 시 토큰 사용량 정보 전송
+                const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, usage })}\n\n`));
 
                 // 대화 요약 고도화
                 if (history.length >= 8) {

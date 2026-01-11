@@ -1,4 +1,15 @@
 import { Link } from "react-router";
+import { RollingCounter } from "~/components/ui/RollingCounter";
+import { BalanceChangeIndicator } from "~/components/ui/BalanceChangeIndicator";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "~/components/ui/dialog";
 
 interface ChatHeaderProps {
   characterName: string;
@@ -10,6 +21,10 @@ interface ChatHeaderProps {
   onResetChat?: () => void;
   statusClassName?: string;
   statusOpacity?: number;
+  credits?: number;      // 추가: 현재 크레딧 (AI 이용권)
+  chocoBalance?: string; // 추가: CHOCO 토큰 잔액
+  creditChange?: number; // 추가: 크레딧 변동량 (음수면 차감, 양수면 증가)
+  chocoChange?: number;  // 추가: CHOCO 변동량
 }
 
 import {
@@ -31,7 +46,13 @@ export function ChatHeader({
   onResetChat,
   statusClassName,
   statusOpacity = 1,
+  credits,
+  chocoBalance,
+  creditChange,
+  chocoChange,
 }: ChatHeaderProps) {
+  const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
+
   return (
     <header className="flex-none z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-200 dark:border-white/5 sticky top-0">
       <div className="flex items-center justify-between px-4 py-3">
@@ -64,27 +85,125 @@ export function ChatHeader({
             {statusText}
           </span>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <button
-                className="flex items-center justify-center text-slate-600 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full w-10 h-10 transition-colors"
-              >
-                <span className="material-symbols-outlined">more_horiz</span>
-              </button>
-            }
-          />
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onDeleteChat} variant="destructive">
-              <span className="material-symbols-outlined mr-2 text-[18px]">delete</span>
-              대화방 삭제
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onResetChat}>
-              <span className="material-symbols-outlined mr-2 text-[18px]">restart_alt</span>
-              대화 초기화 (기억 포함)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          {/* 잔액 표시 배지 (CHOCO 우선 표시) */}
+          {(chocoBalance !== undefined || credits !== undefined) && (
+            <>
+              {/* 데스크톱: 인라인 표시 */}
+              <div className="hidden sm:flex items-center px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 mr-1 gap-3">
+                {/* CHOCO 잔액이 있으면 표시 (0 포함) */}
+                {chocoBalance !== undefined && (
+                  <div className="flex items-center relative">
+                    <RollingCounter
+                      value={Number(chocoBalance)}
+                      className="text-xs font-bold text-slate-700 dark:text-slate-200 mr-1"
+                    />
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">CHOCO</span>
+                    {chocoChange !== undefined && chocoChange !== 0 && (
+                      <BalanceChangeIndicator
+                        amount={chocoChange}
+                        className="absolute -right-6 top-0 whitespace-nowrap"
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* 구분선 (둘 다 있을 때만) */}
+                {chocoBalance !== undefined && credits !== undefined && (
+                  <div className="w-[1px] h-3 bg-slate-300 dark:bg-white/20" />
+                )}
+
+                {/* Credit 잔액 표시 */}
+                {credits !== undefined && (
+                  <div className="flex items-center relative">
+                    <RollingCounter
+                      value={credits}
+                      className="text-xs font-bold text-slate-700 dark:text-slate-200 mr-1"
+                    />
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Credit</span>
+                    {creditChange !== undefined && creditChange !== 0 && (
+                      <BalanceChangeIndicator
+                        amount={creditChange}
+                        className="absolute -right-6 top-0 whitespace-nowrap"
+                      />
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 모바일: Dialog로 표시 */}
+              <Dialog open={balanceDialogOpen} onOpenChange={setBalanceDialogOpen}>
+                <DialogTrigger asChild>
+                  <button className="sm:hidden flex items-center px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 mr-1">
+                    <span className="material-symbols-outlined text-[18px] text-slate-600 dark:text-slate-300">account_balance_wallet</span>
+                  </button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>내 잔액</DialogTitle>
+                    <DialogDescription>현재 보유 중인 자산입니다.</DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4 space-y-4">
+                    {chocoBalance !== undefined && (
+                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">CHOCO</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <RollingCounter
+                              value={Number(chocoBalance)}
+                              className="text-2xl font-bold text-slate-900 dark:text-white"
+                            />
+                            {chocoChange !== undefined && chocoChange !== 0 && (
+                              <BalanceChangeIndicator amount={chocoChange} />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {credits !== undefined && (
+                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Credit</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <RollingCounter
+                              value={credits}
+                              className="text-2xl font-bold text-slate-900 dark:text-white"
+                            />
+                            {creditChange !== undefined && creditChange !== 0 && (
+                              <BalanceChangeIndicator amount={creditChange} />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <button
+                  className="flex items-center justify-center text-slate-600 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 rounded-full w-10 h-10 transition-colors"
+                >
+                  <span className="material-symbols-outlined">more_horiz</span>
+                </button>
+              }
+            />
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onDeleteChat} variant="destructive">
+                <span className="material-symbols-outlined mr-2 text-[18px]">delete</span>
+                대화방 삭제
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onResetChat}>
+                <span className="material-symbols-outlined mr-2 text-[18px]">restart_alt</span>
+                대화 초기화 (기억 포함)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );
