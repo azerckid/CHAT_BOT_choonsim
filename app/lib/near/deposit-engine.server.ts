@@ -29,7 +29,7 @@ export async function runDepositMonitoring() {
 
             const account = await near.account(user.nearAccountId);
             const state = await account.getState() as any;
-            const currentBalance = state.amount; // yoctoNEAR
+            const currentBalance = (state.amount !== undefined ? state.amount : state.balance?.total).toString(); // BigInt or string
             const lastBalance = user.nearLastBalance || "0";
 
             if (new BigNumber(currentBalance).gt(new BigNumber(lastBalance))) {
@@ -40,7 +40,7 @@ export async function runDepositMonitoring() {
                     continue;
                 }
 
-                const depositNear = utils.format.formatNearAmount(depositAmountYocto.toString());
+                const depositNear = utils.format.formatNearAmount(depositAmountYocto.toFixed(0));
                 console.log(`[DepositEngine] Detected deposit of ${depositNear} NEAR for user ${user.id} (${user.nearAccountId})`);
 
                 // 2. 환전 및 스윕 처리
@@ -62,18 +62,27 @@ async function processExchangeAndSweep(user: any, nearAmount: string, nearAmount
     // 1. 시세 조회 (실제로는 API 연동, 여기서는 고정비율 1 NEAR = 5000 CHOCO)
     const rate = 5000;
     const chocoAmount = new BigNumber(nearAmount).multipliedBy(rate);
+    const chocoAmountRaw = chocoAmount.multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
     const exchangeId = uuidv4();
     const dummyTxHash = `DEP_${user.id.slice(0, 8)}_${Date.now()}`;
 
     try {
+        // [수정] 실제 CHOCO 토큰 전송 (rogulus.testnet -> 유저 계정)
+        // 온체인 전송이 성공해야만 DB를 업데이트합니다.
+        const { sendChocoToken } = await import("./token.server");
+        console.log(`[DepositEngine] Issuing ${chocoAmount.toString()} CHOCO tokens to ${user.nearAccountId}...`);
+
+        const sendResult = await sendChocoToken(user.nearAccountId, chocoAmountRaw);
+        const chocoTxHash = (sendResult as any).transaction.hash;
+
         await db.transaction(async (tx) => {
-            // 유저 초코 잔액 업데이트
+            // 유저 초코 잔액 업데이트 (DB 수치는 온체인 동기화 용도)
             const newChocoBalance = new BigNumber(user.chocoBalance).plus(chocoAmount);
 
             await tx.update(userTable).set({
                 chocoBalance: newChocoBalance.toString(),
-                nearLastBalance: currentTotalBalance // 일단 현재 잔액으로 업데이트
+                nearLastBalance: currentTotalBalance
             }).where(eq(userTable.id, user.id));
 
             // 로그 기록
@@ -85,12 +94,13 @@ async function processExchangeAndSweep(user: any, nearAmount: string, nearAmount
                 toToken: "CHOCO",
                 toAmount: chocoAmount.toString(),
                 rate: rate,
-                txHash: dummyTxHash,
+                txHash: chocoTxHash, // 실제 CHOCO 전송 해시로 저장
                 status: "PENDING_SWEEP"
             });
         });
 
-        console.log(`[DepositEngine] Exchange completed: ${nearAmount} NEAR -> ${chocoAmount} CHOCO for user ${user.id}`);
+        console.log(`[DepositEngine] Exchange completed on-chain: ${chocoTxHash}`);
+        console.log(`[DepositEngine] ${nearAmount} NEAR -> ${chocoAmount} CHOCO for user ${user.id}`);
 
         // 2. 자산 회수 (Sweep) 실행
         if (user.isSweepEnabled) {

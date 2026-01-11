@@ -94,7 +94,7 @@ export async function verifyTokenTransfer(
                         const jsonMatch = log.match(/EVENT_JSON:(.+)/);
                         if (jsonMatch) {
                             const eventData = JSON.parse(jsonMatch[1]);
-                            
+
                             if (
                                 eventData.standard === "nep141" &&
                                 eventData.event === "ft_transfer" &&
@@ -144,7 +144,7 @@ export async function verifyTokenTransfer(
                                     const senderId =
                                         receipt.receipt?.predecessor_id ||
                                         txStatus.transaction.signer_id;
-                                    
+
                                     transferInfo = {
                                         from: senderId,
                                         to: args.receiver_id,
@@ -178,4 +178,47 @@ export async function verifyTokenTransfer(
             isValid: false,
         };
     }
+}
+
+/**
+ * 서비스 계정에서 특정 계정으로 CHOCO 토큰을 전송합니다.
+ * @param toAccountId 수신 계정 ID
+ * @param amountRaw 전송량 (Raw units, 18 decimals)
+ */
+export async function sendChocoToken(toAccountId: string, amountRaw: string) {
+    const { KeyPair } = await import("near-api-js");
+    const { ensureStorageDeposit } = await import("./storage-deposit.server");
+
+    // 1. 수신 계정의 Storage Deposit 확인 및 처리
+    await ensureStorageDeposit(toAccountId);
+
+    const near = await getNearConnection();
+    const serviceAccountId = NEAR_CONFIG.serviceAccountId;
+    const servicePrivateKey = process.env.NEAR_SERVICE_PRIVATE_KEY;
+
+    if (!servicePrivateKey) {
+        throw new Error("NEAR_SERVICE_PRIVATE_KEY is missing in environment variables");
+    }
+
+    // 서비스 계정의 키 설정
+    const keyPair = KeyPair.fromString(servicePrivateKey as any);
+    await near.connection.signer.keyStore.setKey(NEAR_CONFIG.networkId, serviceAccountId, keyPair);
+
+    const account = await near.account(serviceAccountId);
+
+    console.log(`[Token] Sending ${amountRaw} CHOCO to ${toAccountId}...`);
+
+    const result = await account.functionCall({
+        contractId: NEAR_CONFIG.chocoTokenContract,
+        methodName: "ft_transfer",
+        args: {
+            receiver_id: toAccountId,
+            amount: amountRaw,
+            memo: "CHOCO Swap from NEAR Deposit"
+        },
+        gas: BigInt("30000000000000"),
+        attachedDeposit: BigInt(1) // 1 yoctoNEAR required by nep-141 for security
+    });
+
+    return result;
 }

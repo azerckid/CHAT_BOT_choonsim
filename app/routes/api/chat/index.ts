@@ -60,22 +60,22 @@ export async function action({ request }: ActionFunctionArgs) {
     // **X402 결제 체크**
     const MIN_REQUIRED_CREDITS = 10;
     if (!currentUser || (currentUser.credits ?? 0) < MIN_REQUIRED_CREDITS) {
-        // 1. 인보이스 생성 ($0.1 = 약 1,000 Credits 충전용 최소 단위 가정)
-        const amountToChargeUSD = 0.1;
-        
+        // 1. 인보이스 생성 ($0.01 = 약 100 Credits, 마이크로 페이먼트 단위)
+        const amountToChargeUSD = 0.01;
+
         // 2. Silent Payment 한도 확인
         const allowance = await checkSilentPaymentAllowance(
             session.user.id,
             amountToChargeUSD
         );
-        
+
         // 3. 한도 내 자동 결제 가능 여부를 헤더에 포함
         // 클라이언트 인터셉터가 이를 확인하여 자동 결제를 시도할 수 있음
         const { token, invoice } = await createX402Invoice(session.user.id, amountToChargeUSD);
-        
+
         // 4. 402 Payment Required 응답 반환 (한도 정보 포함)
         const response = createX402Response(token, invoice);
-        
+
         // 한도 정보를 헤더에 추가
         if (allowance.canAutoPay) {
             response.headers.set("X-x402-Allowance", JSON.stringify({
@@ -83,7 +83,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 remainingAllowance: allowance.remainingAllowance,
             }));
         }
-        
+
         return response;
     }
 
