@@ -6,7 +6,11 @@ import { logger } from "../logger.server";
 import crypto from "crypto";
 
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price";
+const EXCHANGERATE_API_URL = "https://api.exchangerate-api.com/v4/latest";
 const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
+
+// CHOCO 가격 설정 (1 CHOCO = $0.0001, 즉 $1 = 10,000 CHOCO)
+const CHOCO_PRICE_USD = 0.0001;
 
 interface ExchangeRateCache {
     rate: number;
@@ -148,13 +152,116 @@ export async function calculateChocoFromNear(nearAmount: string | number): Promi
 }
 
 /**
- * USD → CHOCO 환율을 계산합니다.
+ * ExchangeRate-API를 통해 USD/KRW 환율을 조회합니다.
+ * @returns USD/KRW 환율 (1 USD = X KRW)
+ */
+async function fetchUSDKRWRate(): Promise<number> {
+    const tokenPair = "USD/KRW";
+    
+    // 1. 메모리 캐시 확인
+    const memoryCached = memoryCache.get(tokenPair);
+    if (memoryCached && (Date.now() - memoryCached.updatedAt) < CACHE_DURATION) {
+        return memoryCached.rate;
+    }
+
+    // 2. DB 캐시 확인
+    const dbCached = await getExchangeRateFromDB(tokenPair);
+    if (dbCached !== null) {
+        memoryCache.set(tokenPair, {
+            rate: dbCached,
+            updatedAt: Date.now(),
+        });
+        return dbCached;
+    }
+
+    // 3. ExchangeRate-API 호출
+    try {
+        const response = await fetch(`${EXCHANGERATE_API_URL}/USD`);
+        if (!response.ok) {
+            throw new Error(`ExchangeRate API error: ${response.status}`);
+        }
+        const data = await response.json();
+        const krwRate = data.rates?.KRW || 1350; // 기본값: 1 USD = 1,350 KRW
+        
+        logger.info({
+            category: "SYSTEM",
+            message: `Fetched USD/KRW rate from ExchangeRate API: ${krwRate}`,
+            metadata: { krwRate }
+        });
+
+        // 4. 캐시 저장 (DB 및 메모리)
+        await saveExchangeRateToDB(tokenPair, krwRate);
+        memoryCache.set(tokenPair, {
+            rate: krwRate,
+            updatedAt: Date.now(),
+        });
+
+        return krwRate;
+    } catch (error) {
+        logger.error({
+            category: "SYSTEM",
+            message: "Failed to fetch USD/KRW rate from ExchangeRate API",
+            stackTrace: (error as Error).stack
+        });
+        // 기본값 반환 및 캐시 저장
+        const fallbackRate = 1350;
+        await saveExchangeRateToDB(tokenPair, fallbackRate);
+        memoryCache.set(tokenPair, {
+            rate: fallbackRate,
+            updatedAt: Date.now(),
+        });
+        return fallbackRate;
+    }
+}
+
+/**
+ * USD/KRW 환율을 조회합니다. (메모리 캐시 → DB 캐시 → ExchangeRate API 순서)
+ * @returns USD/KRW 환율 (1 USD = X KRW)
+ */
+export async function getUSDKRWRate(): Promise<number> {
+    return await fetchUSDKRWRate();
+}
+
+/**
+ * USD → CHOCO 환율을 계산합니다. (실시간 환율 기반)
  * @param usdAmount USD 금액
- * @returns CHOCO 수량
+ * @returns CHOCO 수량 (BigNumber string)
  */
 export async function calculateChocoFromUSD(usdAmount: number): Promise<string> {
-    // 현재: 1 Credit = $0.0001, 1 CHOCO = 1 Credit
+    // 1 CHOCO = $0.0001
     // $1 = 10,000 CHOCO
-    const chocoPriceUSD = 0.0001;
-    return new BigNumber(usdAmount).dividedBy(chocoPriceUSD).toString();
+    // 실시간 환율을 사용하여 정확한 계산
+    const chocoAmount = new BigNumber(usdAmount).dividedBy(CHOCO_PRICE_USD);
+    
+    logger.info({
+        category: "PAYMENT",
+        message: `Calculated CHOCO from USD: $${usdAmount} = ${chocoAmount.toString()} CHOCO`,
+        metadata: { usdAmount, chocoAmount: chocoAmount.toString() }
+    });
+    
+    return chocoAmount.toString();
+}
+
+/**
+ * KRW → CHOCO 환율을 계산합니다. (실시간 환율 기반)
+ * @param krwAmount KRW 금액
+ * @returns CHOCO 수량 (BigNumber string)
+ */
+export async function calculateChocoFromKRW(krwAmount: number): Promise<string> {
+    // 1. USD/KRW 환율 조회
+    const usdKrwRate = await getUSDKRWRate();
+    
+    // 2. KRW → USD 변환
+    const usdAmount = new BigNumber(krwAmount).dividedBy(usdKrwRate);
+    
+    // 3. USD → CHOCO 변환
+    const chocoAmount = await calculateChocoFromUSD(usdAmount.toNumber());
+    
+    logger.info({
+        category: "PAYMENT",
+        message: `Calculated CHOCO from KRW: ${krwAmount} KRW = ${chocoAmount} CHOCO (USD/KRW: ${usdKrwRate})`,
+        metadata: { krwAmount, usdKrwRate, usdAmount: usdAmount.toString(), chocoAmount }
+    });
+    
+    return chocoAmount;
 }
