@@ -108,12 +108,12 @@ async function processExchangeAndSweep(user: any, nearAmount: string, nearAmount
     const dummyTxHash = `DEP_${user.id.slice(0, 8)}_${Date.now()}`;
 
     try {
-        // [수정] 실제 CHOCO 토큰 전송 (rogulus.testnet -> 유저 계정)
+        // 실제 CHOCO 토큰 전송 (rogulus.testnet -> 유저 계정)
         // 온체인 전송이 성공해야만 DB를 업데이트합니다.
         const { sendChocoToken } = await import("./token.server");
         logger.info({
             category: "PAYMENT",
-            message: `Issuing ${chocoAmount.toString()} CHOCO tokens to ${user.nearAccountId}`,
+            message: `Transferring ${chocoAmount.toString()} CHOCO tokens to ${user.nearAccountId} (NEAR deposit)`,
             metadata: { userId: user.id, nearAccountId: user.nearAccountId, chocoAmount: chocoAmount.toString() }
         });
 
@@ -121,14 +121,11 @@ async function processExchangeAndSweep(user: any, nearAmount: string, nearAmount
         const chocoTxHash = (sendResult as any).transaction.hash;
 
         await db.transaction(async (tx) => {
-            // 유저 초코 잔액 및 크레딧 업데이트 (둘은 동일한 자산을 나타내므로 동기화)
-            const { calculateCreditsFromChoco } = await import("../credit-policy");
-            const creditsToAdd = calculateCreditsFromChoco(chocoAmount.toString());
+            // 유저 CHOCO 잔액 업데이트 (Credits는 더 이상 사용하지 않음)
             const newChocoBalance = new BigNumber(user.chocoBalance || "0").plus(chocoAmount);
 
             await tx.update(userTable).set({
                 chocoBalance: newChocoBalance.toString(),
-                credits: sql`${userTable.credits} + ${creditsToAdd}`,
                 nearLastBalance: currentTotalBalance,
                 updatedAt: new Date(),
             }).where(eq(userTable.id, user.id));

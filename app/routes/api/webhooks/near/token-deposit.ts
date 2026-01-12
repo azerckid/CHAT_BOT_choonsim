@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { BigNumber } from "bignumber.js";
 import { verifyTokenTransfer } from "~/lib/near/token.server";
-import { calculateCreditsFromChoco } from "~/lib/credit-policy";
 import { NEAR_CONFIG } from "~/lib/near/client.server";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
@@ -10,7 +9,7 @@ import { nanoid } from "nanoid";
 
 /**
  * POST /api/webhooks/near/token-deposit
- * 온체인 토큰 입금이 확인되었을 때 호출되어 사용자의 크레딧을 업데이트합니다.
+ * 온체인 토큰 입금이 확인되었을 때 호출되어 사용자의 CHOCO 잔액을 업데이트합니다.
  * (주로 직접 송금이나 지갑 동기화 시 사용)
  */
 export async function action({ request }: ActionFunctionArgs) {
@@ -63,17 +62,14 @@ export async function action({ request }: ActionFunctionArgs) {
             .dividedBy(new BigNumber(10).pow(18))
             .toNumber();
 
-        // 5. 크레딧 환산
-        const creditsToAdd = calculateCreditsFromChoco(amountHuman);
-
-        if (creditsToAdd <= 0) {
+        if (amountHuman <= 0) {
             return Response.json(
                 { error: "Invalid transfer amount" },
                 { status: 400 }
             );
         }
 
-        // 6. DB 트랜잭션: 유저 크레딧 충전 및 전송 기록 생성
+        // 5. DB 트랜잭션: 유저 CHOCO 잔액 업데이트 및 전송 기록 생성
         await db.transaction(async (tx) => {
             // 전송 기록 저장
             await tx.insert(schema.tokenTransfer).values({
@@ -87,10 +83,9 @@ export async function action({ request }: ActionFunctionArgs) {
                 createdAt: new Date(),
             });
 
-            // 유저 크레딧 및 CHOCO 잔액 업데이트
+            // 유저 CHOCO 잔액 업데이트 (Credits는 더 이상 사용하지 않음)
             await tx.update(schema.user)
                 .set({
-                    credits: sql`${schema.user.credits} + ${creditsToAdd}`,
                     chocoBalance: sql`${schema.user.chocoBalance} + ${amountRaw}`,
                     updatedAt: new Date(),
                 })
@@ -99,7 +94,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return Response.json({
             success: true,
-            creditedAmount: creditsToAdd,
             chocoAmount: amountHuman,
             transferInfo: {
                 from: transferInfo.from,
