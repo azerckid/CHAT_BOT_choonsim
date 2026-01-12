@@ -1,6 +1,9 @@
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, sql, and } from "drizzle-orm";
+import { BigNumber } from "bignumber.js";
+import { logger } from "../logger.server";
+import crypto from "crypto";
 
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;
 
@@ -38,18 +41,61 @@ export async function confirmTossPayment(paymentKey: string, orderId: string, am
 }
 
 /**
- * 결제 내역 DB 기록 및 크레딧 부여
+ * 결제 내역 DB 기록 및 CHOCO 전송 (환전)
  */
 export async function processSuccessfulTossPayment(
     userId: string,
     paymentData: any,
     creditsGranted: number
 ) {
+    // 1. 사용자 정보 조회 (NEAR 계정 확인)
+    const user = await db.query.user.findFirst({
+        where: eq(schema.user.id, userId),
+        columns: { id: true, nearAccountId: true, chocoBalance: true },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    // 2. KRW → CHOCO 계산
+    const { calculateChocoFromKRW } = await import("../near/exchange-rate.server");
+    const krwAmount = paymentData.totalAmount;
+    const chocoAmount = await calculateChocoFromKRW(krwAmount);
+    const chocoAmountRaw = new BigNumber(chocoAmount).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
+
+    // 3. NEAR 계정이 있으면 온체인 CHOCO 전송 (서비스 계정에서 사용자 계정으로)
+    let chocoTxHash: string | null = null;
+    if (user.nearAccountId) {
+        try {
+            const { sendChocoToken } = await import("../near/token.server");
+            logger.info({
+                category: "PAYMENT",
+                message: `Transferring ${chocoAmount} CHOCO tokens to ${user.nearAccountId} (Toss payment)`,
+                metadata: { userId, nearAccountId: user.nearAccountId, krwAmount, chocoAmount }
+            });
+
+            const sendResult = await sendChocoToken(user.nearAccountId, chocoAmountRaw);
+            chocoTxHash = (sendResult as any).transaction.hash;
+        } catch (error) {
+            logger.error({
+                category: "PAYMENT",
+                message: "Failed to transfer CHOCO tokens on-chain (Toss payment)",
+                stackTrace: (error as Error).stack,
+                metadata: { userId, nearAccountId: user.nearAccountId }
+            });
+            // 온체인 전송 실패해도 DB는 업데이트 (나중에 복구 가능)
+        }
+    }
+
+    // 4. DB 트랜잭션
     return await db.transaction(async (tx) => {
-        // 1. 유저 크레딧 업데이트
+        // 유저 CHOCO 잔액 업데이트
+        const newChocoBalance = new BigNumber(user.chocoBalance || "0").plus(chocoAmount);
+
         await tx.update(schema.user)
             .set({
-                credits: sql`${schema.user.credits} + ${creditsGranted}`,
+                chocoBalance: newChocoBalance.toString(),
                 updatedAt: new Date(),
             })
             .where(eq(schema.user.id, userId));
@@ -58,7 +104,7 @@ export async function processSuccessfulTossPayment(
             where: eq(schema.user.id, userId),
         });
 
-        // 2. 결제 로그 기록
+        // 결제 로그 기록
         const [payment] = await tx.insert(schema.payment).values({
             id: crypto.randomUUID(),
             userId,
@@ -69,10 +115,30 @@ export async function processSuccessfulTossPayment(
             status: "COMPLETED",
             provider: "TOSS",
             type: "TOPUP",
-            creditsGranted,
+            creditsGranted, // 호환성을 위해 유지 (deprecated)
+            txHash: chocoTxHash || undefined,
+            metadata: JSON.stringify({
+                ...paymentData,
+                chocoAmount,
+                chocoTxHash,
+            }),
             createdAt: new Date(),
             updatedAt: new Date(),
         }).returning();
+
+        // TokenTransfer 기록 (온체인 전송 성공 시)
+        if (chocoTxHash) {
+            await tx.insert(schema.tokenTransfer).values({
+                id: crypto.randomUUID(),
+                userId,
+                txHash: chocoTxHash,
+                amount: chocoAmountRaw,
+                tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                status: "COMPLETED",
+                purpose: "TOPUP",
+                createdAt: new Date(),
+            });
+        }
 
         return { user: updatedUser, payment };
     });
@@ -86,12 +152,57 @@ export async function processSuccessfulTossSubscription(
     paymentData: any,
     tier: string
 ) {
+    // 1. 사용자 정보 및 플랜 정보 조회
+    const user = await db.query.user.findFirst({
+        where: eq(schema.user.id, userId),
+        columns: { id: true, nearAccountId: true, chocoBalance: true },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    const { SUBSCRIPTION_PLANS } = await import("../subscription-plans");
+    const plan = SUBSCRIPTION_PLANS[tier as keyof typeof SUBSCRIPTION_PLANS];
+    const creditsPerMonth = plan?.creditsPerMonth || 0;
+
+    // 2. 멤버십 보상 CHOCO 계산 (1 Credit = 1 CHOCO)
+    const chocoAmount = creditsPerMonth.toString();
+    const chocoAmountRaw = new BigNumber(chocoAmount).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
+
+    // 3. NEAR 계정이 있으면 온체인 CHOCO 전송 (서비스 계정에서 사용자 계정으로)
+    let chocoTxHash: string | null = null;
+    if (user.nearAccountId && creditsPerMonth > 0) {
+        try {
+            const { sendChocoToken } = await import("../near/token.server");
+            logger.info({
+                category: "PAYMENT",
+                message: `Transferring ${chocoAmount} CHOCO tokens for subscription (Toss)`,
+                metadata: { userId, tier, nearAccountId: user.nearAccountId, chocoAmount }
+            });
+
+            const sendResult = await sendChocoToken(user.nearAccountId, chocoAmountRaw);
+            chocoTxHash = (sendResult as any).transaction.hash;
+        } catch (error) {
+            logger.error({
+                category: "PAYMENT",
+                message: "Failed to transfer CHOCO tokens on-chain (Toss subscription)",
+                stackTrace: (error as Error).stack,
+                metadata: { userId, tier }
+            });
+        }
+    }
+
+    // 4. DB 트랜잭션
     return await db.transaction(async (tx) => {
-        // 1. 유저 구독 정보 업데이트
+        // 유저 구독 정보 및 CHOCO 잔액 업데이트
+        const newChocoBalance = new BigNumber(user.chocoBalance || "0").plus(chocoAmount);
+
         await tx.update(schema.user)
             .set({
                 subscriptionTier: tier,
                 subscriptionStatus: "ACTIVE",
+                chocoBalance: newChocoBalance.toString(),
                 updatedAt: new Date(),
             })
             .where(eq(schema.user.id, userId));
@@ -100,7 +211,7 @@ export async function processSuccessfulTossSubscription(
             where: eq(schema.user.id, userId),
         });
 
-        // 2. 결제 로그 기록
+        // 결제 로그 기록
         const [payment] = await tx.insert(schema.payment).values({
             id: crypto.randomUUID(),
             userId,
@@ -112,14 +223,32 @@ export async function processSuccessfulTossSubscription(
             provider: "TOSS",
             type: "SUBSCRIPTION",
             description: `${tier} Membership Subscription`,
+            creditsGranted: creditsPerMonth, // 호환성을 위해 유지 (deprecated)
+            txHash: chocoTxHash || undefined,
             metadata: JSON.stringify({
                 paymentData,
                 tier,
+                chocoAmount,
+                chocoTxHash,
                 activatedAt: new Date().toISOString(),
             }),
             createdAt: new Date(),
             updatedAt: new Date(),
         }).returning();
+
+        // TokenTransfer 기록 (온체인 전송 성공 시)
+        if (chocoTxHash) {
+            await tx.insert(schema.tokenTransfer).values({
+                id: crypto.randomUUID(),
+                userId,
+                txHash: chocoTxHash,
+                amount: chocoAmountRaw,
+                tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                status: "COMPLETED",
+                purpose: "TOPUP",
+                createdAt: new Date(),
+            });
+        }
 
         return { user: updatedUser, payment };
     });

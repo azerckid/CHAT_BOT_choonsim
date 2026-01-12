@@ -6,6 +6,8 @@ import { requireUserId } from "~/lib/auth.server";
 import { DateTime } from "luxon";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { BigNumber } from "bignumber.js";
+import { logger } from "~/lib/logger.server";
 
 const ActivateSubscriptionSchema = z.object({
     subscriptionId: z.string(),
@@ -49,11 +51,49 @@ export async function action({ request }: ActionFunctionArgs) {
             return data({ error: "Subscription ID already in use" }, { status: 409 });
         }
 
-        // 트랜잭션으로 DB 업데이트
+        // 1. 사용자 정보 조회 (NEAR 계정 확인)
+        const user = await db.query.user.findFirst({
+            where: eq(schema.user.id, userId),
+            columns: { id: true, nearAccountId: true, chocoBalance: true },
+        });
+
+        if (!user) {
+            return data({ error: "User not found" }, { status: 404 });
+        }
+
+        // 2. 멤버십 보상 CHOCO 계산 (1 Credit = 1 CHOCO)
+        const chocoAmount = planEntry.creditsPerMonth.toString();
+        const chocoAmountRaw = new BigNumber(chocoAmount).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
+
+        // 3. NEAR 계정이 있으면 온체인 CHOCO 전송 (서비스 계정에서 사용자 계정으로)
+        let chocoTxHash: string | null = null;
+        if (user.nearAccountId && planEntry.creditsPerMonth > 0) {
+            try {
+                const { sendChocoToken } = await import("~/lib/near/token.server");
+                logger.info({
+                    category: "PAYMENT",
+                    message: `Transferring ${chocoAmount} CHOCO tokens for subscription activation (PayPal)`,
+                    metadata: { userId, tier: planEntry.tier, nearAccountId: user.nearAccountId, chocoAmount }
+                });
+
+                const sendResult = await sendChocoToken(user.nearAccountId, chocoAmountRaw);
+                chocoTxHash = (sendResult as any).transaction.hash;
+            } catch (error) {
+                logger.error({
+                    category: "PAYMENT",
+                    message: "Failed to transfer CHOCO tokens on-chain (PayPal subscription activation)",
+                    stackTrace: (error as Error).stack,
+                    metadata: { userId, tier: planEntry.tier }
+                });
+            }
+        }
+
+        // 4. 트랜잭션으로 DB 업데이트
+        const nextMonth = DateTime.now().plus({ months: 1 }).toJSDate();
+
         await db.transaction(async (tx) => {
-            // 1. 사용자 정보 업데이트
-            // 구독 만료일은 보통 1개월 뒤 (정확한 건 Webhook에서 갱신하지만, 초기값 설정)
-            const nextMonth = DateTime.now().plus({ months: 1 }).toJSDate();
+            // 사용자 정보 업데이트
+            const newChocoBalance = new BigNumber(user.chocoBalance || "0").plus(chocoAmount);
 
             await tx.update(schema.user)
                 .set({
@@ -61,14 +101,13 @@ export async function action({ request }: ActionFunctionArgs) {
                     subscriptionTier: planEntry.tier,
                     subscriptionId: subscriptionId,
                     currentPeriodEnd: nextMonth,
-                    // 초기 크레딧 지급 (구독 보너스)
-                    credits: sql`${schema.user.credits} + ${planEntry.creditsPerMonth}`,
+                    chocoBalance: newChocoBalance.toString(),
                     lastTokenRefillAt: new Date(),
                     updatedAt: new Date(),
                 })
                 .where(eq(schema.user.id, userId));
 
-            // 2. Payment 기록 생성
+            // Payment 기록 생성
             await tx.insert(schema.payment).values({
                 id: crypto.randomUUID(),
                 userId,
@@ -79,10 +118,30 @@ export async function action({ request }: ActionFunctionArgs) {
                 provider: "PAYPAL",
                 subscriptionId: subscriptionId,
                 description: `Subscription Activation: ${planEntry.name}`,
-                creditsGranted: planEntry.creditsPerMonth,
+                creditsGranted: planEntry.creditsPerMonth, // 호환성을 위해 유지 (deprecated)
+                txHash: chocoTxHash || undefined,
+                metadata: JSON.stringify({
+                    tier: planEntry.tier,
+                    chocoAmount,
+                    chocoTxHash,
+                }),
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
+
+            // TokenTransfer 기록 (온체인 전송 성공 시)
+            if (chocoTxHash) {
+                await tx.insert(schema.tokenTransfer).values({
+                    id: crypto.randomUUID(),
+                    userId,
+                    txHash: chocoTxHash,
+                    amount: chocoAmountRaw,
+                    tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                    status: "COMPLETED",
+                    purpose: "TOPUP",
+                    createdAt: new Date(),
+                });
+            }
         });
 
         return data({ success: true });
