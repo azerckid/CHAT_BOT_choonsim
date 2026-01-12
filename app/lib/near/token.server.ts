@@ -88,7 +88,8 @@ export async function sendGaslessChocoToken(
     userAccountId: string,
     userPrivateKey: string,
     toAccountId: string,
-    amountRaw: string
+    amountRaw: string,
+    memo: string = "Gasless Transfer"
 ) {
     const { KeyPair } = await import("near-api-js");
     const near = await getNearConnection();
@@ -117,7 +118,7 @@ export async function sendGaslessChocoToken(
     // 1. 내부 액션 생성 (ft_transfer)
     const innerAction = (nearTransactions as any).actionCreators.functionCall(
         "ft_transfer",
-        { receiver_id: toAccountId, amount: amountRaw, memo: "X402 Gasless" },
+        { receiver_id: toAccountId, amount: amountRaw, memo },
         BigInt("30000000000000"),
         BigInt(1)
     );
@@ -175,4 +176,22 @@ export async function sendChocoToken(toAccountId: string, amountRaw: string) {
         attachedDeposit: BigInt(1),
         gas: BigInt("30000000000000")
     });
+}
+
+/**
+ * 사용자 계정에서 서비스 계정으로 CHOCO 토큰을 전송합니다 (가스리스).
+ * 사용자의 개인키를 사용하여 서명하고, 가스비는 서비스 계정이 지불합니다.
+ */
+export async function returnChocoToService(
+    userAccountId: string,
+    userPrivateKey: string,
+    amountRaw: string,
+    memo: string = "Choco Usage"
+) {
+    return await sendGaslessChocoToken(
+        userAccountId,
+        userPrivateKey,
+        NEAR_CONFIG.serviceAccountId,
+        amountRaw
+    );
 }

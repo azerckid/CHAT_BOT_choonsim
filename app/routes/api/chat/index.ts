@@ -53,7 +53,7 @@ export async function action({ request }: ActionFunctionArgs) {
         }),
         db.query.user.findFirst({
             where: eq(schema.user.id, session.user.id),
-            columns: { id: true, bio: true, subscriptionTier: true, chocoBalance: true, nearAccountId: true },
+            columns: { id: true, bio: true, subscriptionTier: true, chocoBalance: true, nearAccountId: true, nearPrivateKey: true },
         }),
     ]);
 
@@ -177,32 +177,87 @@ export async function action({ request }: ActionFunctionArgs) {
                     return;
                 }
 
-                // 3단계. 토큰 사용량에 따른 CHOCO 차감 (스트리밍 완료 후)
+                // 3단계. 토큰 사용량에 따른 CHOCO 차감 및 서비스 계정으로 반환 (스트리밍 완료 후)
                 if (tokenUsage && tokenUsage.totalTokens > 0) {
                     try {
                         const { BigNumber } = await import("bignumber.js");
-                        const chocoToDeduct = tokenUsage.totalTokens.toString(); // 1 Credit = 1 CHOCO
+                        const { decrypt } = await import("~/lib/near/key-encryption.server");
+                        const { returnChocoToService } = await import("~/lib/near/token.server");
+                        const { nanoid } = await import("nanoid");
                         
-                        // 현재 CHOCO 잔액 조회
-                        const currentUser = await db.query.user.findFirst({
+                        const chocoToDeduct = tokenUsage.totalTokens.toString(); // 1 Credit = 1 CHOCO
+                        const chocoAmountRaw = new BigNumber(chocoToDeduct).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
+                        
+                        // 사용자 정보 조회 (NEAR 계정 및 개인키 확인)
+                        const userForDeduction = await db.query.user.findFirst({
                             where: eq(schema.user.id, session.user.id),
-                            columns: { chocoBalance: true },
+                            columns: { chocoBalance: true, nearAccountId: true, nearPrivateKey: true },
                         });
 
-                        const currentChocoBalance = currentUser?.chocoBalance ? parseFloat(currentUser.chocoBalance) : 0;
+                        if (!userForDeduction) {
+                            throw new Error("User not found");
+                        }
+
+                        const currentChocoBalance = userForDeduction?.chocoBalance ? parseFloat(userForDeduction.chocoBalance) : 0;
                         const newChocoBalance = new BigNumber(currentChocoBalance).minus(chocoToDeduct).toString();
 
-                        await db.update(schema.user)
-                            .set({ 
-                                chocoBalance: newChocoBalance,
-                                updatedAt: new Date()
-                            })
-                            .where(eq(schema.user.id, session.user.id));
+                        // 온체인 전송: 사용자 계정 → 서비스 계정
+                        let returnTxHash: string | null = null;
+                        if (userForDeduction.nearAccountId && userForDeduction.nearPrivateKey) {
+                            try {
+                                const decryptedPrivateKey = decrypt(userForDeduction.nearPrivateKey);
+                                const returnResult = await returnChocoToService(
+                                    userForDeduction.nearAccountId,
+                                    decryptedPrivateKey,
+                                    chocoAmountRaw,
+                                    "Chat Usage"
+                                );
+                                returnTxHash = (returnResult as any).transaction.hash;
+                                
+                                logger.info({
+                                    category: "API",
+                                    message: `Returned ${chocoToDeduct} CHOCO to service account (chat usage)`,
+                                    metadata: { userId: session.user.id, txHash: returnTxHash, tokenUsage }
+                                });
+                            } catch (onChainError) {
+                                logger.error({
+                                    category: "API",
+                                    message: "Failed to return CHOCO on-chain (chat usage)",
+                                    stackTrace: (onChainError as Error).stack,
+                                    metadata: { userId: session.user.id }
+                                });
+                                // 온체인 전송 실패해도 DB는 업데이트 (나중에 복구 가능)
+                            }
+                        }
+
+                        // DB 업데이트
+                        await db.transaction(async (tx) => {
+                            await tx.update(schema.user)
+                                .set({ 
+                                    chocoBalance: newChocoBalance,
+                                    updatedAt: new Date()
+                                })
+                                .where(eq(schema.user.id, session.user.id));
+
+                            // TokenTransfer 기록 (온체인 전송 성공 시)
+                            if (returnTxHash) {
+                                await tx.insert(schema.tokenTransfer).values({
+                                    id: nanoid(),
+                                    userId: session.user.id,
+                                    txHash: returnTxHash,
+                                    amount: chocoAmountRaw,
+                                    tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                                    status: "COMPLETED",
+                                    purpose: "USAGE", // 채팅 사용
+                                    createdAt: new Date(),
+                                });
+                            }
+                        });
 
                         logger.info({
                             category: "API",
                             message: `Deducted ${chocoToDeduct} CHOCO for user ${session.user.id}`,
-                            metadata: { tokenUsage, chocoDeducted: chocoToDeduct }
+                            metadata: { tokenUsage, chocoDeducted: chocoToDeduct, returnTxHash }
                         });
                     } catch (err) {
                         logger.error({

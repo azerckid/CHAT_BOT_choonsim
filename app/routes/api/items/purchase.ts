@@ -6,6 +6,8 @@ import { z } from "zod";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
+import { logger } from "~/lib/logger.server";
+import { nanoid } from "nanoid";
 
 const purchaseSchema = z.object({
     itemId: z.string(),
@@ -31,11 +33,13 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     const totalCost = (item.priceChoco || item.priceCredits || 0) * quantity; // priceChoco 우선, 없으면 priceCredits (호환성)
+    const totalCostBigNumber = new BigNumber(totalCost);
+    const totalCostRaw = totalCostBigNumber.multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
-    // 1. Check user CHOCO balance
+    // 1. Check user CHOCO balance and get NEAR account info
     const user = await db.query.user.findFirst({
         where: eq(schema.user.id, session.user.id),
-        columns: { chocoBalance: true },
+        columns: { chocoBalance: true, nearAccountId: true, nearPrivateKey: true },
     });
 
     const userChocoBalance = user?.chocoBalance ? parseFloat(user.chocoBalance) : 0;
@@ -44,14 +48,47 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     try {
+        // 2. 온체인 전송: 사용자 계정 → 서비스 계정
+        let returnTxHash: string | null = null;
+        if (user.nearAccountId && user.nearPrivateKey) {
+            try {
+                const { decrypt } = await import("~/lib/near/key-encryption.server");
+                const { returnChocoToService } = await import("~/lib/near/token.server");
+                
+                const decryptedPrivateKey = decrypt(user.nearPrivateKey);
+                const returnResult = await returnChocoToService(
+                    user.nearAccountId,
+                    decryptedPrivateKey,
+                    totalCostRaw,
+                    `Item Purchase: ${item.name} x${quantity}`
+                );
+                returnTxHash = (returnResult as any).transaction.hash;
+                
+                logger.info({
+                    category: "PAYMENT",
+                    message: `Returned ${totalCost} CHOCO to service account (item purchase)`,
+                    metadata: { userId: session.user.id, itemId, quantity, txHash: returnTxHash }
+                });
+            } catch (onChainError) {
+                logger.error({
+                    category: "PAYMENT",
+                    message: "Failed to return CHOCO on-chain (item purchase)",
+                    stackTrace: (onChainError as Error).stack,
+                    metadata: { userId: session.user.id, itemId, quantity }
+                });
+                // 온체인 전송 실패해도 DB는 업데이트 (나중에 복구 가능)
+            }
+        }
+
+        // 3. DB 트랜잭션
         await db.transaction(async (tx) => {
-            // 2. Deduct CHOCO
+            // CHOCO 차감
             const newChocoBalance = new BigNumber(userChocoBalance).minus(totalCost).toString();
             await tx.update(schema.user)
                 .set({ chocoBalance: newChocoBalance, updatedAt: new Date() })
                 .where(eq(schema.user.id, session.user.id));
 
-            // 3. Add to Inventory
+            // 인벤토리 추가
             await tx.insert(schema.userInventory).values({
                 id: crypto.randomUUID(),
                 userId: session.user.id,
@@ -66,7 +103,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 }
             });
 
-            // 4. Create Payment Record (for history)
+            // Payment 기록
             await tx.insert(schema.payment).values({
                 id: crypto.randomUUID(),
                 userId: session.user.id,
@@ -76,15 +113,35 @@ export async function action({ request }: ActionFunctionArgs) {
                 provider: "CHOCO",
                 type: "ITEM_PURCHASE",
                 description: `${item.name} ${quantity}개 구매`,
-                metadata: JSON.stringify({ itemId, quantity, chocoSpent: totalCost }),
+                metadata: JSON.stringify({ itemId, quantity, chocoSpent: totalCost, returnTxHash }),
+                txHash: returnTxHash || undefined,
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
+
+            // TokenTransfer 기록 (온체인 전송 성공 시)
+            if (returnTxHash) {
+                await tx.insert(schema.tokenTransfer).values({
+                    id: nanoid(),
+                    userId: session.user.id,
+                    txHash: returnTxHash,
+                    amount: totalCostRaw,
+                    tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                    status: "COMPLETED",
+                    purpose: "ITEM_PURCHASE",
+                    createdAt: new Date(),
+                });
+            }
         });
 
-        return Response.json({ success: true, chocoSpent: totalCost });
+        return Response.json({ success: true, chocoSpent: totalCost, returnTxHash });
     } catch (error: any) {
-        console.error("Purchase transaction error:", error);
+        logger.error({
+            category: "PAYMENT",
+            message: "Purchase transaction error",
+            stackTrace: error.stack,
+            metadata: { userId: session.user.id, itemId, quantity }
+        });
         return Response.json({ error: "Purchase failed" }, { status: 500 });
     }
 }
