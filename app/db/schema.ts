@@ -112,7 +112,8 @@ export const item = sqliteTable("Item", {
     id: text("id").primaryKey(),
     name: text("name").notNull(),
     type: text("type").notNull(),
-    priceCredits: integer("priceCredits"),
+    priceCredits: integer("priceCredits"), // Deprecated: 호환성을 위해 유지
+    priceChoco: integer("priceChoco"), // 신규: CHOCO 가격 (1 Credit = 1 CHOCO)
     priceUSD: real("priceUSD"),
     priceKRW: real("priceKRW"),
     iconUrl: text("iconUrl"),

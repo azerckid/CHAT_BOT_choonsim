@@ -10,7 +10,8 @@ import { toast } from "sonner";
 const itemSchema = z.object({
     name: z.string().min(1),
     type: z.enum(["GIFT", "CONSUMABLE", "CURRENCY"]),
-    priceCredits: z.coerce.number().min(0).optional(),
+    priceCredits: z.coerce.number().min(0).optional(), // Deprecated: 호환성을 위해 유지
+    priceChoco: z.coerce.number().min(0).optional(), // 신규: CHOCO 가격
     priceUSD: z.coerce.number().min(0).optional(),
     priceKRW: z.coerce.number().min(0).optional(),
     description: z.string().optional(),
@@ -58,7 +59,8 @@ export async function action({ params, request }: ActionFunctionArgs) {
     const data = {
         name: formData.get("name") as string,
         type: formData.get("type") as string,
-        priceCredits: Number(formData.get("priceCredits")) || 0,
+        priceCredits: Number(formData.get("priceCredits")) || 0, // Deprecated
+        priceChoco: Number(formData.get("priceChoco")) || 0, // 신규
         priceUSD: Number(formData.get("priceUSD")) || 0,
         priceKRW: Number(formData.get("priceKRW")) || 0,
         description: formData.get("description") as string,
@@ -276,17 +278,30 @@ export default function EditItem() {
                                 Price Configuration
                             </h2>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Internal Credits</label>
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">CHOCO Price</label>
+                                    <div className="relative">
+                                        <input
+                                            name="priceChoco"
+                                            type="number"
+                                            defaultValue={item?.priceChoco || item?.priceCredits || 0}
+                                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold pr-12"
+                                        />
+                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-primary font-black text-[10px] uppercase">CHOCO</span>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">Credits (Deprecated)</label>
                                     <div className="relative">
                                         <input
                                             name="priceCredits"
                                             type="number"
                                             defaultValue={item?.priceCredits || 0}
-                                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold pr-12"
+                                            className="w-full bg-black/20 border border-white/5 rounded-2xl px-6 py-4 text-white/40 focus:outline-none focus:border-primary/30 transition-all font-bold pr-12"
+                                            disabled
                                         />
-                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-primary font-black text-[10px] uppercase">CR</span>
+                                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-white/10 font-black text-[10px] uppercase">CR</span>
                                     </div>
                                 </div>
                                 <div className="space-y-2">

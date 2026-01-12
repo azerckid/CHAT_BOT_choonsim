@@ -83,10 +83,10 @@ export default function AdminItems() {
 
                                 <div className="mt-8 grid grid-cols-2 gap-3 relative z-10">
                                     <div className="p-4 bg-black/20 rounded-3xl border border-white/5 group-hover:border-primary/10 transition-colors">
-                                        <p className="text-[8px] font-black text-white/20 uppercase mb-1">Price (Credits)</p>
+                                        <p className="text-[8px] font-black text-white/20 uppercase mb-1">Price (CHOCO)</p>
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-lg font-black italic text-white tracking-tighter">{item.priceCredits || 0}</span>
-                                            <span className="text-[10px] text-primary/60 font-bold uppercase">CR</span>
+                                            <span className="text-lg font-black italic text-white tracking-tighter">{item.priceChoco || item.priceCredits || 0}</span>
+                                            <span className="text-[10px] text-primary/60 font-bold uppercase">CHOCO</span>
                                         </div>
                                     </div>
                                     <div className="p-4 bg-black/20 rounded-3xl border border-white/5 group-hover:border-primary/10 transition-colors">
