@@ -33,7 +33,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     db.query.user.findFirst({
       where: eq(schema.user.id, userId),
       columns: {
-        credits: true,
+        chocoBalance: true,
         subscriptionTier: true,
         subscriptionStatus: true,
         currentPeriodEnd: true,
@@ -55,7 +55,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 type LoaderData = {
   user: {
-    credits: number;
+    chocoBalance: string | null;
     subscriptionTier: string | null;
     subscriptionStatus: string | null;
     currentPeriodEnd: Date | string | null;
@@ -145,7 +145,7 @@ export default function SubscriptionManagementPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-white/50">
-                      보유 크레딧: <span className="text-primary font-bold">{user?.credits.toLocaleString()}</span>
+                      보유 CHOCO: <span className="text-primary font-bold">{user?.chocoBalance ? parseFloat(user.chocoBalance).toLocaleString() : "0"}</span>
                     </p>
                     <div
                       onClick={() => setIsTopUpModalOpen(true)}

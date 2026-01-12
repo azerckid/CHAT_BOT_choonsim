@@ -57,13 +57,13 @@ export async function action({ params, request }: ActionFunctionArgs) {
         const role = formData.get("role") as string;
         const tier = formData.get("tier") as string;
         const status = formData.get("subscriptionStatus") as string;
-        const credits = Number(formData.get("credits"));
+        const chocoBalance = formData.get("chocoBalance") as string;
 
         await db.update(schema.user).set({
             role,
             subscriptionTier: tier,
             subscriptionStatus: status,
-            credits: isNaN(credits) ? undefined : credits,
+            chocoBalance: chocoBalance || undefined,
         }).where(eq(schema.user.id, id));
 
         return { success: true, message: "User updated successfully" };
@@ -140,7 +140,7 @@ export default function UserDetail() {
                         <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase truncate max-w-md">
                             User: <span className="text-primary">{user.name || user.email}</span>
                         </h1>
-                        <p className="text-white/40 text-sm font-medium">Manage permissions, credits, and inventory.</p>
+                        <p className="text-white/40 text-sm font-medium">Manage permissions, CHOCO balances, and inventory.</p>
                     </div>
 
                     <button
@@ -199,8 +199,8 @@ export default function UserDetail() {
                             <h3 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">Quick Stats</h3>
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center text-xs">
-                                    <span className="text-white/40">Credits</span>
-                                    <span className="text-primary font-black italic">{user.credits?.toLocaleString()} CR</span>
+                                    <span className="text-white/40">CHOCO</span>
+                                    <span className="text-primary font-black italic">{user.chocoBalance ? parseFloat(user.chocoBalance).toLocaleString() : "0"} CHOCO</span>
                                 </div>
                                 <div className="flex justify-between items-center text-xs">
                                     <span className="text-white/40">Inventory</span>
@@ -250,15 +250,15 @@ export default function UserDetail() {
                                             </select>
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2 block italic">Credit Balance (CR)</label>
+                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2 block italic">CHOCO Balance</label>
                                             <div className="relative">
                                                 <input
-                                                    name="credits"
-                                                    type="number"
-                                                    defaultValue={user.credits || 0}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold pr-12"
+                                                    name="chocoBalance"
+                                                    type="text"
+                                                    defaultValue={user.chocoBalance || "0"}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold pr-16"
                                                 />
-                                                <span className="absolute right-6 top-1/2 -translate-y-1/2 text-primary font-black text-[10px] uppercase">CR</span>
+                                                <span className="absolute right-6 top-1/2 -translate-y-1/2 text-primary font-black text-[10px] uppercase">CHOCO</span>
                                             </div>
                                         </div>
                                         <div className="space-y-2">
@@ -382,7 +382,7 @@ export default function UserDetail() {
                                                 <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">Date</th>
                                                 <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">Provider</th>
                                                 <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">Amount</th>
-                                                <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">Credits</th>
+                                                <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest">CHOCO Granted</th>
                                                 <th className="px-8 py-4 text-[9px] font-black text-white/20 uppercase tracking-widest text-right">Status</th>
                                             </tr>
                                         </thead>
@@ -404,7 +404,7 @@ export default function UserDetail() {
                                                             <span className="text-xs font-bold text-white">${p.amount}</span>
                                                         </td>
                                                         <td className="px-8 py-4">
-                                                            <span className="text-xs font-black text-primary italic">+{p.creditsGranted}</span>
+                                                            <span className="text-xs font-black text-primary italic">+{p.creditsGranted || "0"} CHOCO</span>
                                                         </td>
                                                         <td className="px-8 py-4 text-right">
                                                             <span className={cn(

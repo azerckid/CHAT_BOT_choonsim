@@ -6,7 +6,7 @@ interface MessageInputProps {
   onSend?: (message: string, mediaUrl?: string) => void;
   onGift?: (itemId: string, amount: number) => Promise<void>;
   onOpenStore?: () => void;
-  userCredits?: number;
+  userChocoBalance?: number; // 변경: Credits → CHOCO
   ownedHearts?: number;
   placeholder?: string;
   disabled?: boolean;
@@ -17,7 +17,7 @@ export function MessageInput({
   onSend,
   onGift,
   onOpenStore,
-  userCredits = 0,
+  userChocoBalance = 0,
   ownedHearts = 0,
   placeholder = "메시지를 입력하세요...",
   disabled = false,

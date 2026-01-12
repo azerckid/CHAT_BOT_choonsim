@@ -208,19 +208,17 @@ export default function ChatRoom() {
 
   // Hearts state
   const [currentUserHearts, setCurrentUserHearts] = useState(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
-  const [currentUserCredits, setCurrentUserCredits] = useState(user?.credits || 0);
+  const [currentUserChocoBalance, setCurrentUserChocoBalance] = useState(user?.chocoBalance ? parseFloat(user.chocoBalance) : 0);
   
   // 잔액 변동량 추적 (시각적 피드백용)
-  const [creditChange, setCreditChange] = useState<number | undefined>(undefined);
   const [chocoChange, setChocoChange] = useState<number | undefined>(undefined);
   const [lastOptimisticDeduction, setLastOptimisticDeduction] = useState<number>(0); // 마지막 낙관적 차감량
 
   // Re-sync states when loader data updates
   useEffect(() => {
     setCurrentUserHearts(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
-    setCurrentUserCredits(user?.credits || 0);
+    setCurrentUserChocoBalance(user?.chocoBalance ? parseFloat(user.chocoBalance) : 0);
     // loader 업데이트 시 변동량 초기화
-    setCreditChange(undefined);
     setChocoChange(undefined);
   }, [user]);
 
@@ -310,8 +308,8 @@ export default function ChatRoom() {
     });
 
     setIsOptimisticTyping(false);
-    if (user?.credits !== undefined) {
-      setCurrentUserCredits(user.credits);
+    if (user?.chocoBalance !== undefined) {
+      setCurrentUserChocoBalance(parseFloat(user.chocoBalance));
     }
   }, [initialMessages, user]);
 
@@ -374,12 +372,12 @@ export default function ChatRoom() {
     }
 
     // 1. 사용자 메시지 낙관적 업데이트
-    // [Optimistic UI] 메시지 전송 즉시 예상 크레딧 차감 (기본 10)
+    // [Optimistic UI] 메시지 전송 즉시 예상 CHOCO 차감 (기본 10)
     // 실제 차감은 나중에 서버 동기화 시 보정됨
     const estimatedCost = 10;
     setLastOptimisticDeduction(estimatedCost);
-    setCurrentUserCredits((prev: number) => Math.max(0, prev - estimatedCost));
-    setCreditChange(-estimatedCost); // 변동량 표시
+    setCurrentUserChocoBalance((prev: number) => Math.max(0, prev - estimatedCost));
+    setChocoChange(-estimatedCost); // 변동량 표시
 
     const userMsgId = crypto.randomUUID();
     const newUserMsg: Message = {
@@ -495,15 +493,15 @@ export default function ChatRoom() {
                     
                     // 실제 비용으로 조정 (예상 비용과의 차이만큼 보정)
                     if (adjustment !== 0) {
-                      setCurrentUserCredits((prev: number) => Math.max(0, prev + adjustment));
+                      setCurrentUserChocoBalance((prev: number) => Math.max(0, prev + adjustment));
                     }
                     
                     // 변동량 업데이트 (실제 차감량)
-                    setCreditChange(-actualCost);
+                    setChocoChange(-actualCost);
                     
                     // 2초 후 변동량 표시 제거
                     setTimeout(() => {
-                      setCreditChange(undefined);
+                      setChocoChange(undefined);
                     }, 2000);
                     
                     setLastOptimisticDeduction(0); // 초기화
@@ -511,7 +509,7 @@ export default function ChatRoom() {
                     // 토큰 사용량 정보가 없으면 예상 비용으로 변동량 표시 유지
                     // 2초 후 변동량 표시 제거
                     setTimeout(() => {
-                      setCreditChange(undefined);
+                      setChocoChange(undefined);
                       setLastOptimisticDeduction(0);
                     }, 2000);
                   }
@@ -535,9 +533,12 @@ export default function ChatRoom() {
       
       // 에러 발생 시 낙관적 차감 롤백
       if (lastOptimisticDeduction > 0) {
-        setCurrentUserCredits((prev: number) => prev + lastOptimisticDeduction);
+        setCurrentUserChocoBalance((prev: number) => prev + lastOptimisticDeduction);
         setLastOptimisticDeduction(0);
-        setCreditChange(undefined);
+        setChocoChange(lastOptimisticDeduction); // 롤백된 양을 표시
+        setTimeout(() => {
+          setChocoChange(undefined);
+        }, 2000);
       }
 
       // 중간에 끊겼다면 (에러로 발생한 경우) 현재까지의 내용이라도 유지
@@ -652,9 +653,7 @@ export default function ChatRoom() {
         onBack={handleBack}
         onDeleteChat={() => setIsDeleteDialogOpen(true)}
         onResetChat={() => setIsResetDialogOpen(true)}
-        credits={currentUserCredits}
-        chocoBalance={user?.chocoBalance}
-        creditChange={creditChange}
+        chocoBalance={currentUserChocoBalance.toString()}
         chocoChange={chocoChange}
       />
 
@@ -742,7 +741,7 @@ export default function ChatRoom() {
         onSend={handleSend}
         onGift={handleGift}
         onOpenStore={() => setIsItemStoreOpen(true)}
-        userCredits={currentUserCredits}
+        userChocoBalance={currentUserChocoBalance}
         ownedHearts={currentUserHearts}
         disabled={isOptimisticTyping || isInterrupting}
       />

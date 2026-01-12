@@ -89,15 +89,20 @@
 - ✅ **[필수] 잔액 표시**: Wallet Status Card 구현 완료 (`settings.tsx`)
 - ✅ **[권장] 결제 내역**: Transaction History UI 구현 완료 (`settings.tsx`)
 
-### 구현 필요 기능 (To-Be)
-1.  **[신규] 채팅방 실시간 잔액 표시**: 돈을 쓰고 있다는 감각을 제공해야 함.
-    *   [ ] 채팅방 헤더에 Credit/CHOCO 잔액 뱃지 추가 필요. (❌ 미구현)
-    *   [ ] 사용 시 숫자가 실시간으로 차감되는 애니메이션(Optimistic UI) 구현 필요. (⚠️ 부분 구현: 잔액 state는 있으나 즉시 차감 로직 없음)
-    *   [ ] 카운터 애니메이션 (Rolling Counter) 구현 필요. (❌ 미구현)
-    *   [ ] 시각적 피드백 (차감 시 붉은색 점멸, 충전 시 녹색 점멸) 구현 필요. (❌ 미구현)
-    *   **현재 상태**: 전체 구현 완성도 약 20%. `currentUserCredits` state는 관리되나 UI 표시 및 Optimistic Update 미구현.
+### 구현 완료된 기능 ✅
+1.  **[신규] 채팅방 실시간 잔액 표시**: 돈을 쓰고 있다는 감각을 제공함.
+    *   [x] 채팅방 헤더에 Credit/CHOCO 잔액 뱃지 추가 완료. (✅ 완료)
+    *   [x] 사용 시 숫자가 실시간으로 차감되는 애니메이션(Optimistic UI) 구현 완료. (✅ 완료)
+    *   [x] 카운터 애니메이션 (Rolling Counter) 구현 완료. (✅ 완료)
+    *   [x] 시각적 피드백 (차감 시 붉은색 점멸, 충전 시 녹색 점멸) 구현 완료. (✅ 완료)
+    *   **구현 완료 상태**: 전체 구현 완성도 100%. 채팅방 헤더 잔액 뱃지, Optimistic UI, Rolling Counter 애니메이션, 변동량 표시 모두 구현 완료.
+    *   **구현 파일**: 
+        *   `app/components/chat/ChatHeader.tsx`: 잔액 뱃지 및 변동량 표시
+        *   `app/components/ui/RollingCounter.tsx`: 카운터 애니메이션 컴포넌트
+        *   `app/components/ui/BalanceChangeIndicator.tsx`: 변동량 텍스트 표시 컴포넌트
+        *   `app/routes/chat/$id.tsx`: Optimistic UI 및 실제 비용 조정 로직
     *   **관련 스펙**: `NEAR_X402_UI_SPEC.md`의 4.5절 참조.
-    *   **확인 보고서**: `NEAR_CHAT_BALANCE_UI_VERIFICATION.md` 참조.
+    *   **확인 보고서**: `NEAR_CHAT_BALANCE_UI_COMPLETION_REPORT.md` 참조.
 
 ### 남은 과제
 - **UAT (사용자 인수 테스트)**: 실제 입금 및 사용 시나리오 검증 필요.

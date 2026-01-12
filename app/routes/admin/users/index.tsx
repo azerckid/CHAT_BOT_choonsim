@@ -36,7 +36,7 @@ export default function AdminUsers() {
                         <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase">
                             User <span className="text-primary">Management</span>
                         </h1>
-                        <p className="text-white/40 text-sm font-medium">Monitor and manage user accounts, tiers, and credits.</p>
+                        <p className="text-white/40 text-sm font-medium">Monitor and manage user accounts, tiers, and CHOCO balances.</p>
                     </div>
 
                     <Form
@@ -63,7 +63,7 @@ export default function AdminUsers() {
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">User</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">NEAR Address</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Role / Tier</th>
-                                    <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Credits</th>
+                                    <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">CHOCO</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Joined</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] text-right">Action</th>
                                 </tr>
@@ -123,10 +123,10 @@ export default function AdminUsers() {
                                             <td className="px-8 py-5">
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center gap-1">
-                                                        <span className="text-white font-black italic tracking-tighter text-lg">{user.credits || 0}</span>
-                                                        <span className="text-primary font-bold text-[8px] uppercase">CR</span>
+                                                        <span className="text-white font-black italic tracking-tighter text-lg">{user.chocoBalance ? parseFloat(user.chocoBalance).toLocaleString() : "0"}</span>
+                                                        <span className="text-primary font-bold text-[8px] uppercase">CHOCO</span>
                                                     </div>
-                                                    <span className="text-[10px] text-white/20 font-medium">Internal Token</span>
+                                                    <span className="text-[10px] text-white/20 font-medium">Token Balance</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">

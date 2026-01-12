@@ -21,9 +21,7 @@ interface ChatHeaderProps {
   onResetChat?: () => void;
   statusClassName?: string;
   statusOpacity?: number;
-  credits?: number;      // 추가: 현재 크레딧 (AI 이용권)
   chocoBalance?: string; // 추가: CHOCO 토큰 잔액
-  creditChange?: number; // 추가: 크레딧 변동량 (음수면 차감, 양수면 증가)
   chocoChange?: number;  // 추가: CHOCO 변동량
 }
 
@@ -46,9 +44,7 @@ export function ChatHeader({
   onResetChat,
   statusClassName,
   statusOpacity = 1,
-  credits,
   chocoBalance,
-  creditChange,
   chocoChange,
 }: ChatHeaderProps) {
   const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
@@ -86,49 +82,25 @@ export function ChatHeader({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {/* 잔액 표시 배지 (CHOCO 우선 표시) */}
-          {(chocoBalance !== undefined || credits !== undefined) && (
+          {/* 잔액 표시 배지 (CHOCO) */}
+          {chocoBalance !== undefined && (
             <>
               {/* 데스크톱: 인라인 표시 */}
-              <div className="hidden sm:flex items-center px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 mr-1 gap-3">
-                {/* CHOCO 잔액이 있으면 표시 (0 포함) */}
-                {chocoBalance !== undefined && (
-                  <div className="flex items-center relative">
-                    <RollingCounter
-                      value={Number(chocoBalance)}
-                      className="text-xs font-bold text-slate-700 dark:text-slate-200 mr-1"
+              <div className="hidden sm:flex items-center px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 mr-1">
+                {/* CHOCO 잔액 표시 */}
+                <div className="flex items-center relative">
+                  <RollingCounter
+                    value={Number(chocoBalance)}
+                    className="text-xs font-bold text-slate-700 dark:text-slate-200 mr-1"
+                  />
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">CHOCO</span>
+                  {chocoChange !== undefined && chocoChange !== 0 && (
+                    <BalanceChangeIndicator
+                      amount={chocoChange}
+                      className="absolute -right-6 top-0 whitespace-nowrap"
                     />
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">CHOCO</span>
-                    {chocoChange !== undefined && chocoChange !== 0 && (
-                      <BalanceChangeIndicator
-                        amount={chocoChange}
-                        className="absolute -right-6 top-0 whitespace-nowrap"
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* 구분선 (둘 다 있을 때만) */}
-                {chocoBalance !== undefined && credits !== undefined && (
-                  <div className="w-[1px] h-3 bg-slate-300 dark:bg-white/20" />
-                )}
-
-                {/* Credit 잔액 표시 */}
-                {credits !== undefined && (
-                  <div className="flex items-center relative">
-                    <RollingCounter
-                      value={credits}
-                      className="text-xs font-bold text-slate-700 dark:text-slate-200 mr-1"
-                    />
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Credit</span>
-                    {creditChange !== undefined && creditChange !== 0 && (
-                      <BalanceChangeIndicator
-                        amount={creditChange}
-                        className="absolute -right-6 top-0 whitespace-nowrap"
-                      />
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* 모바일: Dialog로 표시 */}
@@ -144,38 +116,20 @@ export function ChatHeader({
                     <DialogDescription>현재 보유 중인 자산입니다.</DialogDescription>
                   </DialogHeader>
                   <div className="py-4 space-y-4">
-                    {chocoBalance !== undefined && (
-                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">CHOCO</span>
-                          <div className="flex items-center gap-2 mt-1">
-                            <RollingCounter
-                              value={Number(chocoBalance)}
-                              className="text-2xl font-bold text-slate-900 dark:text-white"
-                            />
-                            {chocoChange !== undefined && chocoChange !== 0 && (
-                              <BalanceChangeIndicator amount={chocoChange} />
-                            )}
-                          </div>
+                    <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400">CHOCO</span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <RollingCounter
+                            value={Number(chocoBalance)}
+                            className="text-2xl font-bold text-slate-900 dark:text-white"
+                          />
+                          {chocoChange !== undefined && chocoChange !== 0 && (
+                            <BalanceChangeIndicator amount={chocoChange} />
+                          )}
                         </div>
                       </div>
-                    )}
-                    {credits !== undefined && (
-                      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Credit</span>
-                          <div className="flex items-center gap-2 mt-1">
-                            <RollingCounter
-                              value={credits}
-                              className="text-2xl font-bold text-slate-900 dark:text-white"
-                            />
-                            {creditChange !== undefined && creditChange !== 0 && (
-                              <BalanceChangeIndicator amount={creditChange} />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
