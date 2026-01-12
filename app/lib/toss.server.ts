@@ -2,7 +2,7 @@ import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
-import { logger } from "../logger.server";
+import { logger } from "~/lib/logger.server";
 import crypto from "crypto";
 
 const TOSS_SECRET_KEY = process.env.TOSS_SECRET_KEY;

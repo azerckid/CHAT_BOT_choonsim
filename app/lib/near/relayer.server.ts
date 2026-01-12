@@ -2,7 +2,7 @@ import { connect, keyStores, KeyPair, transactions, utils } from "near-api-js";
 import { NEAR_CONFIG } from "./client.server";
 import { db } from "../db.server";
 import { relayerLog } from "../../db/schema";
-import { logger } from "../logger.server";
+import { logger } from "~/lib/logger.server";
 import { nanoid } from "nanoid";
 
 /**

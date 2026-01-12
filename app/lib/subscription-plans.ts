@@ -26,7 +26,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         aiModel: "gemini-2.0-flash-exp",
         features: [
             "기본 AI 대화 (Gemini Flash)",
-            "일일 50 크레딧 제공",
+            "일일 50 CHOCO",
             "광고 포함",
             "커뮤니티 지원"
         ],
@@ -42,7 +42,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         features: [
             "모든 Free 기능 포함",
             "광고 제거",
-            "월 2,000 크레딧 제공",
+            "월 2,000 CHOCO",
             "표준 응답 속도"
         ],
         description: "광고 없이 쾌적하게 대화를 즐기고 싶은 분들에게 적합합니다.",
@@ -57,7 +57,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         aiModel: "gpt-4o", // 예시: UI 표시용
         features: [
             "모든 Basic 기능 포함",
-            "월 10,000 크레딧 대용량 제공",
+            "월 10,000 CHOCO 대용량",
             "고급 모델(GPT-4o, Claude 3.5) 접근 가능",
             "이미지 생성 기능",
             "빠른 응답 속도"
@@ -74,7 +74,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         aiModel: "gpt-4o",
         features: [
             "모든 Premium 기능 포함",
-            "무제한급 크레딧 (FUP 적용)",
+            "무제한 CHOCO (FUP 적용)",
             "우선 처리 (Priority Queue)",
             "전용 컨시어지 서비스",
             "우선 서포트 지원"

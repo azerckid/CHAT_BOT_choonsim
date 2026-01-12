@@ -2,7 +2,7 @@ import { db } from "../db.server";
 import { exchangeRate as exchangeRateTable } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
-import { logger } from "../logger.server";
+import { logger } from "~/lib/logger.server";
 import crypto from "crypto";
 
 const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price";

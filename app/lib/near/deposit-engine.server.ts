@@ -3,7 +3,7 @@ import { user as userTable, exchangeLog as exchangeLogTable, exchangeRate as exc
 import { eq, and, sql } from "drizzle-orm";
 import { getNearConnection } from "./client.server";
 import { decrypt } from "./key-encryption.server";
-import { logger } from "../logger.server";
+import { logger } from "~/lib/logger.server";
 import { BigNumber } from "bignumber.js";
 import { v4 as uuidv4 } from "uuid";
 import * as nearAPI from "near-api-js";
