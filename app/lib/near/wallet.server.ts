@@ -10,10 +10,10 @@ import { NEAR_CONFIG } from "./client.server";
  * @param userId 시스템 내부 사용자 ID
  */
 export async function ensureNearWallet(userId: string) {
-    // 1. 기존 지갑 확인
+    // 1. 기존 지갑 확인 (Credits도 함께 조회)
     const user = await db.query.user.findFirst({
         where: eq(schema.user.id, userId),
-        columns: { id: true, email: true, nearAccountId: true }
+        columns: { id: true, email: true, nearAccountId: true, credits: true, chocoBalance: true }
     });
 
     if (!user || user.nearAccountId) return user?.nearAccountId;
@@ -110,18 +110,103 @@ export async function ensureNearWallet(userId: string) {
         const { encrypt } = await import("./key-encryption.server");
         const encryptedPrivateKey = encrypt(privateKey);
 
-        // 7. DB 업데이트
+        // 7. DB 업데이트 (지갑 정보 저장)
         await db.update(schema.user)
             .set({
                 nearAccountId: newAccountId,
                 nearPublicKey: publicKey,
                 nearPrivateKey: encryptedPrivateKey,
-                chocoBalance: "0",
+                chocoBalance: "0", // 초기값, Credits 변환 후 업데이트됨
                 updatedAt: new Date(),
             })
             .where(eq(schema.user.id, userId));
 
         console.log(`[Wallet] Successfully created wallet: ${newAccountId}`);
+
+        // 8. Credits → CHOCO 변환 (지갑 생성 후)
+        if (user.credits && user.credits > 0) {
+            try {
+                const { BigNumber } = await import("bignumber.js");
+                const { sendChocoToken } = await import("./token.server");
+                const { logger } = await import("../logger.server");
+                const { nanoid } = await import("nanoid");
+
+                const creditsToConvert = user.credits;
+                const chocoAmount = new BigNumber(creditsToConvert); // 1 Credit = 1 CHOCO
+                const chocoAmountRaw = chocoAmount.multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
+
+                logger.info({
+                    category: "MIGRATION",
+                    message: `Migrating ${creditsToConvert} Credits to CHOCO for user ${userId}`,
+                    metadata: { userId, nearAccountId: newAccountId, creditsToConvert, chocoAmount: chocoAmount.toString() }
+                });
+
+                // 온체인 CHOCO 전송
+                let chocoTxHash: string | null = null;
+                try {
+                    const sendResult = await sendChocoToken(newAccountId, chocoAmountRaw);
+                    chocoTxHash = (sendResult as any).transaction.hash;
+                    logger.info({
+                        category: "MIGRATION",
+                        message: `Successfully transferred ${chocoAmount.toString()} CHOCO tokens (Credits migration)`,
+                        metadata: { userId, nearAccountId: newAccountId, txHash: chocoTxHash }
+                    });
+                } catch (error) {
+                    logger.error({
+                        category: "MIGRATION",
+                        message: "Failed to transfer CHOCO tokens on-chain (Credits migration)",
+                        stackTrace: (error as Error).stack,
+                        metadata: { userId, nearAccountId: newAccountId }
+                    });
+                    // 온체인 전송 실패해도 DB는 업데이트 (나중에 복구 가능)
+                }
+
+                // DB 업데이트: Credits → CHOCO 변환
+                const currentChocoBalance = new BigNumber(user.chocoBalance || "0");
+                const newChocoBalance = currentChocoBalance.plus(chocoAmount);
+
+                await db.transaction(async (tx) => {
+                    // CHOCO 잔액 업데이트 및 Credits 제거
+                    await tx.update(schema.user)
+                        .set({
+                            chocoBalance: newChocoBalance.toString(),
+                            credits: 0,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(schema.user.id, userId));
+
+                    // TokenTransfer 기록 (온체인 전송 성공 시)
+                    if (chocoTxHash) {
+                        await tx.insert(schema.tokenTransfer).values({
+                            id: nanoid(),
+                            userId,
+                            txHash: chocoTxHash,
+                            amount: chocoAmountRaw,
+                            tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                            status: "COMPLETED",
+                            purpose: "MIGRATION", // Credits → CHOCO 마이그레이션
+                            createdAt: new Date(),
+                        });
+                    }
+                });
+
+                logger.audit({
+                    category: "MIGRATION",
+                    message: `Credits migration completed: ${creditsToConvert} Credits → ${chocoAmount.toString()} CHOCO`,
+                    metadata: {
+                        userId,
+                        nearAccountId: newAccountId,
+                        creditsToConvert,
+                        chocoAmount: chocoAmount.toString(),
+                        txHash: chocoTxHash
+                    }
+                });
+            } catch (error: any) {
+                console.error(`[Wallet] Failed to migrate Credits to CHOCO for user ${userId}:`, error);
+                // Credits 변환 실패해도 지갑 생성은 성공한 것으로 처리
+            }
+        }
+
         return newAccountId;
     } catch (error: any) {
         // 상세한 에러 로깅
