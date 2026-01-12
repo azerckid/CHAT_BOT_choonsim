@@ -53,13 +53,14 @@ export async function action({ request }: ActionFunctionArgs) {
         }),
         db.query.user.findFirst({
             where: eq(schema.user.id, session.user.id),
-            columns: { id: true, bio: true, subscriptionTier: true, credits: true, nearAccountId: true },
+            columns: { id: true, bio: true, subscriptionTier: true, chocoBalance: true, nearAccountId: true },
         }),
     ]);
 
     // **X402 결제 체크**
-    const MIN_REQUIRED_CREDITS = 10;
-    if (!currentUser || (currentUser.credits ?? 0) < MIN_REQUIRED_CREDITS) {
+    const MIN_REQUIRED_CHOCO = 10; // 최소 필요 CHOCO (1 Credit = 1 CHOCO)
+    const currentChocoBalance = currentUser?.chocoBalance ? parseFloat(currentUser.chocoBalance) : 0;
+    if (!currentUser || currentChocoBalance < MIN_REQUIRED_CHOCO) {
         // 1. 인보이스 생성 ($0.01 = 약 100 Credits, 마이크로 페이먼트 단위)
         const amountToChargeUSD = 0.01;
 
@@ -140,8 +141,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
             try {
                 // (이전 단계에서 이미 체크되었으므로 생략 가능하나, 스트림 내 보조 에러 메시지로 유지)
-                if (!currentUser || (currentUser.credits ?? 0) < MIN_REQUIRED_CREDITS) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Insufficient credits", code: 402 })}\n\n`));
+                const userChocoBalance = currentUser?.chocoBalance ? parseFloat(currentUser.chocoBalance) : 0;
+                if (!currentUser || userChocoBalance < MIN_REQUIRED_CHOCO) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Insufficient CHOCO balance", code: 402 })}\n\n`));
                     controller.close();
                     return;
                 }
@@ -175,22 +177,37 @@ export async function action({ request }: ActionFunctionArgs) {
                     return;
                 }
 
-                // 3단계. 토큰 사용량에 따른 크레딧 차감 (스트리밍 완료 후)
+                // 3단계. 토큰 사용량에 따른 CHOCO 차감 (스트리밍 완료 후)
                 if (tokenUsage && tokenUsage.totalTokens > 0) {
                     try {
+                        const { BigNumber } = await import("bignumber.js");
+                        const chocoToDeduct = tokenUsage.totalTokens.toString(); // 1 Credit = 1 CHOCO
+                        
+                        // 현재 CHOCO 잔액 조회
+                        const currentUser = await db.query.user.findFirst({
+                            where: eq(schema.user.id, session.user.id),
+                            columns: { chocoBalance: true },
+                        });
+
+                        const currentChocoBalance = currentUser?.chocoBalance ? parseFloat(currentUser.chocoBalance) : 0;
+                        const newChocoBalance = new BigNumber(currentChocoBalance).minus(chocoToDeduct).toString();
+
                         await db.update(schema.user)
-                            .set({ credits: sql`${schema.user.credits} - ${tokenUsage.totalTokens}` })
+                            .set({ 
+                                chocoBalance: newChocoBalance,
+                                updatedAt: new Date()
+                            })
                             .where(eq(schema.user.id, session.user.id));
 
                         logger.info({
                             category: "API",
-                            message: `Deducted ${tokenUsage.totalTokens} credits for user ${session.user.id}`,
-                            metadata: { tokenUsage }
+                            message: `Deducted ${chocoToDeduct} CHOCO for user ${session.user.id}`,
+                            metadata: { tokenUsage, chocoDeducted: chocoToDeduct }
                         });
                     } catch (err) {
                         logger.error({
                             category: "DB",
-                            message: `Failed to deduct credits for user ${session.user.id}`,
+                            message: `Failed to deduct CHOCO for user ${session.user.id}`,
                             stackTrace: (err as Error).stack
                         });
                     }

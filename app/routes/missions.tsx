@@ -63,26 +63,37 @@ export async function action({ request }: ActionFunctionArgs) {
             return Response.json({ error: "Mission not ready to claim" }, { status: 400 });
         }
 
-        // 트랜잭션: 상태 변경 및 크레딧 지급
+        // 트랜잭션: 상태 변경 및 CHOCO 지급 (1 Credit = 1 CHOCO)
+        const rewardChoco = userMission.mission.rewardCredits.toString();
+
         await db.transaction(async (tx) => {
             await tx.update(schema.userMission)
                 .set({ status: "CLAIMED" })
                 .where(eq(schema.userMission.id, userMission.id));
 
+            // 사용자 CHOCO 잔액 조회 및 업데이트
+            const user = await tx.query.user.findFirst({
+                where: eq(schema.user.id, session.user.id),
+                columns: { chocoBalance: true },
+            });
+
+            const currentChocoBalance = user?.chocoBalance ? parseFloat(user.chocoBalance) : 0;
+            const newChocoBalance = (currentChocoBalance + userMission.mission.rewardCredits).toString();
+
             await tx.update(schema.user)
-                .set({ credits: sql`${schema.user.credits} + ${userMission.mission.rewardCredits}` })
+                .set({ chocoBalance: newChocoBalance, updatedAt: new Date() })
                 .where(eq(schema.user.id, session.user.id));
 
             await tx.insert(schema.systemLog).values({
                 id: crypto.randomUUID(),
                 level: "AUDIT",
                 category: "PAYMENT",
-                message: `User ${session.user.id} claimed ${userMission.mission.rewardCredits} credits from mission ${missionId}`,
+                message: `User ${session.user.id} claimed ${rewardChoco} CHOCO from mission ${missionId}`,
                 createdAt: new Date(),
             });
         });
 
-        return Response.json({ success: true, reward: userMission.mission.rewardCredits });
+        return Response.json({ success: true, reward: userMission.mission.rewardCredits, rewardChoco });
     }
 
     return Response.json({ error: "Invalid intent" }, { status: 400 });

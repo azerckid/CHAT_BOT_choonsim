@@ -5,6 +5,7 @@ import { ITEMS } from "~/lib/items";
 import { z } from "zod";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { BigNumber } from "bignumber.js";
 
 const purchaseSchema = z.object({
     itemId: z.string(),
@@ -29,23 +30,25 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: "Item not found" }, { status: 404 });
     }
 
-    const totalCost = item.priceCredits * quantity;
+    const totalCost = (item.priceChoco || item.priceCredits || 0) * quantity; // priceChoco 우선, 없으면 priceCredits (호환성)
 
-    // 1. Check user credits
+    // 1. Check user CHOCO balance
     const user = await db.query.user.findFirst({
         where: eq(schema.user.id, session.user.id),
-        columns: { credits: true },
+        columns: { chocoBalance: true },
     });
 
-    if (!user || user.credits < totalCost) {
-        return Response.json({ error: "Insufficient credits" }, { status: 400 });
+    const userChocoBalance = user?.chocoBalance ? parseFloat(user.chocoBalance) : 0;
+    if (!user || userChocoBalance < totalCost) {
+        return Response.json({ error: "Insufficient CHOCO balance" }, { status: 400 });
     }
 
     try {
         await db.transaction(async (tx) => {
-            // 2. Deduct credits
+            // 2. Deduct CHOCO
+            const newChocoBalance = new BigNumber(userChocoBalance).minus(totalCost).toString();
             await tx.update(schema.user)
-                .set({ credits: sql`${schema.user.credits} - ${totalCost}`, updatedAt: new Date() })
+                .set({ chocoBalance: newChocoBalance, updatedAt: new Date() })
                 .where(eq(schema.user.id, session.user.id));
 
             // 3. Add to Inventory
@@ -68,18 +71,18 @@ export async function action({ request }: ActionFunctionArgs) {
                 id: crypto.randomUUID(),
                 userId: session.user.id,
                 amount: totalCost,
-                currency: "CREDITS",
+                currency: "CHOCO",
                 status: "COMPLETED",
-                provider: "CREDITS",
+                provider: "CHOCO",
                 type: "ITEM_PURCHASE",
                 description: `${item.name} ${quantity}개 구매`,
-                metadata: JSON.stringify({ itemId, quantity }),
+                metadata: JSON.stringify({ itemId, quantity, chocoSpent: totalCost }),
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
         });
 
-        return Response.json({ success: true, creditsSpent: totalCost });
+        return Response.json({ success: true, chocoSpent: totalCost });
     } catch (error: any) {
         console.error("Purchase transaction error:", error);
         return Response.json({ error: "Purchase failed" }, { status: 500 });

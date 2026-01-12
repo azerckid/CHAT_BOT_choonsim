@@ -5,7 +5,6 @@ import crypto from "crypto";
 import { BigNumber } from "bignumber.js";
 import { NEAR_CONFIG } from "./client.server";
 import { verifyTokenTransfer } from "./token.server";
-import { calculateCreditsFromChoco } from "../credit-policy";
 import { nanoid } from "nanoid";
 
 /**
@@ -102,10 +101,8 @@ export async function verifyX402Payment(token: string, txHash: string) {
         throw new Error("Insufficient payment amount");
     }
 
-    // 3. DB 업데이트: 인보이스 완료 및 유저 자산 차감 (결제이므로 감소)
-    const creditsToDeduct = calculateCreditsFromChoco(
-        new BigNumber(transfer.amount).dividedBy(new BigNumber(10).pow(18)).toNumber()
-    );
+    // 3. DB 업데이트: 인보이스 완료 및 유저 CHOCO 잔액 차감 (결제이므로 감소)
+    const chocoToDeduct = new BigNumber(transfer.amount).dividedBy(new BigNumber(10).pow(18)).toString();
 
     await db.transaction(async (tx) => {
         // 인보이스 상태 변경
@@ -129,18 +126,23 @@ export async function verifyX402Payment(token: string, txHash: string) {
             createdAt: new Date(),
         });
 
-        // 유저 자산 업데이트 (결제이므로 감소)
+        // 유저 CHOCO 잔액 업데이트 (결제이므로 감소)
         // CHOCO는 온체인에서 이미 지출되었으므로 DB도 동기화하여 감소
-        const chocoToDeduct = new BigNumber(transfer.amount).dividedBy(new BigNumber(10).pow(18)).toString();
+        const user = await tx.query.user.findFirst({
+            where: eq(schema.user.id, invoice.userId),
+            columns: { chocoBalance: true },
+        });
+
+        const currentChocoBalance = user?.chocoBalance ? parseFloat(user.chocoBalance) : 0;
+        const newChocoBalance = new BigNumber(currentChocoBalance).minus(chocoToDeduct).toString();
 
         await tx.update(schema.user)
             .set({
-                credits: sql`${schema.user.credits} - ${creditsToDeduct}`, // 결제이므로 크레딧 감소
-                chocoBalance: sql`${schema.user.chocoBalance} - ${chocoToDeduct}`, // 단위를 맞춰서 감소
+                chocoBalance: newChocoBalance,
                 updatedAt: new Date(),
             })
             .where(eq(schema.user.id, invoice.userId));
     });
 
-    return { success: true, creditsDeducted: creditsToDeduct };
+    return { success: true, chocoDeducted: chocoToDeduct };
 }
