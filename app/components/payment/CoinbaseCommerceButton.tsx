@@ -33,7 +33,7 @@ export function CoinbaseCommerceButton({
                 body: JSON.stringify({
                     amount,
                     credits,
-                    description: `${packageName} (${credits} Credits)`,
+                    description: `${packageName} (${credits} CHOCO)`,
                 }),
             });
 

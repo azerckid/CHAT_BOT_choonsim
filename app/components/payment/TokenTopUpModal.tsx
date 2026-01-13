@@ -14,9 +14,6 @@ import { toast } from "sonner";
 import { useFetcher, useRevalidator } from "react-router";
 import { CREDIT_PACKAGES } from "~/lib/subscription-plans";
 import { cn } from "~/lib/utils";
-import { CoinbaseCommerceButton } from "./CoinbaseCommerceButton";
-import { SolanaPayButton } from "./SolanaPayButton";
-import { NearPayButton } from "./NearPayButton";
 
 interface TokenTopUpModalProps {
     open?: boolean;
@@ -36,7 +33,7 @@ export function TokenTopUpModal({
     const [selectedPackageId, setSelectedPackageId] = useState<string>(
         CREDIT_PACKAGES[1].id
     ); // Default to Medium pack
-    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS" | "CRYPTO" | "SOLANA" | "NEAR">("TOSS");
+    const [paymentMethod, setPaymentMethod] = useState<"PAYPAL" | "TOSS">("TOSS");
     const fetcher = useFetcher<{ success: boolean; newCredits?: number; error?: string }>();
     const revalidator = useRevalidator();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -112,9 +109,9 @@ export function TokenTopUpModal({
             {trigger && <DialogTrigger>{trigger}</DialogTrigger>}
             <DialogContent className="sm:max-w-[500px] bg-background-dark border-white/10 text-white p-0 gap-0 overflow-hidden shadow-2xl rounded-3xl">
                 <DialogHeader className="p-6 bg-surface-dark/50 backdrop-blur-md border-b border-white/5">
-                    <DialogTitle className="text-xl font-bold tracking-tight text-white">Credit Top Up</DialogTitle>
+                    <DialogTitle className="text-xl font-bold tracking-tight text-white">CHOCO Top Up</DialogTitle>
                     <DialogDescription className="text-white/50 text-sm">
-                        AI 캐릭터와 더 즐겁게 대화하기 위해 크레딧을 충전하세요.
+                        AI 캐릭터와 더 즐겁게 대화하기 위해 CHOCO를 충전하세요.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -155,7 +152,7 @@ export function TokenTopUpModal({
                                         <span className="text-xl font-bold text-white tracking-tight">
                                             {(pkg.credits + pkg.bonus).toLocaleString()}
                                         </span>
-                                        <span className="text-xs text-white/50">C</span>
+                                        <span className="text-[10px] text-white/50 font-bold">CHOCO</span>
                                     </div>
                                     <div className="text-sm font-semibold text-white/70">
                                         ₩{pkg.priceKRW.toLocaleString()} / ${pkg.price}
@@ -184,33 +181,6 @@ export function TokenTopUpModal({
                                 )}
                             >
                                 해외 (PayPal)
-                            </button>
-                            <button
-                                onClick={() => setPaymentMethod("CRYPTO")}
-                                className={cn(
-                                    "flex-1 min-w-[100px] py-2 text-[11px] font-bold rounded-lg transition-all",
-                                    paymentMethod === "CRYPTO" ? "bg-[#0052ff] text-white shadow-lg" : "text-white/50 hover:text-white"
-                                )}
-                            >
-                                Crypto (BTC)
-                            </button>
-                            <button
-                                onClick={() => setPaymentMethod("SOLANA")}
-                                className={cn(
-                                    "flex-1 min-w-[100px] py-2 text-[11px] font-bold rounded-lg transition-all",
-                                    paymentMethod === "SOLANA" ? "bg-gradient-to-r from-[#14F195] to-[#9945FF] text-black shadow-lg" : "text-white/50 hover:text-white"
-                                )}
-                            >
-                                Solana (SOL)
-                            </button>
-                            <button
-                                onClick={() => setPaymentMethod("NEAR")}
-                                className={cn(
-                                    "flex-1 min-w-[100px] py-2 text-[11px] font-bold rounded-lg transition-all",
-                                    paymentMethod === "NEAR" ? "bg-white text-black shadow-lg" : "text-white/50 hover:text-white"
-                                )}
-                            >
-                                NEAR
                             </button>
                         </div>
 
@@ -273,37 +243,7 @@ export function TokenTopUpModal({
                                         </>
                                     )}
                                 </Button>
-                            ) : paymentMethod === "CRYPTO" ? (
-                                <CoinbaseCommerceButton
-                                    amount={selectedPackage.price}
-                                    credits={selectedPackage.credits + selectedPackage.bonus}
-                                    packageName={selectedPackage.name}
-                                />
-                            ) : paymentMethod === "SOLANA" ? (
-                                <SolanaPayButton
-                                    amount={selectedPackage.price}
-                                    credits={selectedPackage.credits + selectedPackage.bonus}
-                                    description={selectedPackage.name}
-                                    onSuccess={() => {
-                                        if (onOpenChange) {
-                                            setTimeout(() => onOpenChange(false), 2000);
-                                        }
-                                        revalidator.revalidate();
-                                    }}
-                                />
-                            ) : (
-                                <NearPayButton
-                                    amount={selectedPackage.price}
-                                    credits={selectedPackage.credits + selectedPackage.bonus}
-                                    description={selectedPackage.name}
-                                    onSuccess={() => {
-                                        if (onOpenChange) {
-                                            setTimeout(() => onOpenChange(false), 2000);
-                                        }
-                                        revalidator.revalidate();
-                                    }}
-                                />
-                            )}
+                            ) : null}
                             <p className="text-center text-[10px] text-slate-400 mt-3 px-1">
                                 결제 시 이용약관에 동의하게 됩니다.
                             </p>

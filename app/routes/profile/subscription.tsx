@@ -234,7 +234,7 @@ export default function SubscriptionManagementPage() {
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white">{payment.description || "Credit Top-up"}</p>
+                        <p className="text-sm font-bold text-white">{payment.description || "CHOCO Top-up"}</p>
                         <p className="text-xs text-white/50">{formatDate(payment.createdAt)}</p>
                       </div>
                     </div>

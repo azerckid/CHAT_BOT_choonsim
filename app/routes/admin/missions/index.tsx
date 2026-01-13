@@ -81,7 +81,7 @@ export default function AdminMissionIndex() {
                         <h1 className="text-4xl font-black italic tracking-tighter text-white uppercase">
                             User <span className="text-primary">Missions</span>
                         </h1>
-                        <p className="text-white/40 text-sm font-medium">Manage engagement tasks and credit rewards.</p>
+                        <p className="text-white/40 text-sm font-medium">Manage engagement tasks and CHOCO rewards.</p>
                     </div>
                     <Link
                         to="/admin/content/missions/new"

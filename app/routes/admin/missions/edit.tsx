@@ -123,7 +123,7 @@ export default function EditMission() {
 
                             <div className="grid grid-cols-2 gap-8">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">Reward (Credits)</label>
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-widest px-1">Reward (CHOCO)</label>
                                     <div className="relative">
                                         <input
                                             name="rewardCredits"

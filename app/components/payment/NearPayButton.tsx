@@ -69,7 +69,7 @@ export const NearPayButton: React.FC<NearPayButtonProps> = ({
             const data = await response.json();
             if (data.status === "COMPLETED") {
                 setStatus("COMPLETED");
-                toast.success(`${credits} credits have been added!`);
+                toast.success(`${credits} CHOCO가 충전되었습니다!`);
                 if (onSuccess) onSuccess();
             } else {
                 throw new Error(data.error || "결제 확인에 실패했습니다. 다시 시도해 주세요.");

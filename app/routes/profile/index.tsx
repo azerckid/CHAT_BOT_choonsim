@@ -382,7 +382,7 @@ export default function ProfileScreen() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-base font-semibold text-white truncate">충전 및 결제 관리</p>
-                  <p className="text-xs text-white/50 truncate">크레딧 충전 및 사용 내역</p>
+                  <p className="text-xs text-white/50 truncate">CHOCO 충전 및 사용 내역</p>
                 </div>
                 <span className="material-symbols-outlined text-white/30">chevron_right</span>
               </button>

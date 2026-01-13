@@ -61,7 +61,7 @@ export default function TossSuccessPage() {
             } else if (data.type === "ITEM") {
                 toast.success(`${data.quantity}개의 하트가 인벤토리에 추가되었습니다!`);
             } else {
-                toast.success(`${data.creditsGranted} 크레딧이 충전되었습니다!`);
+                toast.success(`${data.creditsGranted} CHOCO가 충전되었습니다!`);
             }
             // 2~3초 후 이동
             const timer = setTimeout(() => {

@@ -67,7 +67,7 @@ export const SolanaPayButton: React.FC<SolanaPayButtonProps> = ({
                 if (data.status === "COMPLETED") {
                     stopPolling();
                     setStatus("COMPLETED");
-                    toast.success(`${credits} credits have been added!`);
+                    toast.success(`${credits} CHOCO가 충전되었습니다!`);
                     if (onSuccess) onSuccess();
                 }
             } catch (error) {
@@ -94,7 +94,7 @@ export const SolanaPayButton: React.FC<SolanaPayButtonProps> = ({
                     <CheckCircle className="text-white w-10 h-10" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">결제 완료!</h3>
-                <p className="text-green-200/80">크레딧 충전이 성공적으로 완료되었습니다.</p>
+                <p className="text-green-200/80">CHOCO 충전이 성공적으로 완료되었습니다.</p>
             </div>
         );
     }
