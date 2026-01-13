@@ -106,7 +106,7 @@ export default function MissionsPage() {
 
     useEffect(() => {
         if (fetcher.data?.success) {
-            toast.success(`${fetcher.data.reward} Credits claimed!`);
+            toast.success(`${fetcher.data.reward} CHOCO claimed!`);
         } else if (fetcher.data?.error) {
             toast.error(fetcher.data.error);
         }
@@ -183,7 +183,7 @@ export default function MissionsPage() {
                                         </div>
                                         <div className="text-right">
                                             <span className="text-primary font-black text-sm">+{mission.rewardCredits}</span>
-                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-tighter">Credits</p>
+                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-tighter">CHOCO</p>
                                         </div>
                                     </div>
 

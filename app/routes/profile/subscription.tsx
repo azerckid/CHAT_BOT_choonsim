@@ -17,8 +17,11 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { TokenTopUpModal } from "~/components/payment/TokenTopUpModal";
+import { WalletCard } from "~/components/wallet/WalletCard";
 import * as schema from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { getNearConnection } from "~/lib/near/client.server";
+import { utils } from "near-api-js";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -38,6 +41,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
         subscriptionStatus: true,
         currentPeriodEnd: true,
         subscriptionId: true,
+        nearAccountId: true,
       },
     }),
     db.query.payment.findMany({
@@ -47,10 +51,30 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }),
   ]);
 
+  // 2. Fetch Transaction History (Exchange Logs)
+  const history = await db.query.exchangeLog.findMany({
+    where: eq(schema.exchangeLog.userId, userId),
+    orderBy: [desc(schema.exchangeLog.createdAt)],
+    limit: 20,
+  });
+
+  // 3. Live NEAR Balance via RPC
+  let nearBalance = "0";
+  if (user?.nearAccountId) {
+    try {
+      const near = await getNearConnection();
+      const account = await near.account(user.nearAccountId);
+      const balance = await account.getAccountBalance();
+      nearBalance = utils.format.formatNearAmount(balance.available, 3);
+    } catch (e) {
+      console.error("Failed to fetch NEAR balance:", e);
+    }
+  }
+
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
   const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-  return Response.json({ user, payments, paypalClientId, tossClientKey });
+  return Response.json({ user, payments, paypalClientId, tossClientKey, nearBalance, history });
 }
 
 type LoaderData = {
@@ -60,17 +84,25 @@ type LoaderData = {
     subscriptionStatus: string | null;
     currentPeriodEnd: Date | string | null;
     subscriptionId: string | null;
+    nearAccountId: string | null;
   } | null;
   payments: typeof schema.payment.$inferSelect[];
   paypalClientId?: string;
   tossClientKey?: string;
+  nearBalance: string;
+  history: any[];
 };
 
 export default function SubscriptionManagementPage() {
-  const { user, payments, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as unknown as LoaderData;
+  const { user, payments, paypalClientId, tossClientKey, nearBalance, history } = useLoaderData<typeof loader>() as unknown as LoaderData;
   const navigate = useNavigate();
   const fetcher = useFetcher<{ success: boolean; error?: string }>();
+
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
 
   const isActive = user?.subscriptionStatus === "ACTIVE";
   const isCancelled = user?.subscriptionStatus === "CANCELLED";
@@ -98,6 +130,34 @@ export default function SubscriptionManagementPage() {
     toast.error(fetcher.data.error);
   }
 
+  const handleScanDeposits = async () => {
+    setIsScanning(true);
+    try {
+      const res = await fetch("/api/wallet/check-deposit", { method: "POST" });
+      if (res.ok) {
+        toast.success("입금 확인 및 자동 환전이 완료되었습니다.");
+        navigate(".", { replace: true });
+        setSwapDialogOpen(false);
+      } else {
+        toast.error("확인 중 오류가 발생했습니다.");
+      }
+    } catch (e) {
+      toast.error("서버 연결 실패");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleCopyAddress = async () => {
+    if (!user?.nearAccountId) return;
+    try {
+      await navigator.clipboard.writeText(user.nearAccountId);
+      toast.success("주소가 복사되었습니다.");
+    } catch (error) {
+      toast.error("복사에 실패했습니다.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-foreground flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden">
       {/* Header */}
@@ -113,6 +173,23 @@ export default function SubscriptionManagementPage() {
       </header>
 
       <main className="flex-1 p-4 space-y-6 pb-24 overflow-y-auto">
+        {/* Wallet Card Section */}
+        <WalletCard
+          chocoBalance={user?.chocoBalance || "0"}
+          nearBalance={nearBalance}
+          nearAccountId={user?.nearAccountId || null}
+          depositDialogOpen={depositDialogOpen}
+          swapDialogOpen={swapDialogOpen}
+          historyDialogOpen={historyDialogOpen}
+          onDepositDialogChange={setDepositDialogOpen}
+          onSwapDialogChange={setSwapDialogOpen}
+          onHistoryDialogChange={setHistoryDialogOpen}
+          onScanDeposits={handleScanDeposits}
+          isScanning={isScanning}
+          history={history}
+          onCopyAddress={handleCopyAddress}
+        />
+
         {/* 1. Subscription Card */}
         <section>
           <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 ml-2">현재 멤버십</h2>
@@ -144,15 +221,12 @@ export default function SubscriptionManagementPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-white/50">
-                      보유 CHOCO: <span className="text-primary font-bold">{user?.chocoBalance ? parseFloat(user.chocoBalance).toLocaleString() : "0"}</span>
-                    </p>
                     <div
                       onClick={() => setIsTopUpModalOpen(true)}
-                      className="inline-flex items-center justify-center gap-0.5 px-2 rounded-full bg-primary hover:bg-primary/90 text-white text-[12px] font-extrabold tracking-tight transition-colors cursor-pointer z-20 relative shadow-lg shadow-primary/25 leading-none"
+                      className="inline-flex items-center justify-center gap-1 px-4 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-white text-[13px] font-extrabold tracking-tight transition-colors cursor-pointer z-20 relative shadow-lg shadow-primary/25"
                     >
-                      <span className="material-symbols-outlined text-[12px] leading-none">bolt</span>
-                      <span>충전</span>
+                      <span className="material-symbols-outlined text-[14px]">bolt</span>
+                      <span>CHOCO 충전하기</span>
                     </div>
                   </div>
                 </div>
@@ -234,7 +308,9 @@ export default function SubscriptionManagementPage() {
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-white">{payment.description || "CHOCO Top-up"}</p>
+                        <p className="text-sm font-bold text-white">
+                          {(payment.description || "CHOCO Top-up").replace(/Credits/g, "CHOCO")}
+                        </p>
                         <p className="text-xs text-white/50">{formatDate(payment.createdAt)}</p>
                       </div>
                     </div>

@@ -384,7 +384,7 @@ export default function FandomScreen() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between mb-1">
                       <p className="text-sm font-bold dark:text-white truncate">{mission.title}</p>
-                      <span className="text-xs font-bold text-primary">+{mission.rewardCredits} Cr.</span>
+                      <span className="text-xs font-bold text-primary">+{mission.rewardCredits} CHOCO</span>
                     </div>
                     <div className="h-1.5 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
                       <div

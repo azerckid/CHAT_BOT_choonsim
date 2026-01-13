@@ -2,7 +2,7 @@
 
 **작성일**: 2026-01-11  
 **목적**: 설정 페이지의 "MY WALLET" 카드를 결제/구독 페이지로 이동  
-**상태**: 📋 설계 단계
+**상태**: ✅ 구현 완료
 
 ---
 
@@ -480,39 +480,39 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 ## 8. 구현 체크리스트
 
-### Phase 1: 컴포넌트 추출
-- [ ] `app/components/wallet/WalletCard.tsx` 생성
-- [ ] Props 인터페이스 정의
-- [ ] 설정 페이지의 MY WALLET 카드 코드를 컴포넌트로 이동
-- [ ] Dialog 컴포넌트 포함
-- [ ] 스타일링 유지
+### Phase 1: 컴포넌트 추출 ✅
+- [x] `app/components/wallet/WalletCard.tsx` 생성
+- [x] Props 인터페이스 정의
+- [x] 설정 페이지의 MY WALLET 카드 코드를 컴포넌트로 이동
+- [x] Dialog 컴포넌트 포함
+- [x] 스타일링 유지
 
-### Phase 2: 결제 페이지 수정
-- [ ] `app/routes/profile/subscription.tsx` Loader 수정
-  - [ ] `nearBalance` 조회 추가
-  - [ ] `exchangeLog` 조회 추가
-  - [ ] `nearAccountId` 조회 추가
-- [ ] 상태 추가 (depositDialogOpen, swapDialogOpen, historyDialogOpen, isScanning)
-- [ ] 핸들러 추가 (handleScanDeposits, handleCopyAddress)
-- [ ] `WalletCard` 컴포넌트 import 및 추가
-- [ ] 필요한 Import 추가 (QRCode, Copy, Wallet, RefreshCw, QrCode, History 등)
+### Phase 2: 결제 페이지 수정 ✅
+- [x] `app/routes/profile/subscription.tsx` Loader 수정
+  - [x] `nearBalance` 조회 추가
+  - [x] `exchangeLog` 조회 추가
+  - [x] `nearAccountId` 조회 추가
+- [x] 상태 추가 (depositDialogOpen, swapDialogOpen, historyDialogOpen, isScanning)
+- [x] 핸들러 추가 (handleScanDeposits, handleCopyAddress)
+- [x] `WalletCard` 컴포넌트 import 및 추가
+- [x] 필요한 Import 추가
 
-### Phase 3: 멤버십 카드 개선
-- [ ] CHOCO 잔액 표시 제거 또는 링크로 변경
-- [ ] 충전 버튼 유지 결정
+### Phase 3: 멤버십 카드 개선 ✅
+- [x] CHOCO 잔액 표시 제거 (중복 방지)
+- [x] 충전 버튼 유지 (빠른 접근)
 
-### Phase 4: 설정 페이지 수정
-- [ ] MY WALLET 카드 섹션 제거
-- [ ] 관련 상태 제거
-- [ ] 관련 핸들러 제거
-- [ ] Loader에서 불필요한 데이터 제거
-- [ ] 관련 Import 정리
+### Phase 4: 설정 페이지 수정 ✅
+- [x] MY WALLET 카드 섹션 제거
+- [x] 관련 상태 제거
+- [x] 관련 핸들러 제거
+- [x] Loader에서 불필요한 데이터 제거
+- [x] 관련 Import 정리
 
-### Phase 5: 테스트 및 검증
-- [ ] 결제 페이지 MY WALLET 카드 테스트
-- [ ] 설정 페이지 기능 테스트
-- [ ] 페이지 간 이동 테스트
-- [ ] 데이터 일관성 확인
+### Phase 5: 테스트 및 검증 ✅
+- [x] 결제 페이지 MY WALLET 카드 테스트
+- [x] 설정 페이지 기능 테스트
+- [x] 페이지 간 이동 테스트
+- [x] 데이터 일관성 확인
 
 ---
 
@@ -592,12 +592,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 ## 12. 승인 및 구현
 
-- [ ] 설계 검토 완료
-- [ ] 구현 시작
-- [ ] 테스트 완료
-- [ ] 배포 준비
+- [x] 설계 검토 완료
+- [x] 구현 시작
+- [x] 테스트 완료
+- [x] 배포 준비
+
+**구현 완료일**: 2026-01-13  
+**검증 보고서**: `docs/reports/WALLET_CARD_MIGRATION_VERIFICATION.md`
 
 ---
 
-**문서 버전**: 1.0  
-**최종 수정일**: 2026-01-11
+**문서 버전**: 1.1  
+**최종 수정일**: 2026-01-13  
+**구현 완료**: 2026-01-13

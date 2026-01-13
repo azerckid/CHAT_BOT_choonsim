@@ -192,7 +192,7 @@ export default function AdminSystem() {
                             </h3>
                             <div className="space-y-6">
                                 {[
-                                    { name: "Daily Credit Refill", pattern: "Daily Credit Refill", icon: "database" },
+                                    { name: "Daily CHOCO Refill", pattern: "Daily CHOCO Refill", icon: "database" },
                                     { name: "Proactive Service", pattern: "proactive message", icon: "send" }
                                 ].map((job) => {
                                     const lastRun = (logs as any[]).find(l => l.message.includes(job.pattern) || l.message.toLowerCase().includes(job.pattern.toLowerCase()));

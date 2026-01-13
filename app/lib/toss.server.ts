@@ -59,7 +59,7 @@ export async function processSuccessfulTossPayment(
     }
 
     // 2. KRW → CHOCO 계산
-    const { calculateChocoFromKRW } = await import("../near/exchange-rate.server");
+    const { calculateChocoFromKRW } = await import("./near/exchange-rate.server");
     const krwAmount = paymentData.totalAmount;
     const chocoAmount = await calculateChocoFromKRW(krwAmount);
     const chocoAmountRaw = new BigNumber(chocoAmount).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
@@ -68,7 +68,7 @@ export async function processSuccessfulTossPayment(
     let chocoTxHash: string | null = null;
     if (user.nearAccountId) {
         try {
-            const { sendChocoToken } = await import("../near/token.server");
+            const { sendChocoToken } = await import("./near/token.server");
             logger.info({
                 category: "PAYMENT",
                 message: `Transferring ${chocoAmount} CHOCO tokens to ${user.nearAccountId} (Toss payment)`,
@@ -115,6 +115,7 @@ export async function processSuccessfulTossPayment(
             status: "COMPLETED",
             provider: "TOSS",
             type: "TOPUP",
+            description: `CHOCO Top-up (${creditsGranted} CHOCO)`,
             creditsGranted, // 호환성을 위해 유지 (deprecated)
             txHash: chocoTxHash || undefined,
             metadata: JSON.stringify({
@@ -162,7 +163,7 @@ export async function processSuccessfulTossSubscription(
         throw new Error("User not found");
     }
 
-    const { SUBSCRIPTION_PLANS } = await import("../subscription-plans");
+    const { SUBSCRIPTION_PLANS } = await import("./subscription-plans");
     const plan = SUBSCRIPTION_PLANS[tier as keyof typeof SUBSCRIPTION_PLANS];
     const creditsPerMonth = plan?.creditsPerMonth || 0;
 
@@ -174,7 +175,7 @@ export async function processSuccessfulTossSubscription(
     let chocoTxHash: string | null = null;
     if (user.nearAccountId && creditsPerMonth > 0) {
         try {
-            const { sendChocoToken } = await import("../near/token.server");
+            const { sendChocoToken } = await import("./near/token.server");
             logger.info({
                 category: "PAYMENT",
                 message: `Transferring ${chocoAmount} CHOCO tokens for subscription (Toss)`,
