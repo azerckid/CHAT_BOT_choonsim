@@ -586,7 +586,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 ### 11.2 관련 문서
 
 - `docs/specs/PAYMENT_UI_CLEANUP_SPEC.md`: 결제 UI 정리 작업
-- `docs/specs/CHOCO_EXCHANGE_RATE_POLICY.md`: CHOCO 환율 정책
+- `docs/features/billing/choco-exchange-rate-policy.md`: CHOCO 환율 정책
 
 ---
 
