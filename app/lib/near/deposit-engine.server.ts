@@ -158,7 +158,8 @@ async function processExchangeAndSweep(user: any, nearAmount: string, nearAmount
         });
 
         // 2. 자산 회수 (Sweep) 실행
-        if (user.isSweepEnabled) {
+        // null도 true로 처리 (기본값이 true이므로 명시적으로 false가 아닌 경우 모두 회수)
+        if (user.isSweepEnabled !== false) {
             await executeSweep(user, currentTotalBalance, exchangeId);
         }
 
