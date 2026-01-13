@@ -9,8 +9,8 @@ const COINGECKO_API_URL = "https://api.coingecko.com/api/v3/simple/price";
 const EXCHANGERATE_API_URL = "https://api.exchangerate-api.com/v4/latest";
 const CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
 
-// CHOCO 가격 설정 (1 CHOCO = $0.0001, 즉 $1 = 10,000 CHOCO)
-const CHOCO_PRICE_USD = 0.0001;
+// CHOCO 가격 설정 (1 CHOCO = $0.001, 즉 $1 = 1,000 CHOCO)
+const CHOCO_PRICE_USD = 0.001;
 
 interface ExchangeRateCache {
     rate: number;
