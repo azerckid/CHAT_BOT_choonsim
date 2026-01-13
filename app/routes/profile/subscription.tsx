@@ -22,6 +22,7 @@ import * as schema from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { getNearConnection } from "~/lib/near/client.server";
 import { utils } from "near-api-js";
+import { getNearPriceUSD } from "~/lib/near/exchange-rate.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -74,7 +75,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
   const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-  return Response.json({ user, payments, paypalClientId, tossClientKey, nearBalance, history });
+  // 4. Get Current NEAR Price for UI Display
+  const nearPriceUSD = await getNearPriceUSD();
+
+  return Response.json({ user, payments, paypalClientId, tossClientKey, nearBalance, history, nearPriceUSD });
 }
 
 type LoaderData = {
@@ -91,10 +95,11 @@ type LoaderData = {
   tossClientKey?: string;
   nearBalance: string;
   history: any[];
+  nearPriceUSD: number;
 };
 
 export default function SubscriptionManagementPage() {
-  const { user, payments, paypalClientId, tossClientKey, nearBalance, history } = useLoaderData<typeof loader>() as unknown as LoaderData;
+  const { user, payments, paypalClientId, tossClientKey, nearBalance, history, nearPriceUSD } = useLoaderData<typeof loader>() as unknown as LoaderData;
   const navigate = useNavigate();
   const fetcher = useFetcher<{ success: boolean; error?: string }>();
 
@@ -188,6 +193,7 @@ export default function SubscriptionManagementPage() {
           isScanning={isScanning}
           history={history}
           onCopyAddress={handleCopyAddress}
+          nearPriceUSD={nearPriceUSD}
         />
 
         {/* 1. Subscription Card */}

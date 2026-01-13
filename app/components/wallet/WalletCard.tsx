@@ -19,6 +19,7 @@ interface WalletCardProps {
     isScanning: boolean;
     history: any[];
     onCopyAddress: () => void;
+    nearPriceUSD: number;
 }
 
 export function WalletCard({
@@ -35,6 +36,7 @@ export function WalletCard({
     isScanning,
     history,
     onCopyAddress,
+    nearPriceUSD,
 }: WalletCardProps) {
 
     const formatDate = (dateString: string) => {
@@ -140,7 +142,8 @@ export function WalletCard({
                             </div>
                         </div>
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-xs text-blue-600 dark:text-blue-300 text-center w-full max-w-xs">
-                            입금 확인 시 5,000 CHOCO/NEAR 비율로 자동 환전됩니다.
+                            <span className="font-bold">실시간 시장 시세 적용</span><br />
+                            입금 확인 시 약 {(nearPriceUSD * 10000).toLocaleString()} CHOCO/NEAR 비율로 자동 환전됩니다.
                         </div>
                     </div>
                 </DialogContent>
@@ -161,7 +164,7 @@ export function WalletCard({
                                 <div className="flex items-center justify-center gap-3 text-2xl font-bold text-slate-900 dark:text-white">
                                     <span>1 NEAR</span>
                                     <span className="material-symbols-outlined text-slate-400">arrow_right_alt</span>
-                                    <span className="text-primary">5,000 CHOCO</span>
+                                    <span className="text-primary">{(nearPriceUSD * 10000).toLocaleString()} CHOCO</span>
                                 </div>
                             </div>
                         </div>
