@@ -3,16 +3,18 @@ import { useLoaderData } from "react-router";
 import { AdminLayout } from "~/components/admin/AdminLayout";
 import { requireAdmin } from "~/lib/auth.server";
 import { cn } from "~/lib/utils";
+import { BigNumber } from "bignumber.js";
 
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { count, sum, eq, desc } from "drizzle-orm";
+import { getServiceWalletStats, getEconomyStats } from "~/lib/admin/stats.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
     // Aggregate statistics as proxies for API usage
-    const [messagesRes, executionRes, mediaRes, userRes, pendingPaymentsRes, logs] = await Promise.all([
+    const [messagesRes, executionRes, mediaRes, userRes, pendingPaymentsRes, logs, serviceWallet, economy] = await Promise.all([
         db.select({ count: count() }).from(schema.message),
         db.select({ count: count() }).from(schema.agentExecution),
         db.select({ count: count() }).from(schema.characterMedia),
@@ -21,7 +23,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
         db.query.systemLog.findMany({
             orderBy: [desc(schema.systemLog.createdAt)],
             limit: 20
-        })
+        }),
+        getServiceWalletStats(),
+        getEconomyStats()
     ]);
 
     const totalMessages = messagesRes[0]?.count || 0;
@@ -55,12 +59,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
             totalTokens: Number(tokenStats[0]?.totalTokens) || 0
         },
         health: systemHealth,
+        economy: {
+            serviceWallet,
+            stats: economy
+        },
         logs
     };
 }
 
 export default function AdminSystem() {
-    const { usage, health, logs } = useLoaderData<typeof loader>();
+    const { usage, health, logs, economy } = useLoaderData<typeof loader>();
 
     const formatMemory = (bytes: number) => {
         return (bytes / 1024 / 1024).toFixed(2) + " MB";
@@ -98,6 +106,143 @@ export default function AdminSystem() {
                             <span className={cn("text-lg font-black italic tracking-tighter", item.color)}>{item.status}</span>
                         </div>
                     ))}
+                </div>
+
+                {/* CHOCO Economy Dashboard */}
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                            <h2 className="text-xl font-black italic tracking-tighter text-white uppercase flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary">analytics</span>
+                                CHOCO Economy <span className="text-primary/40">Integrity Check</span>
+                            </h2>
+                            <p className="text-white/20 text-[10px] font-bold uppercase tracking-widest">Cross-referencing On-Chain Supply with Database Liabilities.</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                        {/* 1. Total Minted Supply (Physical) */}
+                        <div className="bg-[#1A1821] border border-white/5 rounded-[32px] p-6 space-y-4 relative overflow-hidden group">
+                            <div className="space-y-1 relative z-10">
+                                <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Total Minted (On-Chain)</p>
+                                <div className="flex items-baseline gap-1">
+                                    <h4 className="text-2xl font-black italic tracking-tighter text-white whitespace-nowrap">{economy.serviceWallet.totalSupply}</h4>
+                                    <span className="text-[10px] font-black text-white/40 italic uppercase">CHOCO</span>
+                                </div>
+                            </div>
+                            <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                                <span className="text-[9px] font-black text-white/20 uppercase">Source</span>
+                                <span className="text-[9px] font-black text-primary uppercase italic font-mono">ft_total_supply</span>
+                            </div>
+                        </div>
+
+                        {/* 2. Service Net Liquidity (Available) */}
+                        <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-[32px] p-6 space-y-4 relative overflow-hidden group">
+                            <div className="space-y-1 relative z-10">
+                                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Net Available (Service)</p>
+                                <div className="flex items-baseline gap-1">
+                                    <h4 className="text-2xl font-black italic tracking-tighter text-primary whitespace-nowrap">
+                                        {new BigNumber(economy.serviceWallet.chocoBalanceRaw)
+                                            .minus(economy.stats.pendingUserChocoRaw)
+                                            .dividedBy(new BigNumber(10).pow(18))
+                                            .toFormat(0)
+                                        }
+                                    </h4>
+                                    <span className="text-[10px] font-black text-primary/40 italic uppercase">CHOCO</span>
+                                </div>
+                            </div>
+                            <div className="pt-4 border-t border-primary/10 flex items-center justify-between">
+                                <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">Excluding DB Pending</span>
+                                <span className="text-[9px] font-black text-primary uppercase">Liquid</span>
+                            </div>
+                        </div>
+
+                        {/* 3. Potential Liabilities (DB Pending) */}
+                        <div className="bg-[#1A1821] border border-white/5 rounded-[32px] p-6 space-y-4 group">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">DB Pending (No-Wallet)</p>
+                                <div className="flex items-baseline gap-1">
+                                    <h4 className="text-2xl font-black italic tracking-tighter text-white whitespace-nowrap">
+                                        {new BigNumber(economy.stats.pendingUserChocoRaw).toFormat(0)}
+                                    </h4>
+                                    <span className="text-[10px] font-black text-white/40 italic uppercase">CHOCO</span>
+                                </div>
+                            </div>
+                            <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Liability</span>
+                                <span className="text-[9px] font-black text-yellow-500 uppercase">Wait Auth</span>
+                            </div>
+                        </div>
+
+                        {/* 4. Public Circulation (On-Chain) */}
+                        <div className="bg-[#1A1821] border border-white/5 rounded-[32px] p-6 space-y-4 group">
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Public (In-Wallet)</p>
+                                <div className="flex items-baseline gap-1">
+                                    <h4 className="text-2xl font-black italic tracking-tighter text-white whitespace-nowrap">
+                                        {new BigNumber(economy.serviceWallet.totalSupplyRaw)
+                                            .minus(economy.serviceWallet.chocoBalanceRaw)
+                                            .dividedBy(new BigNumber(10).pow(18))
+                                            .toFormat(0)
+                                        }
+                                    </h4>
+                                    <span className="text-[10px] font-black text-white/40 italic uppercase">CHOCO</span>
+                                </div>
+                            </div>
+                            <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                                <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Distributed</span>
+                                <span className="text-[9px] font-black text-blue-400 uppercase">On-Chain</span>
+                            </div>
+                        </div>
+
+                        {/* 5. System Integrity (The Real Truth) */}
+                        <div className={cn(
+                            "rounded-[32px] p-5 space-y-3 shadow-[0_0_30px_rgba(0,0,0,0.3)] border transition-all duration-500",
+                            new BigNumber(economy.serviceWallet.totalSupplyRaw).isEqualTo(1000000000 * 1e18)
+                                ? "bg-primary border-primary/20"
+                                : "bg-red-500 border-red-400"
+                        )}>
+                            <div className="space-y-1">
+                                <p className="text-[9px] font-black text-[#0B0A10] uppercase tracking-widest">Calculated Grand Total</p>
+                                <p className="text-2xl font-black italic text-[#0B0A10] tracking-tighter">
+                                    {/* 실제 계산: 온체인 발행량 그대로 표시하되 오차 분석 */}
+                                    {new BigNumber(economy.serviceWallet.totalSupplyRaw)
+                                        .dividedBy(new BigNumber(10).pow(18))
+                                        .toFormat(0)
+                                    }
+                                </p>
+                            </div>
+                            <div className="pt-3 border-t border-[#0B0A10]/10">
+                                <div className="flex justify-between items-center bg-[#0B0A10]/20 px-2 py-1.5 rounded-lg border border-[#0B0A10]/10">
+                                    <span className="text-[8px] font-black text-[#0B0A10] uppercase">Drift / Loss</span>
+                                    <span className="text-[9px] font-black text-[#0B0A10] uppercase">
+                                        {(() => {
+                                            const expected = new BigNumber(1000000000);
+                                            const actual = new BigNumber(economy.serviceWallet.totalSupplyRaw).dividedBy(new BigNumber(10).pow(18));
+                                            const delta = actual.minus(expected);
+                                            return delta.isZero() ? "None (Perfect)" : `${delta.toFormat(0)} CHOCO`;
+                                        })()}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Secondary Metrics */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="bg-[#1A1821] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Total Sales Tracked (USD)</span>
+                            <span className="text-sm font-black italic text-white/80">+{economy.stats.totalPurchasedChoco} CHOCO</span>
+                        </div>
+                        <div className="bg-[#1A1821] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Total Manual Grants</span>
+                            <span className="text-sm font-black italic text-primary/80">+{economy.stats.totalGrantedChoco} CHOCO</span>
+                        </div>
+                        <div className="bg-[#1A1821] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Service Gas Reserve</span>
+                            <span className="text-sm font-black italic text-white/80">{economy.serviceWallet.nearBalance} NEAR</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
