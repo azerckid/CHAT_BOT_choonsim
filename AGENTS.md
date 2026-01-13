@@ -77,11 +77,17 @@ The core target audience consists of the 32,000 X (Twitter) users who currently 
 - `docs/PLAN.md`: Project specification and requirements.
 
 ### [Strict Document Hierarchy Rule]
-To ensure the structural integrity and maintainability of the project, all documentation within the `docs/` directory must be strictly categorized into the following sub-directories:
-1. **`docs/plans/`**: This directory is designated for future implementation plans, strategic proposals, and roadmaps for features that have not yet been initiated.
-2. **`docs/specs/`**: This directory is reserved for current technical specifications, design system definitions, and implementation guides for features that are either live or actively under development.
-3. **`docs/archive/`**: This directory is utilized for historical records, legacy specifications, and documentation that is no longer operational but must be retained for architectural context and historical reference.
-AI agents must respect this hierarchy when creating or modifying documents and should proactively suggest reorganization if files are misplaced.
+To ensure the structural integrity and maintainability of the project, all documentation within the `docs/` directory must be strictly categorized into the following 7 core sub-directories (as defined in `DOCUMENT_MANAGEMENT_PLAN.md`):
+
+1. **`docs/core/`**: System-wide design foundations, DB schemas, and standard rules.
+2. **`docs/features/`**: Detailed specifications of how individual features (billing, ai, chat, etc.) currently operate.
+3. **`docs/roadmap/`**: Future implementation plans and strategic proposals.
+4. **`docs/reports/`**: Historical verification reports and test results from previous phases.
+5. **`docs/guides/`**: Practical guides and troubleshooting notes for developers and operators.
+6. **`docs/stitch/`**: Detailed UI/UX designs and flowcharts for each screen.
+7. **`docs/archive/`**: Legacy documentation retained for historical context only.
+
+AI agents MUST respect this hierarchy when creating or modifying documents and proactively rebase misplaced files.
 
 
 [CRITICAL: DATABASE INTEGRITY RULE] You are strictly prohibited from performing any database operations, including migrations, schema resets, or structural changes, without first creating a complete data backup (dump). Data preservation is your absolute priority. Never execute destructive commands like 'DROP TABLE' or 'migrate reset' until a verifiable backup has been secured and confirmed.
