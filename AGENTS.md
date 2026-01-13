@@ -102,6 +102,8 @@ AI agents MUST respect this hierarchy when creating or modifying documents and p
 
 [Strict Document Integrity Rule] When updating or modifying any strategy, implementation, or design documents, you MUST strictly preserve the existing framework, formatting, and structural integrity. Do not perform total overwrites that discard previous detailed technical specifications, historical context, or complex logic. All updates must be made incrementally and appropriately integrated into the current structure to ensure no data loss or architectural context is sacrificed.
 
+[Strict Document Persistence Rule] When updating or modifying any document, you MUST NOT overwrite, delete, or discard the existing content, historical context, or previous specifications. All updates must be made by appending new information or integrating changes incrementally while preserving the original framework. This ensures that the entirety of the project's evolution, including past technical decisions and verification records, remains fully traceable.
+
 [Standard Rules for Environment Variable Management]
 1. Strategic Isolation of Environments
 Principle: Maintain strict separation between Local and Production environments using file suffixes.

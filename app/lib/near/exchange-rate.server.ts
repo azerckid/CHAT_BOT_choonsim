@@ -151,7 +151,7 @@ export async function calculateChocoFromNear(nearAmount: string | number): Promi
     const amount = typeof nearAmount === "string" ? parseFloat(nearAmount) : nearAmount;
     const usdAmount = new BigNumber(amount).multipliedBy(nearPriceUSD);
 
-    // 3. USD → CHOCO 변환 (1 CHOCO = $0.0001)
+    // 3. USD → CHOCO 변환 (1 CHOCO = $0.001)
     const chocoAmount = await calculateChocoFromUSD(usdAmount.toNumber());
 
     logger.info({
@@ -240,8 +240,8 @@ export async function getUSDKRWRate(): Promise<number> {
  * @returns CHOCO 수량 (BigNumber string)
  */
 export async function calculateChocoFromUSD(usdAmount: number): Promise<string> {
-    // 1 CHOCO = $0.0001
-    // $1 = 10,000 CHOCO
+    // 1 CHOCO = $0.001
+    // $1 = 1,000 CHOCO
     // 실시간 환율을 사용하여 정확한 계산
     const chocoAmount = new BigNumber(usdAmount).dividedBy(CHOCO_PRICE_USD);
 

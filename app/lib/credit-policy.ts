@@ -6,7 +6,7 @@
 
 import { SUBSCRIPTION_PLANS, type SubscriptionPlan } from "./subscription-plans";
 
-// 1 Credit = $0.0001 (approx. 0.1 KRW)
+// 1 Credit = $0.001 (approx. 1.4 KRW)
 
 export const MODEL_CREDIT_COSTS: Record<string, number> = {
     // Low Cost Models (1 KRW/msg)
@@ -84,7 +84,7 @@ export function getMonthlyCredits(tier: string): number {
  */
 export function calculateCreditsFromChoco(chocoAmount: number | string): number {
     const amount = typeof chocoAmount === "string" ? parseFloat(chocoAmount) : chocoAmount;
-    
+
     if (isNaN(amount) || amount <= 0) {
         return 0;
     }
@@ -94,6 +94,6 @@ export function calculateCreditsFromChoco(chocoAmount: number | string): number 
     // const chocoPriceUSD = await getChocoPriceUSD(); // USD per CHOCO
     // const creditsPerUSD = 10000; // 1 USD = 10,000 Credits (1 Credit = $0.0001)
     // return Math.floor(amount * chocoPriceUSD * creditsPerUSD);
-    
+
     return Math.floor(amount);
 }

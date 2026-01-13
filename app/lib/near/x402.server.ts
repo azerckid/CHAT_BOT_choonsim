@@ -17,9 +17,8 @@ export async function createX402Invoice(
     userId: string,
     amountUSD: number
 ) {
-    // 1. CHOCO 환율 계산 (현재 1 Credit = $0.0001, 1 CHOCO = 1 Credit 가정)
-    // $1 = 10,000 Credits = 10,000 CHOCO
-    const chocoPriceUSD = 0.0001;
+    // 1. CHOCO 환율 계산 (1 CHOCO = $0.001, 즉 $1 = 1,000 CHOCO)
+    const chocoPriceUSD = 0.001;
     const chocoAmount = new BigNumber(amountUSD).dividedBy(chocoPriceUSD);
     const amountRaw = chocoAmount.multipliedBy(new BigNumber(10).pow(18)).toString();
 
