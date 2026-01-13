@@ -32,13 +32,13 @@ async function fetchNearPriceFromCoinGecko(): Promise<number> {
         }
         const data = await response.json();
         const price = data.near?.usd || 5.0; // 기본값: $5
-        
+
         logger.info({
             category: "SYSTEM",
             message: `Fetched NEAR price from CoinGecko: $${price}`,
             metadata: { price }
         });
-        
+
         return price;
     } catch (error) {
         logger.error({
@@ -138,17 +138,29 @@ export async function getNearPriceUSD(): Promise<number> {
 }
 
 /**
- * NEAR → CHOCO 환율을 계산합니다.
- * 현재는 고정비율을 사용하지만, 향후 USD 기준으로 계산 가능합니다.
+ * NEAR → CHOCO 환율을 계산합니다. (실시간 NEAR/USD 시세 기반)
+ * 모든 통화는 USD를 거쳐 CHOCO로 변환되는 정책을 따릅니다.
  * @param nearAmount NEAR 수량
- * @returns CHOCO 수량
+ * @returns CHOCO 수량 (BigNumber string)
  */
 export async function calculateChocoFromNear(nearAmount: string | number): Promise<string> {
-    // MVP: 고정비율 1 NEAR = 5,000 CHOCO
-    // 향후: NEAR 가격(USD)을 기준으로 CHOCO 가격(USD)과 비교하여 계산
-    const fixedRate = 5000;
+    // 1. NEAR 가격 조회 (USD, 실시간/캐시)
+    const nearPriceUSD = await getNearPriceUSD();
+
+    // 2. NEAR → USD 변환
     const amount = typeof nearAmount === "string" ? parseFloat(nearAmount) : nearAmount;
-    return new BigNumber(amount).multipliedBy(fixedRate).toString();
+    const usdAmount = new BigNumber(amount).multipliedBy(nearPriceUSD);
+
+    // 3. USD → CHOCO 변환 (1 CHOCO = $0.0001)
+    const chocoAmount = await calculateChocoFromUSD(usdAmount.toNumber());
+
+    logger.info({
+        category: "PAYMENT",
+        message: `Calculated CHOCO from NEAR: ${amount} NEAR = ${chocoAmount.toString()} CHOCO (NEAR Price: $${nearPriceUSD})`,
+        metadata: { nearAmount: amount, nearPriceUSD, usdAmount: usdAmount.toString(), chocoAmount: chocoAmount.toString() }
+    });
+
+    return chocoAmount.toString();
 }
 
 /**
@@ -157,7 +169,7 @@ export async function calculateChocoFromNear(nearAmount: string | number): Promi
  */
 async function fetchUSDKRWRate(): Promise<number> {
     const tokenPair = "USD/KRW";
-    
+
     // 1. 메모리 캐시 확인
     const memoryCached = memoryCache.get(tokenPair);
     if (memoryCached && (Date.now() - memoryCached.updatedAt) < CACHE_DURATION) {
@@ -182,7 +194,7 @@ async function fetchUSDKRWRate(): Promise<number> {
         }
         const data = await response.json();
         const krwRate = data.rates?.KRW || 1350; // 기본값: 1 USD = 1,350 KRW
-        
+
         logger.info({
             category: "SYSTEM",
             message: `Fetched USD/KRW rate from ExchangeRate API: ${krwRate}`,
@@ -232,13 +244,13 @@ export async function calculateChocoFromUSD(usdAmount: number): Promise<string> 
     // $1 = 10,000 CHOCO
     // 실시간 환율을 사용하여 정확한 계산
     const chocoAmount = new BigNumber(usdAmount).dividedBy(CHOCO_PRICE_USD);
-    
+
     logger.info({
         category: "PAYMENT",
         message: `Calculated CHOCO from USD: $${usdAmount} = ${chocoAmount.toString()} CHOCO`,
         metadata: { usdAmount, chocoAmount: chocoAmount.toString() }
     });
-    
+
     return chocoAmount.toString();
 }
 
@@ -250,18 +262,18 @@ export async function calculateChocoFromUSD(usdAmount: number): Promise<string> 
 export async function calculateChocoFromKRW(krwAmount: number): Promise<string> {
     // 1. USD/KRW 환율 조회
     const usdKrwRate = await getUSDKRWRate();
-    
+
     // 2. KRW → USD 변환
     const usdAmount = new BigNumber(krwAmount).dividedBy(usdKrwRate);
-    
+
     // 3. USD → CHOCO 변환
     const chocoAmount = await calculateChocoFromUSD(usdAmount.toNumber());
-    
+
     logger.info({
         category: "PAYMENT",
         message: `Calculated CHOCO from KRW: ${krwAmount} KRW = ${chocoAmount} CHOCO (USD/KRW: ${usdKrwRate})`,
         metadata: { krwAmount, usdKrwRate, usdAmount: usdAmount.toString(), chocoAmount }
     });
-    
+
     return chocoAmount;
 }
