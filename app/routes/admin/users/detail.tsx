@@ -136,15 +136,10 @@ export async function action({ params, request }: ActionFunctionArgs) {
                 : undefined;
 
             // CHOCO 지급이 발생한 경우 자동 계산값 사용, 그렇지 않으면 수동 입력값 우선
-            // formData의 chocoBalance가 빈 문자열이거나 현재값과 같으면 자동 계산값 사용
-            const formChocoBalance = chocoBalance?.trim();
-            const shouldUseAutoBalance = shouldGrantChoco || 
-                !formChocoBalance || 
-                formChocoBalance === currentChocoBalance;
-            
-            const finalChocoBalance = shouldUseAutoBalance 
-                ? newChocoBalance 
-                : formChocoBalance;
+            // 관리자가 입력 필드를 직접 수정하지 않았다면 (즉, 현재 DB 값인 currentChocoBalance와 동일하다면)
+            // 자동 계산된 newChocoBalance를 사용하여 티어 변경에 따른 CHOCO 보너스를 반영합니다.
+            const isManualOverride = chocoBalance !== null && chocoBalance !== currentChocoBalance;
+            const finalChocoBalance = isManualOverride ? chocoBalance : newChocoBalance;
 
             await tx.update(schema.user).set({
                 role,
