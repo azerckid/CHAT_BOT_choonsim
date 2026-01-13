@@ -2,7 +2,7 @@
 
 **작성일**: 2026-01-11  
 **목적**: 결제 UI에서 미구현/불필요한 결제 방법(BTC, Solana, NEAR) 제거  
-**상태**: 📋 설계 단계
+**상태**: ✅ 구현 완료 (2026-01-11)
 
 ---
 
@@ -557,47 +557,47 @@ git checkout <commit-hash> -- app/components/payment/TokenTopUpModal.tsx
 ## 12. 구현 체크리스트
 
 ### Phase 1: UI 제거
-- [ ] `TokenTopUpModal.tsx`에서 BTC 탭 버튼 제거
-- [ ] `TokenTopUpModal.tsx`에서 Solana 탭 버튼 제거
-- [ ] `TokenTopUpModal.tsx`에서 NEAR 탭 버튼 제거
-- [ ] 타입 정의에서 `"CRYPTO" | "SOLANA" | "NEAR"` 제거
-- [ ] 결제 처리 로직에서 해당 케이스 제거
-- [ ] 사용하지 않는 Import 제거
+- [x] `TokenTopUpModal.tsx`에서 BTC 탭 버튼 제거
+- [x] `TokenTopUpModal.tsx`에서 Solana 탭 버튼 제거
+- [x] `TokenTopUpModal.tsx`에서 NEAR 탭 버튼 제거
+- [x] 타입 정의에서 `"CRYPTO" | "SOLANA" | "NEAR"` 제거
+- [x] 결제 처리 로직에서 해당 케이스 제거
+- [x] 사용하지 않는 Import 제거
 
 ### Phase 2: 관련 컴포넌트 확인 (선택적)
-- [ ] `SolanaPayButton.tsx` 사용 여부 확인
-- [ ] `NearPayButton.tsx` 사용 여부 확인
-- [ ] 관련 API 엔드포인트 사용 여부 확인
-- [ ] 사용되지 않는 파일 제거 또는 주석 처리
+- [x] `SolanaPayButton.tsx` 사용 여부 확인 (텍스트 변경 완료)
+- [x] `NearPayButton.tsx` 사용 여부 확인 (텍스트 변경 완료)
+- [x] 관련 API 엔드포인트 사용 여부 확인
+- [ ] 사용되지 않는 파일 제거 또는 주석 처리 (선택적 - 향후 사용 가능성 고려)
 
 ### Phase 3: UI 텍스트 CHOCO 통일
-- [ ] `TokenTopUpModal.tsx` 제목 변경 ("Credit Top Up" → "CHOCO Top Up")
-- [ ] `TokenTopUpModal.tsx` 설명 변경 ("크레딧" → "CHOCO")
-- [ ] `TokenTopUpModal.tsx` 패키지 표시 변경 ("C" → "CHOCO" 또는 안내 추가)
-- [ ] `SolanaPayButton.tsx` 메시지 변경
-- [ ] `NearPayButton.tsx` 메시지 변경
-- [ ] `CoinbaseCommerceButton.tsx` 설명 변경
+- [x] `TokenTopUpModal.tsx` 제목 변경 ("Credit Top Up" → "CHOCO Top Up")
+- [x] `TokenTopUpModal.tsx` 설명 변경 ("크레딧" → "CHOCO")
+- [x] `TokenTopUpModal.tsx` 패키지 표시 변경 ("C" → "CHOCO" 또는 안내 추가)
+- [x] `SolanaPayButton.tsx` 메시지 변경
+- [x] `NearPayButton.tsx` 메시지 변경
+- [x] `CoinbaseCommerceButton.tsx` 설명 변경
 
 ### Phase 4: 테스트 및 검증
-- [ ] 결제 모달 UI 테스트
-- [ ] Toss 결제 플로우 테스트
-- [ ] PayPal 결제 플로우 테스트
-- [ ] UI 텍스트 확인 (CHOCO로 통일되었는지)
-- [ ] TypeScript 컴파일 에러 확인
-- [ ] 프로덕션 빌드 테스트
+- [ ] 결제 모달 UI 테스트 (수동 테스트 필요)
+- [ ] Toss 결제 플로우 테스트 (수동 테스트 필요)
+- [ ] PayPal 결제 플로우 테스트 (수동 테스트 필요)
+- [ ] UI 텍스트 확인 (CHOCO로 통일되었는지) (수동 테스트 필요)
+- [x] TypeScript 컴파일 에러 확인
+- [ ] 프로덕션 빌드 테스트 (권장)
 
 ### Phase 5: 문서화 (선택적)
-- [ ] NEAR 입금 안내 추가 (설정 페이지 또는 모달)
-- [ ] 관련 문서 업데이트
+- [ ] NEAR 입금 안내 추가 (설정 페이지 또는 모달) (향후 개선 사항)
+- [x] 관련 문서 업데이트 (검증 보고서 작성 완료)
 
 ---
 
 ## 13. 승인 및 구현
 
-- [ ] 설계 검토 완료
-- [ ] 구현 시작
-- [ ] 테스트 완료
-- [ ] 배포 준비
+- [x] 설계 검토 완료
+- [x] 구현 시작
+- [x] 테스트 완료 (코드 검증 완료, 수동 테스트 권장)
+- [ ] 배포 준비 (프로덕션 빌드 테스트 후 진행 권장)
 
 ---
 
@@ -625,4 +625,5 @@ NEAR는 별도의 입금 감지 시스템으로 작동합니다:
 ---
 
 **문서 버전**: 1.0  
-**최종 수정일**: 2026-01-11
+**최종 수정일**: 2026-01-11  
+**완료일**: 2026-01-11
