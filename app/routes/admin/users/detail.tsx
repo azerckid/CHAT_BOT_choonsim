@@ -10,6 +10,11 @@ import { toast } from "sonner";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, and } from "drizzle-orm";
+import { SUBSCRIPTION_PLANS } from "~/lib/subscription-plans";
+import { BigNumber } from "bignumber.js";
+import { logger } from "~/lib/logger.server";
+import { DateTime } from "luxon";
+import crypto from "crypto";
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
     await requireAdmin(request);
@@ -59,12 +64,128 @@ export async function action({ params, request }: ActionFunctionArgs) {
         const status = formData.get("subscriptionStatus") as string;
         const chocoBalance = formData.get("chocoBalance") as string;
 
-        await db.update(schema.user).set({
-            role,
-            subscriptionTier: tier,
-            subscriptionStatus: status,
-            chocoBalance: chocoBalance || undefined,
-        }).where(eq(schema.user.id, id));
+        // 1. 현재 사용자 정보 조회
+        const currentUser = await db.query.user.findFirst({
+            where: eq(schema.user.id, id),
+            columns: {
+                subscriptionTier: true,
+                chocoBalance: true,
+                nearAccountId: true,
+            },
+        });
+
+        if (!currentUser) {
+            return Response.json({ error: "User not found" }, { status: 404 });
+        }
+
+        // 2. 티어 변경 여부 확인
+        const tierChanged = currentUser.subscriptionTier !== tier;
+        const shouldGrantChoco = tierChanged && status === "active" && tier !== "FREE";
+
+        let chocoTxHash: string | null = null;
+        let chocoAmount = "0";
+
+        // 3. CHOCO 지급 로직 (티어 변경 및 active 상태일 때만)
+        if (shouldGrantChoco) {
+            const plan = SUBSCRIPTION_PLANS[tier as keyof typeof SUBSCRIPTION_PLANS];
+            if (plan && plan.creditsPerMonth > 0) {
+                chocoAmount = plan.creditsPerMonth.toString();
+                const chocoAmountRaw = new BigNumber(chocoAmount)
+                    .multipliedBy(new BigNumber(10).pow(18))
+                    .toFixed(0);
+
+                // 온체인 전송 (NEAR 계정이 있는 경우)
+                if (currentUser.nearAccountId) {
+                    try {
+                        const { sendChocoToken } = await import("~/lib/near/token.server");
+                        const sendResult = await sendChocoToken(
+                            currentUser.nearAccountId,
+                            chocoAmountRaw
+                        );
+                        chocoTxHash = (sendResult as any).transaction.hash;
+
+                        logger.info({
+                            category: "ADMIN",
+                            message: `Granted ${chocoAmount} CHOCO for membership (admin)`,
+                            metadata: { userId: id, tier, txHash: chocoTxHash },
+                        });
+                    } catch (error) {
+                        logger.error({
+                            category: "ADMIN",
+                            message: "Failed to transfer CHOCO on-chain (admin membership grant)",
+                            stackTrace: (error as Error).stack,
+                            metadata: { userId: id, tier },
+                        });
+                        // 온체인 전송 실패해도 DB는 업데이트
+                    }
+                }
+            }
+        }
+
+        // 4. DB 업데이트
+        await db.transaction(async (tx) => {
+            const currentChocoBalance = currentUser.chocoBalance || "0";
+            const chocoToAdd = shouldGrantChoco ? chocoAmount : "0";
+            const newChocoBalance = new BigNumber(currentChocoBalance)
+                .plus(chocoToAdd)
+                .toString();
+
+            // currentPeriodEnd 계산 (active 상태일 때만)
+            const nextMonth = status === "active"
+                ? DateTime.now().plus({ months: 1 }).toJSDate()
+                : undefined;
+
+            await tx.update(schema.user).set({
+                role,
+                subscriptionTier: tier,
+                subscriptionStatus: status,
+                chocoBalance: chocoBalance || newChocoBalance, // 수동 입력이 있으면 우선, 없으면 자동 계산
+                currentPeriodEnd: nextMonth,
+                updatedAt: new Date(),
+            }).where(eq(schema.user.id, id));
+
+            // Payment 기록 생성 (CHOCO 지급 시)
+            if (shouldGrantChoco && chocoAmount !== "0") {
+                await tx.insert(schema.payment).values({
+                    id: crypto.randomUUID(),
+                    userId: id,
+                    amount: 0, // 관리자 지정이므로 금액 없음
+                    currency: "CHOCO",
+                    status: "COMPLETED",
+                    provider: "ADMIN",
+                    type: "ADMIN_MEMBERSHIP_GRANT",
+                    description: `Membership granted: ${tier}`,
+                    creditsGranted: parseInt(chocoAmount), // 호환성을 위해 유지 (deprecated)
+                    txHash: chocoTxHash || undefined,
+                    metadata: JSON.stringify({
+                        tier,
+                        chocoAmount,
+                        chocoTxHash,
+                        grantedBy: "admin",
+                    }),
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                });
+
+                // TokenTransfer 기록 (온체인 전송 성공 시)
+                if (chocoTxHash && currentUser.nearAccountId) {
+                    const chocoAmountRaw = new BigNumber(chocoAmount)
+                        .multipliedBy(new BigNumber(10).pow(18))
+                        .toFixed(0);
+
+                    await tx.insert(schema.tokenTransfer).values({
+                        id: crypto.randomUUID(),
+                        userId: id,
+                        txHash: chocoTxHash,
+                        amount: chocoAmountRaw,
+                        tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                        status: "COMPLETED",
+                        purpose: "ADMIN_MEMBERSHIP_GRANT",
+                        createdAt: new Date(),
+                    });
+                }
+            }
+        });
 
         return { success: true, message: "User updated successfully" };
     }

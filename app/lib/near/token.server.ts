@@ -195,3 +195,23 @@ export async function returnChocoToService(
         amountRaw
     );
 }
+/**
+ * 특정 계정의 CHOCO 잔액을 조회합니다.
+ * @returns BigNumber string (10^18 단위)
+ */
+export async function getChocoBalance(accountId: string): Promise<string> {
+    const near = await getNearConnection();
+    const serviceAccount = await near.account(NEAR_CONFIG.serviceAccountId);
+
+    try {
+        const balance = await serviceAccount.viewFunction({
+            contractId: NEAR_CONFIG.chocoTokenContract,
+            methodName: "ft_balance_of",
+            args: { account_id: accountId },
+        });
+        return balance.toString();
+    } catch (error) {
+        console.error(`Failed to get CHOCO balance for ${accountId}:`, error);
+        return "0";
+    }
+}

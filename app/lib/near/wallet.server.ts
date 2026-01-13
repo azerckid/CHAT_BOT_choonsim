@@ -207,6 +207,69 @@ export async function ensureNearWallet(userId: string) {
             }
         }
 
+        // 9. 미전송 CHOCO 동기화 (DB chocoBalance vs 온체인 잔액)
+        const updatedUser = await db.query.user.findFirst({
+            where: eq(schema.user.id, userId),
+            columns: { chocoBalance: true }
+        });
+
+        if (updatedUser && updatedUser.chocoBalance && updatedUser.chocoBalance !== "0") {
+            try {
+                const { BigNumber } = await import("bignumber.js");
+                const { getChocoBalance, sendChocoToken } = await import("./token.server");
+                const { logger } = await import("../logger.server");
+                const { nanoid } = await import("nanoid");
+
+                const dbChocoBalance = new BigNumber(updatedUser.chocoBalance);
+                const onChainBalanceRaw = await getChocoBalance(newAccountId);
+                const onChainBalanceBN = new BigNumber(onChainBalanceRaw).dividedBy(new BigNumber(10).pow(18));
+
+                // DB 잔액이 온체인 잔액보다 많으면 차액만큼 전송
+                if (dbChocoBalance.isGreaterThan(onChainBalanceBN)) {
+                    const pendingChoco = dbChocoBalance.minus(onChainBalanceBN);
+                    const pendingChocoRaw = pendingChoco.multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
+
+                    logger.info({
+                        category: "MIGRATION",
+                        message: `Found pending CHOCO for user ${userId}: ${pendingChoco.toString()}`,
+                        metadata: { userId, nearAccountId: newAccountId, pendingChoco: pendingChoco.toString() }
+                    });
+
+                    try {
+                        const sendResult = await sendChocoToken(newAccountId, pendingChocoRaw);
+                        const chocoTxHash = (sendResult as any).transaction.hash;
+
+                        // TokenTransfer 기록 생성
+                        await db.insert(schema.tokenTransfer).values({
+                            id: nanoid(),
+                            userId,
+                            txHash: chocoTxHash,
+                            amount: pendingChocoRaw,
+                            tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                            status: "COMPLETED",
+                            purpose: "PENDING_GRANT", // 미전송 CHOCO 전송
+                            createdAt: new Date(),
+                        });
+
+                        logger.info({
+                            category: "MIGRATION",
+                            message: `Successfully transferred pending CHOCO: ${pendingChoco.toString()}`,
+                            metadata: { userId, nearAccountId: newAccountId, txHash: chocoTxHash }
+                        });
+                    } catch (error) {
+                        logger.error({
+                            category: "MIGRATION",
+                            message: "Failed to transfer pending CHOCO on-chain",
+                            stackTrace: (error as Error).stack,
+                            metadata: { userId, nearAccountId: newAccountId }
+                        });
+                    }
+                }
+            } catch (syncError) {
+                console.error(`[Wallet] Failed to sync pending CHOCO for user ${userId}:`, syncError);
+            }
+        }
+
         return newAccountId;
     } catch (error: any) {
         // 상세한 에러 로깅
