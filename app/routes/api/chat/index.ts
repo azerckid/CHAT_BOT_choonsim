@@ -57,12 +57,12 @@ export async function action({ request }: ActionFunctionArgs) {
         }),
     ]);
 
-    // **X402 결제 체크**
-    const MIN_REQUIRED_CHOCO = 10; // 최소 필요 CHOCO (1 Credit = 1 CHOCO)
+    // **X402 결제 체크** (새 정책: $1 = 1,000 CHOCO)
+    const MIN_REQUIRED_CHOCO = 20; // 최소 필요 CHOCO (채팅 약 2회 분량)
     const currentChocoBalance = currentUser?.chocoBalance ? parseFloat(currentUser.chocoBalance) : 0;
     if (!currentUser || currentChocoBalance < MIN_REQUIRED_CHOCO) {
-        // 1. 인보이스 생성 ($0.01 = 약 100 Credits, 마이크로 페이먼트 단위)
-        const amountToChargeUSD = 0.01;
+        // 1. 인보이스 생성 ($0.1 = 100 CHOCO, 채팅 약 10회 분량)
+        const amountToChargeUSD = 0.1;
 
         // 2. Silent Payment 한도 확인
         const allowance = await checkSilentPaymentAllowance(
@@ -184,8 +184,12 @@ export async function action({ request }: ActionFunctionArgs) {
                         const { decrypt } = await import("~/lib/near/key-encryption.server");
                         const { returnChocoToService } = await import("~/lib/near/token.server");
                         const { nanoid } = await import("nanoid");
+                        // 새 정책: 1,000 토큰 = 10 CHOCO ($0.01 가치)
+                        // 공식: Deduction = TotalTokens / 100
+                        const chocoToDeduct = new BigNumber(tokenUsage.totalTokens)
+                            .dividedBy(100)
+                            .toFixed(0);
 
-                        const chocoToDeduct = tokenUsage.totalTokens.toString(); // 1 Credit = 1 CHOCO
                         const chocoAmountRaw = new BigNumber(chocoToDeduct).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
                         // 사용자 정보 조회 (NEAR 계정 및 개인키 확인)
