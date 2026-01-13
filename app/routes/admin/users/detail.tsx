@@ -135,11 +135,22 @@ export async function action({ params, request }: ActionFunctionArgs) {
                 ? DateTime.now().plus({ months: 1 }).toJSDate()
                 : undefined;
 
+            // CHOCO 지급이 발생한 경우 자동 계산값 사용, 그렇지 않으면 수동 입력값 우선
+            // formData의 chocoBalance가 빈 문자열이거나 현재값과 같으면 자동 계산값 사용
+            const formChocoBalance = chocoBalance?.trim();
+            const shouldUseAutoBalance = shouldGrantChoco || 
+                !formChocoBalance || 
+                formChocoBalance === currentChocoBalance;
+            
+            const finalChocoBalance = shouldUseAutoBalance 
+                ? newChocoBalance 
+                : formChocoBalance;
+
             await tx.update(schema.user).set({
                 role,
                 subscriptionTier: tier,
                 subscriptionStatus: status,
-                chocoBalance: chocoBalance || newChocoBalance, // 수동 입력이 있으면 우선, 없으면 자동 계산
+                chocoBalance: finalChocoBalance,
                 currentPeriodEnd: nextMonth,
                 updatedAt: new Date(),
             }).where(eq(schema.user.id, id));

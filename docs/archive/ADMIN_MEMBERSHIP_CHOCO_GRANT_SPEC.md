@@ -2,7 +2,7 @@
 
 **작성일**: 2026-01-11  
 **목적**: 관리자가 멤버십을 지정할 때 해당 플랜의 CHOCO가 자동으로 지급되도록 구현  
-**상태**: 📋 설계 단계
+**상태**: ✅ 구현 완료
 
 ---
 
@@ -26,11 +26,11 @@
 ## 2. 구현 목표
 
 ### 2.1 목표
-관리자가 멤버십 티어를 변경하고 상태를 "ACTIVE"로 설정하면, 해당 플랜의 `creditsPerMonth`만큼 CHOCO가 자동으로 지급되도록 구현
+관리자가 멤버십 티어를 변경하고 상태를 "active"로 설정하면, 해당 플랜의 `creditsPerMonth`만큼 CHOCO가 자동으로 지급되도록 구현
 
 ### 2.2 요구사항
 1. 티어 변경 감지: 이전 티어와 새 티어가 다를 때만 처리
-2. 상태 확인: `subscriptionStatus`가 "ACTIVE"일 때만 CHOCO 지급
+2. 상태 확인: `subscriptionStatus`가 "active"일 때만 CHOCO 지급
 3. 온체인 전송: NEAR 계정이 있는 경우 온체인 CHOCO 전송
 4. DB 업데이트: `chocoBalance` 자동 증가
 5. 기록 생성: `TokenTransfer` 및 `Payment` 기록 생성
@@ -51,8 +51,8 @@
    - 이전 티어 === 새 티어 → CHOCO 지급 스킵
    - 이전 티어 !== 새 티어 → 계속 진행
 3. 상태 확인
-   - subscriptionStatus !== "ACTIVE" → CHOCO 지급 스킵
-   - subscriptionStatus === "ACTIVE" → 계속 진행
+   - subscriptionStatus !== "active" → CHOCO 지급 스킵
+   - subscriptionStatus === "active" → 계속 진행
 4. 플랜 정보 조회
    - SUBSCRIPTION_PLANS[새 티어] 조회
    - creditsPerMonth 확인
@@ -74,7 +74,7 @@
 
 ### 3.3 예외 처리
 - 티어가 변경되지 않은 경우: CHOCO 지급 없음
-- 상태가 "ACTIVE"가 아닌 경우: CHOCO 지급 없음
+- 상태가 "active"가 아닌 경우: CHOCO 지급 없음
 - FREE 티어로 변경: CHOCO 지급 없음 (FREE는 creditsPerMonth가 있지만 관리자 지정 시 지급하지 않음)
 - NEAR 계정이 없는 경우: DB만 업데이트, 온체인 전송 스킵
 - 온체인 전송 실패: DB는 업데이트, 에러 로그 기록
@@ -124,12 +124,12 @@ if (actionType === "update_user") {
 
     // 2. 티어 변경 여부 확인
     const tierChanged = currentUser.subscriptionTier !== tier;
-    const shouldGrantChoco = tierChanged && status === "ACTIVE" && tier !== "FREE";
+    const shouldGrantChoco = tierChanged && status === "active" && tier !== "FREE";
 
     let chocoTxHash: string | null = null;
     let chocoAmount = "0";
 
-    // 3. CHOCO 지급 로직 (티어 변경 및 ACTIVE 상태일 때만)
+    // 3. CHOCO 지급 로직 (티어 변경 및 active 상태일 때만)
     if (shouldGrantChoco) {
         const plan = SUBSCRIPTION_PLANS[tier as keyof typeof SUBSCRIPTION_PLANS];
         if (plan && plan.creditsPerMonth > 0) {
@@ -174,8 +174,8 @@ if (actionType === "update_user") {
             .plus(chocoToAdd)
             .toString();
 
-        // currentPeriodEnd 계산 (ACTIVE 상태일 때만)
-        const nextMonth = status === "ACTIVE"
+        // currentPeriodEnd 계산 (active 상태일 때만)
+        const nextMonth = status === "active"
             ? DateTime.now().plus({ months: 1 }).toJSDate()
             : undefined;
 
@@ -245,7 +245,7 @@ if (actionType === "update_user") {
 
 ### 5.2 중복 지급 방지
 - 같은 티어로 변경: CHOCO 지급 없음
-- 티어 변경 + 상태가 "ACTIVE"가 아닌 경우: CHOCO 지급 없음
+- 티어 변경 + 상태가 "active"가 아닌 경우: CHOCO 지급 없음
 - FREE 티어로 변경: CHOCO 지급 없음 (FREE는 일일 지급 방식)
 
 ### 5.3 FREE 티어 처리
@@ -253,7 +253,7 @@ if (actionType === "update_user") {
 - FREE는 일일 지급 방식이므로 별도 처리 필요
 
 ### 5.4 기간 설정
-- `currentPeriodEnd`: 멤버십 상태가 "ACTIVE"일 때만 1개월 후로 설정
+- `currentPeriodEnd`: 멤버십 상태가 "active"일 때만 1개월 후로 설정
 - 상태가 "inactive", "expired", "canceled"인 경우: `currentPeriodEnd` 업데이트 안 함
 
 ### 5.5 로깅 및 감사
@@ -327,9 +327,9 @@ if (dbChocoBalance.isGreaterThan(onChainBalanceBN)) {
 
 ## 6. 테스트 시나리오
 
-### 6.1 시나리오 1: BASIC 티어로 변경 (ACTIVE)
+### 6.1 시나리오 1: BASIC 티어로 변경 (active)
 - **전제**: 사용자가 FREE 티어
-- **동작**: 관리자가 BASIC 티어, ACTIVE 상태로 변경
+- **동작**: 관리자가 BASIC 티어, active 상태로 변경
 - **예상 결과**: 
   - `chocoBalance`에 2,000 CHOCO 추가
   - 온체인 전송 (NEAR 계정이 있는 경우)
@@ -353,7 +353,7 @@ if (dbChocoBalance.isGreaterThan(onChainBalanceBN)) {
 
 ### 6.5 시나리오 5: NEAR 계정이 없는 경우
 - **전제**: 사용자가 NEAR 계정 없음
-- **동작**: 관리자가 BASIC 티어, ACTIVE 상태로 변경
+- **동작**: 관리자가 BASIC 티어, active 상태로 변경
 - **예상 결과**: 
   - DB에만 CHOCO 추가
   - 온체인 전송 스킵
@@ -364,26 +364,26 @@ if (dbChocoBalance.isGreaterThan(onChainBalanceBN)) {
 
 ## 7. 구현 체크리스트
 
-### Phase 1: 관리자 페이지 멤버십 지정 시 CHOCO 자동 지급
-- [ ] `app/routes/admin/users/detail.tsx` 수정
-- [ ] 필요한 import 추가
-- [ ] 티어 변경 감지 로직 구현
-- [ ] 상태 확인 로직 구현
-- [ ] CHOCO 계산 로직 구현
-- [ ] 온체인 전송 로직 구현
-- [ ] DB 업데이트 로직 구현
-- [ ] Payment 기록 생성 로직 구현
-- [ ] TokenTransfer 기록 생성 로직 구현
-- [ ] 에러 처리 및 로깅 구현
-- [ ] 테스트 시나리오 검증
+### Phase 1: 관리자 페이지 멤버십 지정 시 CHOCO 자동 지급 ✅
+- [x] `app/routes/admin/users/detail.tsx` 수정
+- [x] 필요한 import 추가
+- [x] 티어 변경 감지 로직 구현
+- [x] 상태 확인 로직 구현
+- [x] CHOCO 계산 로직 구현
+- [x] 온체인 전송 로직 구현
+- [x] DB 업데이트 로직 구현
+- [x] Payment 기록 생성 로직 구현
+- [x] TokenTransfer 기록 생성 로직 구현
+- [x] 에러 처리 및 로깅 구현
+- [x] 테스트 시나리오 검증
 
-### Phase 2: 지갑 생성 시 미전송 CHOCO 자동 전송 (후속 작업)
-- [ ] `app/lib/near/wallet.server.ts`의 `ensureNearWallet` 함수 수정
-- [ ] DB chocoBalance와 온체인 잔액 비교 로직 추가
-- [ ] 미전송 CHOCO 자동 전송 로직 구현
-- [ ] TokenTransfer 기록 생성 (purpose: "PENDING_GRANT")
-- [ ] 에러 처리 및 로깅 구현
-- [ ] 테스트 시나리오 검증
+### Phase 2: 지갑 생성 시 미전송 CHOCO 자동 전송 ✅
+- [x] `app/lib/near/wallet.server.ts`의 `ensureNearWallet` 함수 수정
+- [x] DB chocoBalance와 온체인 잔액 비교 로직 추가
+- [x] 미전송 CHOCO 자동 전송 로직 구현
+- [x] TokenTransfer 기록 생성 (purpose: "PENDING_GRANT")
+- [x] 에러 처리 및 로깅 구현
+- [x] 테스트 시나리오 검증
 
 ---
 
@@ -414,7 +414,13 @@ if (dbChocoBalance.isGreaterThan(onChainBalanceBN)) {
 
 ## 10. 승인 및 구현
 
-- [ ] 설계 검토 완료
-- [ ] 구현 시작
-- [ ] 테스트 완료
-- [ ] 배포 준비
+- [x] 설계 검토 완료
+- [x] 구현 시작
+- [x] 테스트 완료
+- [x] 배포 준비
+
+**구현 완료일**: 2026-01-13  
+**검증 보고서**: `docs/reports/ADMIN_MEMBERSHIP_CHOCO_GRANT_VERIFICATION.md`
+
+**참고사항**:
+- 실제 구현에서는 `subscriptionStatus` 값이 소문자(`"active"`)로 사용됩니다. 문서의 대문자(`"ACTIVE"`) 표기는 UI와의 일관성을 위해 소문자로 업데이트하는 것을 권장합니다.
