@@ -184,10 +184,10 @@ export async function action({ request }: ActionFunctionArgs) {
                         const { decrypt } = await import("~/lib/near/key-encryption.server");
                         const { returnChocoToService } = await import("~/lib/near/token.server");
                         const { nanoid } = await import("nanoid");
-                        
+
                         const chocoToDeduct = tokenUsage.totalTokens.toString(); // 1 Credit = 1 CHOCO
                         const chocoAmountRaw = new BigNumber(chocoToDeduct).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
-                        
+
                         // 사용자 정보 조회 (NEAR 계정 및 개인키 확인)
                         const userForDeduction = await db.query.user.findFirst({
                             where: eq(schema.user.id, session.user.id),
@@ -213,7 +213,7 @@ export async function action({ request }: ActionFunctionArgs) {
                                     "Chat Usage"
                                 );
                                 returnTxHash = (returnResult as any).transaction.hash;
-                                
+
                                 logger.info({
                                     category: "API",
                                     message: `Returned ${chocoToDeduct} CHOCO to service account (chat usage)`,
@@ -233,7 +233,7 @@ export async function action({ request }: ActionFunctionArgs) {
                         // DB 업데이트
                         await db.transaction(async (tx) => {
                             await tx.update(schema.user)
-                                .set({ 
+                                .set({
                                     chocoBalance: newChocoBalance,
                                     updatedAt: new Date()
                                 })
