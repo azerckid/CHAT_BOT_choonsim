@@ -1,9 +1,22 @@
+---
+status: archived
+archived_reason: "통합됨"
+consolidated_into: "docs/reports/CHOCO_RE_DENOMINATION_COMPLETE_VERIFICATION.md"
+archived_date: 2026-01-14
+original_location: "docs/reports/CHOCO_RE_DENOMINATION_IMPLEMENTATION_VERIFICATION.md"
+tags: [completed, verification, billing, consolidated]
+---
+
 # CHOCO 경제 엔진 전면 개편 구현 검증 보고서
+
+**⚠️ 이 문서는 통합되었습니다. 최신 정보는 `docs/reports/CHOCO_RE_DENOMINATION_COMPLETE_VERIFICATION.md`를 참조하세요.**
 
 **작성일**: 2026-01-13  
 **최종 검증일**: 2026-01-13  
 **검증 대상**: `docs/reports/CHOCO_RE_DENOMINATION_VERIFICATION.md`에 명시된 수정 사항  
-**상태**: ✅ 모든 항목 완료
+**상태**: ✅ 모든 항목 완료  
+**아카이브일**: 2026-01-14  
+**통합 문서**: `docs/reports/CHOCO_RE_DENOMINATION_COMPLETE_VERIFICATION.md`
 
 ---
 

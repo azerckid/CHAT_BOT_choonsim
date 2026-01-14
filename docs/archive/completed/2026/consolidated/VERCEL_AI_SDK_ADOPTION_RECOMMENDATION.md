@@ -1,4 +1,15 @@
+---
+status: archived
+archived_reason: "통합됨"
+consolidated_into: "docs/reports/VERCEL_AI_SDK_ADOPTION_COMPLETE_ANALYSIS.md"
+archived_date: 2026-01-14
+original_location: "docs/reports/VERCEL_AI_SDK_ADOPTION_RECOMMENDATION.md"
+tags: [completed, analysis, ai, consolidated]
+---
+
 # Vercel AI SDK 도입 권장 사항
+
+**⚠️ 이 문서는 통합되었습니다. 최신 정보는 `docs/reports/VERCEL_AI_SDK_ADOPTION_COMPLETE_ANALYSIS.md`를 참조하세요.**
 
 **작성일**: 2026-01-14  
 **분석 대상**: 현재 프로젝트의 AI 채팅 시스템  

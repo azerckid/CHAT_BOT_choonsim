@@ -1,4 +1,15 @@
+---
+status: archived
+archived_reason: "통합됨"
+consolidated_into: "docs/reports/NEAR_CHAT_BALANCE_UI_COMPLETE_VERIFICATION.md"
+archived_date: 2026-01-14
+original_location: "docs/reports/verification/NEAR_CHAT_BALANCE_UI_IMPLEMENTATION_VERIFICATION.md"
+tags: [completed, verification, ui, consolidated]
+---
+
 # 채팅방 실시간 잔액 표시 UI 구현 확인 점검 보고서
+
+**⚠️ 이 문서는 통합되었습니다. 최신 정보는 `docs/reports/NEAR_CHAT_BALANCE_UI_COMPLETE_VERIFICATION.md`를 참조하세요.**
 
 **점검일**: 2026-01-11
 **점검자**: Antigravity AI Assistant
