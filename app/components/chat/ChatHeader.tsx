@@ -105,11 +105,13 @@ export function ChatHeader({
 
               {/* 모바일: Dialog로 표시 */}
               <Dialog open={balanceDialogOpen} onOpenChange={setBalanceDialogOpen}>
-                <DialogTrigger asChild>
-                  <button className="sm:hidden flex items-center px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 mr-1">
-                    <span className="material-symbols-outlined text-[18px] text-slate-600 dark:text-slate-300">account_balance_wallet</span>
-                  </button>
-                </DialogTrigger>
+                <DialogTrigger
+                  render={
+                    <button className="sm:hidden flex items-center px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 mr-1">
+                      <span className="material-symbols-outlined text-[18px] text-slate-600 dark:text-slate-300">account_balance_wallet</span>
+                    </button>
+                  }
+                />
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>내 잔액</DialogTitle>

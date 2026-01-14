@@ -32,7 +32,7 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: "Item not found" }, { status: 404 });
     }
 
-    const totalCost = (item.priceChoco || item.priceCredits || 0) * quantity; // priceChoco 우선, 없으면 priceCredits (호환성)
+    const totalCost = ((item as any).priceChoco || (item as any).priceCredits || 0) * quantity; // priceChoco 우선, 없으면 priceCredits (호환성)
     const totalCostBigNumber = new BigNumber(totalCost);
     const totalCostRaw = totalCostBigNumber.multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
@@ -54,7 +54,7 @@ export async function action({ request }: ActionFunctionArgs) {
             try {
                 const { decrypt } = await import("~/lib/near/key-encryption.server");
                 const { returnChocoToService } = await import("~/lib/near/token.server");
-                
+
                 const decryptedPrivateKey = decrypt(user.nearPrivateKey);
                 const returnResult = await returnChocoToService(
                     user.nearAccountId,
@@ -63,7 +63,7 @@ export async function action({ request }: ActionFunctionArgs) {
                     `Item Purchase: ${item.name} x${quantity}`
                 );
                 returnTxHash = (returnResult as any).transaction.hash;
-                
+
                 logger.info({
                     category: "PAYMENT",
                     message: `Returned ${totalCost} CHOCO to service account (item purchase)`,

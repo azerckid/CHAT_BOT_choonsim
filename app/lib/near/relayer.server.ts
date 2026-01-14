@@ -32,10 +32,11 @@ export async function submitMetaTransaction(signedDelegateSerialized: string) {
 
     const relayerAccount = await near.account(serviceAccountId);
 
+    // 2. 직렬화된 SignedDelegate 복원
+    // near-api-js 버전에 따라 타입 정의가 누락될 수 있으므로 any 처리
+    let signedDelegate: any = null;
     try {
-        // 2. 직렬화된 SignedDelegate 복원
-        // near-api-js 버전에 따라 타입 정의가 누락될 수 있으므로 any 처리
-        const signedDelegate = (transactions as any).SignedDelegate.decode(
+        signedDelegate = (transactions as any).SignedDelegate.decode(
             Buffer.from(signedDelegateSerialized, "base64")
         );
 
@@ -66,8 +67,8 @@ export async function submitMetaTransaction(signedDelegateSerialized: string) {
             category: "PAYMENT",
             message: "Failed to relay meta transaction",
             stackTrace: (error as Error).stack,
-            metadata: { 
-                senderId: (signedDelegate as any).delegateAction?.senderId 
+            metadata: {
+                senderId: (signedDelegate as any).delegateAction?.senderId
             }
         });
         return {

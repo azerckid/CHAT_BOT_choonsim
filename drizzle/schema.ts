@@ -1,5 +1,5 @@
-import { sqliteTable, AnySQLiteColumn, text, integer, index, real, uniqueIndex, blob } from "drizzle-orm/sqlite-core"
-  import { sql } from "drizzle-orm"
+import { sqliteTable, type AnySQLiteColumn, text, integer, index, real, uniqueIndex, blob } from "drizzle-orm/sqlite-core"
+import { sql } from "drizzle-orm"
 
 export const character = sqliteTable("Character", {
 	id: text().primaryKey().notNull(),
@@ -8,7 +8,7 @@ export const character = sqliteTable("Character", {
 	bio: text().notNull(),
 	personaPrompt: text().notNull(),
 	greetingMessage: text(),
-	isOnline: integer().notNull(),
+	isOnline: integer({ mode: 'boolean' }).notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
 });
@@ -22,20 +22,20 @@ export const item = sqliteTable("Item", {
 	priceKrw: real(),
 	iconUrl: text(),
 	description: text(),
-	isActive: integer().default(true).notNull(),
+	isActive: integer({ mode: 'boolean' }).default(true).notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
 },
-(table) => [
-	index("Item_isActive_idx").on(table.isActive),
-]);
+	(table) => [
+		index("Item_isActive_idx").on(table.isActive),
+	]);
 
 export const dmConversation = sqliteTable("DMConversation", {
 	id: text().primaryKey().notNull(),
-	isGroup: integer().notNull(),
+	isGroup: integer({ mode: 'boolean' }).notNull(),
 	groupName: text(),
 	lastMessageAt: integer().default(sql`(unixepoch())`).notNull(),
-	isAccepted: integer().notNull(),
+	isAccepted: integer({ mode: 'boolean' }).notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
 });
@@ -58,12 +58,12 @@ export const user = sqliteTable("User", {
 	snsId: text(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
-	emailVerified: integer().notNull(),
+	emailVerified: integer({ mode: 'boolean' }).notNull(),
 	avatarUrl: text(),
 	status: text().default("OFFLINE").notNull(),
 	bio: text(),
 	coverImage: text(),
-	isPrivate: integer(),
+	isPrivate: integer({ mode: 'boolean' }),
 	checkInTime: text(),
 	pushSubscription: text(),
 	subscriptionTier: text().default("FREE"),
@@ -83,10 +83,10 @@ export const user = sqliteTable("User", {
 	allowanceExpiresAt: integer(),
 	nearPrivateKey: text(),
 },
-(table) => [
-	uniqueIndex("User_nearAccountId_unique").on(table.nearAccountId),
-	uniqueIndex("User_subscriptionId_unique").on(table.subscriptionId),
-]);
+	(table) => [
+		uniqueIndex("User_nearAccountId_unique").on(table.nearAccountId),
+		uniqueIndex("User_subscriptionId_unique").on(table.subscriptionId),
+	]);
 
 export const account = sqliteTable("account", {
 	id: text().primaryKey().notNull(),
@@ -114,9 +114,9 @@ export const session = sqliteTable("session", {
 	userAgent: text(),
 	userId: text().notNull(),
 },
-(table) => [
-	uniqueIndex("session_token_unique").on(table.token),
-]);
+	(table) => [
+		uniqueIndex("session_token_unique").on(table.token),
+	]);
 
 export const verification = sqliteTable("verification", {
 	id: text().primaryKey().notNull(),
@@ -133,8 +133,8 @@ export const notice = sqliteTable("Notice", {
 	content: text().notNull(),
 	type: text().default("NOTICE").notNull(),
 	imageUrl: text(),
-	isActive: integer().default(true).notNull(),
-	isPinned: integer().notNull(),
+	isActive: integer({ mode: 'boolean' }).default(true).notNull(),
+	isPinned: integer({ mode: 'boolean' }).notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
 });
@@ -155,7 +155,7 @@ export const mission = sqliteTable("Mission", {
 	description: text().notNull(),
 	rewardCredits: integer().default(0).notNull(),
 	type: text().default("DAILY").notNull(),
-	isActive: integer().default(true).notNull(),
+	isActive: integer({ mode: 'boolean' }).default(true).notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
 });
@@ -243,7 +243,7 @@ export const dmParticipant = sqliteTable("DMParticipant", {
 	userId: text().notNull(),
 	joinedAt: integer().default(sql`(unixepoch())`).notNull(),
 	leftAt: integer(),
-	isAdmin: integer().default(false).notNull(),
+	isAdmin: integer({ mode: 'boolean' }).default(false).notNull(),
 });
 
 export const directMessage = sqliteTable("DirectMessage", {
@@ -251,9 +251,9 @@ export const directMessage = sqliteTable("DirectMessage", {
 	conversationId: text().notNull(),
 	senderId: text().notNull(),
 	content: text().notNull(),
-	isRead: integer().default(false).notNull(),
-	deletedBySender: integer().default(false).notNull(),
-	deletedByReceiver: integer().default(false).notNull(),
+	isRead: integer({ mode: 'boolean' }).default(false).notNull(),
+	deletedBySender: integer({ mode: 'boolean' }).default(false).notNull(),
+	deletedByReceiver: integer({ mode: 'boolean' }).default(false).notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
 	mediaUrl: text(),
@@ -298,8 +298,8 @@ export const message = sqliteTable("Message", {
 	type: text().default("TEXT").notNull(),
 	senderId: text(),
 	roomId: text(),
-	read: integer().default(false).notNull(),
-	isInterrupted: integer().default(0).notNull(),
+	read: integer({ mode: 'boolean' }).default(false).notNull(),
+	isInterrupted: integer({ mode: 'boolean' }).default(false).notNull(),
 	interruptedAt: integer(),
 });
 
@@ -376,7 +376,7 @@ export const tweet = sqliteTable("Tweet", {
 	userId: text().notNull(),
 	content: text().notNull(),
 	parentId: text(),
-	isRetweet: integer().default(false).notNull(),
+	isRetweet: integer({ mode: 'boolean' }).default(false).notNull(),
 	originalTweetId: text(),
 	deletedAt: integer(),
 	locationName: text(),
@@ -422,7 +422,7 @@ export const fanPost = sqliteTable("FanPost", {
 	content: text().notNull(),
 	imageUrl: text(),
 	likes: integer().default(0).notNull(),
-	isApproved: integer().default(true).notNull(),
+	isApproved: integer({ mode: 'boolean' }).default(true).notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	updatedAt: integer().notNull(),
 });
@@ -437,11 +437,11 @@ export const tokenTransfer = sqliteTable("TokenTransfer", {
 	purpose: text().notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 },
-(table) => [
-	index("TokenTransfer_txHash_idx").on(table.txHash),
-	index("TokenTransfer_userId_idx").on(table.userId),
-	uniqueIndex("TokenTransfer_txHash_unique").on(table.txHash),
-]);
+	(table) => [
+		index("TokenTransfer_txHash_idx").on(table.txHash),
+		index("TokenTransfer_userId_idx").on(table.userId),
+		uniqueIndex("TokenTransfer_txHash_unique").on(table.txHash),
+	]);
 
 export const tokenConfig = sqliteTable("TokenConfig", {
 	id: text().primaryKey().notNull(),
@@ -449,12 +449,12 @@ export const tokenConfig = sqliteTable("TokenConfig", {
 	tokenSymbol: text().default("CHOCO").notNull(),
 	tokenName: text().default("CHOONSIM Token").notNull(),
 	decimals: integer().default(18).notNull(),
-	isEnabled: integer().default(true).notNull(),
+	isEnabled: integer({ mode: 'boolean' }).default(true).notNull(),
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 },
-(table) => [
-	uniqueIndex("TokenConfig_tokenContract_unique").on(table.tokenContract),
-]);
+	(table) => [
+		uniqueIndex("TokenConfig_tokenContract_unique").on(table.tokenContract),
+	]);
 
 export const x402Invoice = sqliteTable("X402Invoice", {
 	id: text().primaryKey().notNull(),
@@ -470,12 +470,12 @@ export const x402Invoice = sqliteTable("X402Invoice", {
 	createdAt: integer().default(sql`(unixepoch())`).notNull(),
 	paidAt: integer(),
 },
-(table) => [
-	index("X402Invoice_userId_status_idx").on(table.userId, table.status),
-	index("X402Invoice_token_idx").on(table.token),
-	uniqueIndex("X402Invoice_txHash_unique").on(table.txHash),
-	uniqueIndex("X402Invoice_token_unique").on(table.token),
-]);
+	(table) => [
+		index("X402Invoice_userId_status_idx").on(table.userId, table.status),
+		index("X402Invoice_token_idx").on(table.token),
+		uniqueIndex("X402Invoice_txHash_unique").on(table.txHash),
+		uniqueIndex("X402Invoice_token_unique").on(table.token),
+	]);
 
 export const relayerLog = sqliteTable("RelayerLog", {
 	id: text().primaryKey(),
@@ -486,8 +486,8 @@ export const relayerLog = sqliteTable("RelayerLog", {
 	status: text().default("SUCCESS").notNull(),
 	createdAt: integer().notNull(),
 },
-(table) => [
-	index("RelayerLog_requestIp_createdAt_idx").on(table.requestIp, table.createdAt),
-	index("RelayerLog_userId_createdAt_idx").on(table.userId, table.createdAt),
-]);
+	(table) => [
+		index("RelayerLog_requestIp_createdAt_idx").on(table.requestIp, table.createdAt),
+		index("RelayerLog_userId_createdAt_idx").on(table.userId, table.createdAt),
+	]);
 

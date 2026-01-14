@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { getRelayerBalance } from "~/lib/near/relayer.server";
-import { getNearConnection } from "~/lib/near/client.server";
+
 import { getNearPriceUSD } from "~/lib/near/exchange-rate.server";
 import { logger } from "~/lib/logger.server";
 import { db } from "~/lib/db.server";
@@ -15,7 +15,7 @@ import { eq, sql, desc } from "drizzle-orm";
  */
 export async function loader({ request }: LoaderFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
-    
+
     if (!session || !session.user) {
         return Response.json({ error: "Unauthorized" }, { status: 401 });
     }

@@ -24,7 +24,7 @@ async function main() {
 
     // 2. Setup KeyStore & Connection
     const keyStore = new keyStores.InMemoryKeyStore();
-    const keyPair = KeyPair.fromString(adminPrivateKey);
+    const keyPair = KeyPair.fromString(adminPrivateKey as any);
     await keyStore.setKey(networkId, adminAccountId, keyPair);
 
     const config = {

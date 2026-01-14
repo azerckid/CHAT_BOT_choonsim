@@ -11,7 +11,7 @@ export async function getNearConnection() {
 
     // 서비스 계정 키 자동 로드 (존재할 경우)
     if (process.env.NEAR_SERVICE_ACCOUNT_ID && process.env.NEAR_SERVICE_PRIVATE_KEY) {
-        const keyPair = KeyPair.fromString(process.env.NEAR_SERVICE_PRIVATE_KEY);
+        const keyPair = KeyPair.fromString(process.env.NEAR_SERVICE_PRIVATE_KEY as any);
         await keyStore.setKey(networkId, process.env.NEAR_SERVICE_ACCOUNT_ID, keyPair);
     }
 
