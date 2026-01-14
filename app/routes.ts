@@ -101,6 +101,7 @@ export default [
   route("admin/content/missions/:id", "routes/admin/missions/edit.tsx", { id: "admin-mission-edit" }),
   route("admin/system", "routes/admin/system.tsx"),
   route("api/admin/monitoring/near", "routes/api/admin/monitoring/near.ts"),
+  route("api/admin/monitoring/test-deposit", "routes/api/admin/monitoring/test-deposit.ts"),
   route("admin/*", "routes/admin/$.tsx"),
 
 ] satisfies RouteConfig;
