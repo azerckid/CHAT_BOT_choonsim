@@ -23,6 +23,7 @@ interface ChatHeaderProps {
   statusOpacity?: number;
   chocoBalance?: string; // 추가: CHOCO 토큰 잔액
   chocoChange?: number;  // 추가: CHOCO 변동량
+  isOptimisticDeducting?: boolean; // 추가: 낙관적 차감 중 여부
 }
 
 import {
@@ -46,6 +47,7 @@ export function ChatHeader({
   statusOpacity = 1,
   chocoBalance,
   chocoChange,
+  isOptimisticDeducting,
 }: ChatHeaderProps) {
   const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
 
@@ -92,6 +94,7 @@ export function ChatHeader({
                   <RollingCounter
                     value={Number(chocoBalance)}
                     className="text-xs font-bold text-slate-700 dark:text-slate-200 mr-1"
+                    duration={isOptimisticDeducting ? 0 : 500}
                   />
                   <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">CHOCO</span>
                   {chocoChange !== undefined && chocoChange !== 0 && (
@@ -125,6 +128,7 @@ export function ChatHeader({
                           <RollingCounter
                             value={Number(chocoBalance)}
                             className="text-2xl font-bold text-slate-900 dark:text-white"
+                            duration={isOptimisticDeducting ? 0 : 500}
                           />
                           {chocoChange !== undefined && chocoChange !== 0 && (
                             <BalanceChangeIndicator amount={chocoChange} />

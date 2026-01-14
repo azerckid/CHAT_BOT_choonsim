@@ -176,16 +176,20 @@ export function PaymentSheet({
                                         {walletConnected && accountId ? (
                                             <span className="truncate">{accountId}</span>
                                         ) : (
-                                            <span>NEAR 지갑 연결 필요</span>
+                                            <span className="text-pink-400 font-bold animate-pulse">NEAR 지갑을 연결해 주세요</span>
                                         )}
                                     </span>
                                 </div>
                                 {walletConnected && accountId && (
                                     <div className="info-row">
-                                        <span className="label">CHOCO 잔액</span>
-                                        <span className="value">{balance} CHOCO</span>
+                                        <span className="label">내 지갑 잔고</span>
+                                        <span className="value font-bold text-success">{balance} CHOCO</span>
                                     </div>
                                 )}
+                                <div className="info-row">
+                                    <span className="label">충전 예정 금액</span>
+                                    <span className="value font-bold text-pink-500">+{invoice.amount} CHOCO</span>
+                                </div>
                                 <div className="info-row">
                                     <span className="label">수신처</span>
                                     <span className="value truncate">{invoice.recipient}</span>
@@ -194,7 +198,14 @@ export function PaymentSheet({
 
                             {error && (
                                 <div className="error-message">
-                                    {error}
+                                    <p className="font-bold mb-1">문제가 발생했나요?</p>
+                                    <p className="text-xs mb-3 opacity-80">{error}</p>
+                                    <button
+                                        onClick={() => window.location.href = "/profile/subscription"}
+                                        className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold transition-colors"
+                                    >
+                                        다른 결제 수단으로 충전하기 (PayPal/Toss)
+                                    </button>
                                 </div>
                             )}
 
@@ -204,14 +215,24 @@ export function PaymentSheet({
                             </div>
 
                             {!walletConnected ? (
-                                <button
-                                    className={`pay-button ${isProcessing ? 'loading' : ''}`}
-                                    onClick={handleConnectWallet}
-                                    disabled={isProcessing}
-                                >
-                                    {isProcessing ? '지갑 연결 중...' : '지갑 연결하기'}
-                                    {!isProcessing && <ArrowRight size={18} />}
-                                </button>
+                                <div className="button-group-vertical">
+                                    <button
+                                        className={`pay-button ${isProcessing ? 'loading' : ''}`}
+                                        onClick={handleConnectWallet}
+                                        disabled={isProcessing}
+                                    >
+                                        {isProcessing ? '지갑 연결 중...' : 'NEAR 지갑 연결하기'}
+                                        {!isProcessing && <ArrowRight size={18} />}
+                                    </button>
+                                    {!isProcessing && (
+                                        <button
+                                            className="secondary-action-button"
+                                            onClick={() => window.location.href = "/profile/subscription"}
+                                        >
+                                            일반 결제(카드/페이)로 충전할래요
+                                        </button>
+                                    )}
+                                </div>
                             ) : (
                                 <button
                                     className={`pay-button ${isProcessing ? 'loading' : ''}`}
@@ -413,12 +434,43 @@ export function PaymentSheet({
                     background: rgba(239, 68, 68, 0.1);
                     border: 1px solid rgba(239, 68, 68, 0.3);
                     border-radius: 12px;
-                    padding: 12px;
-                    margin-bottom: 16px;
+                    padding: 16px;
+                    margin-bottom: 20px;
                     color: #fca5a5;
                     font-size: 14px;
                     text-align: center;
                 }
+
+                .button-group-vertical {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .secondary-action-button {
+                    width: 100%;
+                    padding: 12px;
+                    background: transparent;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 12px;
+                    color: rgba(255, 255, 255, 0.6);
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .secondary-action-button:hover {
+                    background: rgba(255, 255, 255, 0.05);
+                    color: white;
+                    border-color: rgba(255, 255, 255, 0.2);
+                }
+
+                .mb-1 { margin-bottom: 4px; }
+                .mb-3 { margin-bottom: 12px; }
+                .opacity-80 { opacity: 0.8; }
+                .font-bold { font-weight: 700; }
+                .text-xs { font-size: 12px; }
             ` }} />
         </div>
     );

@@ -58,7 +58,7 @@ export async function action({ request }: ActionFunctionArgs) {
     ]);
 
     // **X402 결제 체크** (새 정책: $1 = 1,000 CHOCO)
-    const MIN_REQUIRED_CHOCO = 20; // 최소 필요 CHOCO (채팅 약 2회 분량)
+    const MIN_REQUIRED_CHOCO = 10; // 최소 필요 CHOCO (채팅 약 1회 분량)
     const currentChocoBalance = currentUser?.chocoBalance ? parseFloat(currentUser.chocoBalance) : 0;
     if (!currentUser || currentChocoBalance < MIN_REQUIRED_CHOCO) {
         // 1. 인보이스 생성 ($0.1 = 100 CHOCO, 채팅 약 10회 분량)

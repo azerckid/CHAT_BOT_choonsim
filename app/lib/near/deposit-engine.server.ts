@@ -36,6 +36,7 @@ export async function runDepositMonitoring() {
             const currentBalance = (state.amount !== undefined ? state.amount : state.balance?.total).toString(); // BigInt or string
             const lastBalance = user.nearLastBalance || "0";
 
+            // 새로운 입금 감지
             if (new BigNumber(currentBalance).gt(new BigNumber(lastBalance))) {
                 const depositAmountYocto = new BigNumber(currentBalance).minus(new BigNumber(lastBalance));
 
@@ -51,11 +52,13 @@ export async function runDepositMonitoring() {
                     metadata: { userId: user.id, nearAccountId: user.nearAccountId, amount: depositNear }
                 });
 
-                // 2. 환전 및 스윕 처리
+                // 환전 및 스윕 처리
                 await processExchangeAndSweep(user, depositNear, depositAmountYocto.toString(), currentBalance);
-            } else if (new BigNumber(currentBalance).lt(new BigNumber(lastBalance))) {
-                // 잔액이 줄어든 경우 (외부에서 출금했거나 우리가 스윕한 경우)
-                // 단순히 마지막 잔액 동기화
+            }
+
+            // 잔액이 lastBalance보다 낮지만 여전히 회수할 NEAR가 남아있는 경우 (과거 스윕 실패 등)
+            // 또는 잔액이 줄어든 경우 동기화
+            if (new BigNumber(currentBalance).lt(new BigNumber(lastBalance))) {
                 await db.update(userTable).set({
                     nearLastBalance: currentBalance
                 }).where(eq(userTable.id, user.id));
@@ -69,15 +72,49 @@ export async function runDepositMonitoring() {
             });
         }
     }
+
+    // 2. 실패한 스윕 재시도 로직 (ExchangeLog 테이블 기준)
+    try {
+        const failedLogs = await db.select().from(exchangeLogTable).where(
+            and(
+                eq(exchangeLogTable.fromChain, "NEAR"),
+                sql`${exchangeLogTable.status} IN ('FAILED', 'PENDING_SWEEP')`
+            )
+        );
+
+        if (failedLogs.length > 0) {
+            logger.info({
+                category: "SYSTEM",
+                message: `Found ${failedLogs.length} failed or pending sweeps. Retrying...`
+            });
+
+            for (const log of failedLogs) {
+                const currentUser = users.find(u => u.id === log.userId);
+                if (currentUser && currentUser.nearAccountId) {
+                    const account = await near.account(currentUser.nearAccountId);
+                    const state = await account.getState() as any;
+                    const balance = (state.amount || "0").toString();
+
+                    await executeSweep(currentUser, balance, log.id);
+                }
+            }
+        }
+    } catch (retryError) {
+        logger.error({
+            category: "SYSTEM",
+            message: "Error during sweep retry process",
+            stackTrace: (retryError as Error).stack
+        });
+    }
 }
 
 async function processExchangeAndSweep(user: any, nearAmount: string, nearAmountYocto: string, currentTotalBalance: string) {
     // 1. 시세 조회 (CoinGecko API 연동 또는 고정비율)
     const { getNearPriceUSD, calculateChocoFromNear } = await import("./exchange-rate.server");
-    
+
     let rate: number;
     let chocoAmount: BigNumber;
-    
+
     try {
         // CoinGecko API를 통해 NEAR 가격 조회
         const nearPriceUSD = await getNearPriceUSD();
@@ -85,7 +122,7 @@ async function processExchangeAndSweep(user: any, nearAmount: string, nearAmount
         rate = 5000; // MVP: 고정비율
         const chocoAmountStr = await calculateChocoFromNear(nearAmount);
         chocoAmount = new BigNumber(chocoAmountStr);
-        
+
         logger.info({
             category: "PAYMENT",
             message: `Exchange rate: 1 NEAR = ${rate} CHOCO (NEAR Price: $${nearPriceUSD})`,
@@ -101,7 +138,7 @@ async function processExchangeAndSweep(user: any, nearAmount: string, nearAmount
             stackTrace: (error as Error).stack
         });
     }
-    
+
     const chocoAmountRaw = chocoAmount.multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
     const exchangeId = uuidv4();
@@ -174,7 +211,9 @@ async function processExchangeAndSweep(user: any, nearAmount: string, nearAmount
 }
 
 async function executeSweep(user: any, balanceToSweep: string, exchangeLogId: string) {
-    const treasuryAccountId = process.env.NEAR_TREASURY_ACCOUNT_ID || "rogulus.testnet";
+    const treasuryAccountId = process.env.NEAR_TREASURY_ACCOUNT_ID ||
+        (process.env as any).NEAR_TREASURTY_ACCOUNT_ID ||
+        "rogulus.testnet";
 
     try {
         if (!user.nearPrivateKey) {
@@ -182,47 +221,71 @@ async function executeSweep(user: any, balanceToSweep: string, exchangeLogId: st
         }
 
         const near = await getNearConnection();
+        const networkId = process.env.NEAR_NETWORK_ID || "testnet";
         const privateKey = decrypt(user.nearPrivateKey);
         const keyPair = KeyPair.fromString(privateKey as any);
 
-        // 유저 계정으로 연결된 KeyStore 설정 없이 수동 서명 방식 사용
-        near.connection.signer.keyStore.setKey("testnet", user.nearAccountId, keyPair);
+        // Signer의 KeyStore에 키 등록 (networkId 일관성 유지)
+        const { signer } = near.connection;
+        if ((signer as any).keyStore) {
+            await (signer as any).keyStore.setKey(networkId, user.nearAccountId, keyPair);
+        }
 
         const account = await near.account(user.nearAccountId);
 
-        // 가스비를 제외한 전체 잔액 전송 (약 0.01 NEAR 남김)
-        const safetyMargin = new BigNumber(utils.format.parseNearAmount("0.01")!);
-        const sweepAmount = new BigNumber(balanceToSweep).minus(safetyMargin);
+        // 중요: 환전(CHOCO 전송) 과정에서 스토리지 예치금 등이 발생했을 수 있으므로 
+        // 전송 직전의 실제 잔액을 다시 확인합니다.
+        const state = await account.getState() as any;
+
+        // near-api-js 버전에 따라 state.amount(string) 또는 state.balance.available(BigInt) 형태로 반환됩니다.
+        let actualAvailableBalance: string;
+        if (state.amount) {
+            actualAvailableBalance = state.amount.toString();
+        } else if (state.balance && state.balance.available) {
+            actualAvailableBalance = state.balance.available.toString();
+        } else {
+            actualAvailableBalance = "0";
+        }
+
+        // 가스비와 스토리지 예약분을 고려하여 여유있게 0.02 NEAR를 남기고 회수합니다.
+        const safetyMargin = new BigNumber(utils.format.parseNearAmount("0.02")!);
+        const sweepAmount = new BigNumber(actualAvailableBalance).minus(safetyMargin);
 
         if (sweepAmount.lte(0)) {
             logger.info({
                 category: "PAYMENT",
-                message: `Balance too low for sweep for ${user.nearAccountId}`,
-                metadata: { userId: user.id, nearAccountId: user.nearAccountId }
+                message: `Available balance too low for sweep for ${user.nearAccountId}`,
+                metadata: { userId: user.id, nearAccountId: user.nearAccountId, actualBalance: actualAvailableBalance }
             });
             return;
         }
 
         const sweepAmountRaw = sweepAmount.toFixed(0);
         const sweepAmountFormatted = utils.format.formatNearAmount(sweepAmountRaw);
+
         logger.info({
             category: "PAYMENT",
-            message: `Sweeping ${sweepAmountFormatted} NEAR to treasury`,
-            metadata: { userId: user.id, nearAccountId: user.nearAccountId, treasuryAccountId, amount: sweepAmountFormatted }
+            message: `Sweeping ${sweepAmountFormatted} NEAR to treasury (${treasuryAccountId})`,
+            metadata: {
+                userId: user.id,
+                nearAccountId: user.nearAccountId,
+                treasuryAccountId,
+                amount: sweepAmountFormatted
+            }
         });
 
         const result = await account.sendMoney(treasuryAccountId, sweepAmountRaw as any);
 
-        // 로그 업데이트
+        // 로그 및 상태 업데이트
         await db.update(exchangeLogTable).set({
             sweepTxHash: result.transaction.hash,
             status: "COMPLETED"
         }).where(eq(exchangeLogTable.id, exchangeLogId));
 
-        // 유저의 캐시된 잔액 업데이트 (스윕 후 남은 양)
-        const finalState = await account.getState() as any;
+        // 유저의 캐시된 잔액 업데이트 (스윕 후 최종 남은 양)
+        const postSweepState = await account.getState() as any;
         await db.update(userTable).set({
-            nearLastBalance: finalState.amount
+            nearLastBalance: (postSweepState.amount || "0").toString()
         }).where(eq(userTable.id, user.id));
 
         logger.audit({
@@ -237,13 +300,28 @@ async function executeSweep(user: any, balanceToSweep: string, exchangeLogId: st
             }
         });
 
-    } catch (error) {
-        logger.error({
-            category: "PAYMENT",
-            message: `Sweep failed for user ${user.id}`,
-            stackTrace: (error as Error).stack,
-            metadata: { userId: user.id, nearAccountId: user.nearAccountId, exchangeLogId }
-        });
+    } catch (error: any) {
+        let errorMessage = (error as Error).message || String(error);
+        const isKeyMismatch = errorMessage.includes("AccessKeyDoesNotExist") ||
+            errorMessage.includes("invalid signature") ||
+            errorMessage.includes("public key");
+
+        if (isKeyMismatch) {
+            logger.error({
+                category: "PAYMENT",
+                message: `CRITICAL: NEAR Key Mismatch for ${user.nearAccountId}. Automated sweep impossible.`,
+                metadata: { userId: user.id, nearAccountId: user.nearAccountId, error: errorMessage }
+            });
+        } else {
+            logger.error({
+                category: "PAYMENT",
+                message: `Sweep failed for user ${user.id}`,
+                stackTrace: (error as Error).stack,
+                metadata: { userId: user.id, nearAccountId: user.nearAccountId, exchangeLogId }
+            });
+        }
+
+        // 실패 시 로그 상태 업데이트
         await db.update(exchangeLogTable).set({
             status: "FAILED"
         }).where(eq(exchangeLogTable.id, exchangeLogId));

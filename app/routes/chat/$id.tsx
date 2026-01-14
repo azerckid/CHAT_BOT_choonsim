@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useLoaderData, useFetcher } from "react-router";
+import { useParams, useNavigate, useLoaderData, useFetcher, useRevalidator } from "react-router";
 import { ChatHeader } from "~/components/chat/ChatHeader";
 import { MessageBubble } from "~/components/chat/MessageBubble";
 import { MessageInput } from "~/components/chat/MessageInput";
@@ -181,6 +181,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export default function ChatRoom() {
   const { messages: initialMessages, user, conversation, characterStat, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any, characterStat: any, paypalClientId: string, tossClientKey: string };
   const fetcher = useFetcher();
+  const revalidator = useRevalidator();
   const navigate = useNavigate();
 
   const conversationId = conversation?.id || useParams().id;
@@ -209,18 +210,31 @@ export default function ChatRoom() {
   // Hearts state
   const [currentUserHearts, setCurrentUserHearts] = useState(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
   const [currentUserChocoBalance, setCurrentUserChocoBalance] = useState(user?.chocoBalance ? parseFloat(user.chocoBalance) : 0);
-  
+
   // 잔액 변동량 추적 (시각적 피드백용)
   const [chocoChange, setChocoChange] = useState<number | undefined>(undefined);
   const [lastOptimisticDeduction, setLastOptimisticDeduction] = useState<number>(0); // 마지막 낙관적 차감량
+  const lastOptimisticDeductionRef = useRef(0);
+  const optimisticIntervalRef = useRef<any>(null);
+
+  // Sync ref with state for async access
+  useEffect(() => {
+    lastOptimisticDeductionRef.current = lastOptimisticDeduction;
+  }, [lastOptimisticDeduction]);
 
   // Re-sync states when loader data updates
   useEffect(() => {
     setCurrentUserHearts(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
-    setCurrentUserChocoBalance(user?.chocoBalance ? parseFloat(user.chocoBalance) : 0);
-    // loader 업데이트 시 변동량 초기화
-    setChocoChange(undefined);
-  }, [user]);
+
+    // AI 답변 중이거나 낙관적 차감이 진행 중, 또는 데이터 갱신 중일 때는 서버 데이터로 덮어쓰지 않음 (X402 안정화)
+    if (!isAiStreaming && lastOptimisticDeduction === 0 && revalidator.state === "idle") {
+      if (user?.chocoBalance !== undefined) {
+        setCurrentUserChocoBalance(parseFloat(user.chocoBalance));
+      }
+      // loader 업데이트 시 변동량 초기화 (최종 결과 반영 후)
+      setChocoChange(undefined);
+    }
+  }, [user, isAiStreaming, lastOptimisticDeduction, revalidator.state]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -296,9 +310,7 @@ export default function ChatRoom() {
   // Loader 데이터 변경 시 메시지 리스트 업데이트 및 낙관적 메시지 병합 로직
   useEffect(() => {
     setMessages(prev => {
-      // 서버에서 온 메시지 ID 목록
       const incomingIds = new Set(initialMessages.map(m => m.id));
-      // 아직 서버에 반영되지 않은(낙관적) 내 메시지만 필터링하여 유지
       const optimisticMessages = prev.filter(m => m.role === "user" && !incomingIds.has(m.id));
 
       const merged = [...initialMessages, ...optimisticMessages].sort(
@@ -308,10 +320,7 @@ export default function ChatRoom() {
     });
 
     setIsOptimisticTyping(false);
-    if (user?.chocoBalance !== undefined) {
-      setCurrentUserChocoBalance(parseFloat(user.chocoBalance));
-    }
-  }, [initialMessages, user]);
+  }, [initialMessages]);
 
   useEffect(() => {
     return () => {
@@ -346,6 +355,12 @@ export default function ChatRoom() {
         abortControllerRef.current.abort();
       }
 
+      // 낙관적 차감 인터벌 정리
+      if (optimisticIntervalRef.current) {
+        clearInterval(optimisticIntervalRef.current);
+        optimisticIntervalRef.current = null;
+      }
+
       // 현재까지의 내용을 저장 및 목록에 추가
       if (streamingContent.trim()) {
         const interruptedContent = streamingContent.endsWith("...") ? streamingContent : streamingContent + "...";
@@ -372,12 +387,33 @@ export default function ChatRoom() {
     }
 
     // 1. 사용자 메시지 낙관적 업데이트
-    // [Optimistic UI] 메시지 전송 즉시 예상 CHOCO 차감 (기본 10)
-    // 실제 차감은 나중에 서버 동기화 시 보정됨
-    const estimatedCost = 10;
-    setLastOptimisticDeduction(estimatedCost);
-    setCurrentUserChocoBalance((prev: number) => Math.max(0, prev - estimatedCost));
-    setChocoChange(-estimatedCost); // 변동량 표시
+    // [Optimistic UI] 메시지 전송 즉시 예상 CHOCO 차감 시작 (1초마다 1씩, 총 5 CHOCO 차감)
+    // 실제 소모량이 약 3~4이므로, 넉넉하게 5초간 줄어들게 하여 '사용 중'임을 표현
+    const totalEstimatedCost = 5;
+
+    // 기존 인터벌이 있다면 정리
+    if (optimisticIntervalRef.current) {
+      clearInterval(optimisticIntervalRef.current);
+    }
+
+    let currentDeducted = 0;
+    setLastOptimisticDeduction(0.001); // 0이 아니게 설정하여 useEffect 동기화 방지
+
+    optimisticIntervalRef.current = setInterval(() => {
+      if (currentDeducted < totalEstimatedCost) {
+        currentDeducted += 1;
+        lastOptimisticDeductionRef.current = currentDeducted; // Ref 즉시 업데이트 (비동기 대응)
+        setLastOptimisticDeduction(currentDeducted);
+        setCurrentUserChocoBalance((prev: number) => Math.max(0, prev - 1));
+      } else {
+        if (optimisticIntervalRef.current) {
+          clearInterval(optimisticIntervalRef.current);
+          optimisticIntervalRef.current = null;
+        }
+      }
+    }, 1000); // 1초 간격으로 -1씩 차감
+    // 사용자가 입력할 때 즉시 빨간색 배지를 띄우지 않고 자연스럽게 잔액만 차감 (UX 개선)
+    // setChocoChange(-estimatedCost); 
 
     const userMsgId = crypto.randomUUID();
     const newUserMsg: Message = {
@@ -413,6 +449,12 @@ export default function ChatRoom() {
 
     try {
       if (abortControllerRef.current) abortControllerRef.current.abort();
+
+      // 최신 낙관적 차감 인터벌 정리
+      if (optimisticIntervalRef.current) {
+        clearInterval(optimisticIntervalRef.current);
+        optimisticIntervalRef.current = null;
+      }
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
@@ -485,32 +527,39 @@ export default function ChatRoom() {
                 if (data.done) {
                   // 모든 스트리밍 완료
                   setIsAiStreaming(false);
-                  
+
+                  // 낙관적 차감 인터벌 즉시 종료 및 최종 보정
+                  if (optimisticIntervalRef.current) {
+                    clearInterval(optimisticIntervalRef.current);
+                    optimisticIntervalRef.current = null;
+                  }
+
                   // 실제 토큰 사용량으로 잔액 조정
                   if (data.usage && data.usage.totalTokens) {
-                    const actualCost = data.usage.totalTokens;
-                    const adjustment = lastOptimisticDeduction - actualCost; // 차이 계산
-                    
+                    const actualCost = Math.ceil(data.usage.totalTokens / 100);
+                    const adjustment = lastOptimisticDeductionRef.current - actualCost;
+
                     // 실제 비용으로 조정 (예상 비용과의 차이만큼 보정)
-                    if (adjustment !== 0) {
-                      setCurrentUserChocoBalance((prev: number) => Math.max(0, prev + adjustment));
-                    }
-                    
+                    setCurrentUserChocoBalance((prev: number) => Math.max(0, prev + adjustment));
+
                     // 변동량 업데이트 (실제 차감량)
                     setChocoChange(-actualCost);
-                    
+
                     // 2초 후 변동량 표시 제거
                     setTimeout(() => {
                       setChocoChange(undefined);
                     }, 2000);
-                    
+
                     setLastOptimisticDeduction(0); // 초기화
+                    // 스트리밍이 끝나면 서버 데이터와 동기화 시도
+                    revalidator.revalidate();
                   } else {
                     // 토큰 사용량 정보가 없으면 예상 비용으로 변동량 표시 유지
                     // 2초 후 변동량 표시 제거
                     setTimeout(() => {
                       setChocoChange(undefined);
                       setLastOptimisticDeduction(0);
+                      revalidator.revalidate();
                     }, 2000);
                   }
                 }
@@ -530,12 +579,18 @@ export default function ChatRoom() {
       toast.error("답변을 가져오는 중 오류가 발생했습니다.");
       setIsAiStreaming(false);
       setIsOptimisticTyping(false);
-      
-      // 에러 발생 시 낙관적 차감 롤백
-      if (lastOptimisticDeduction > 0) {
-        setCurrentUserChocoBalance((prev: number) => prev + lastOptimisticDeduction);
+
+      // 에러 발생 시 낙관적 차감 인터벌 정리 및 롤백
+      if (optimisticIntervalRef.current) {
+        clearInterval(optimisticIntervalRef.current);
+        optimisticIntervalRef.current = null;
+      }
+
+      if (lastOptimisticDeductionRef.current > 0) {
+        setCurrentUserChocoBalance((prev: number) => prev + lastOptimisticDeductionRef.current);
+        const rolledBackAmount = lastOptimisticDeductionRef.current;
         setLastOptimisticDeduction(0);
-        setChocoChange(lastOptimisticDeduction); // 롤백된 양을 표시
+        setChocoChange(rolledBackAmount); // 롤백된 양을 표시
         setTimeout(() => {
           setChocoChange(undefined);
         }, 2000);
@@ -653,8 +708,9 @@ export default function ChatRoom() {
         onBack={handleBack}
         onDeleteChat={() => setIsDeleteDialogOpen(true)}
         onResetChat={() => setIsResetDialogOpen(true)}
-        chocoBalance={currentUserChocoBalance.toString()}
+        chocoBalance={Math.floor(currentUserChocoBalance).toString()}
         chocoChange={chocoChange}
+        isOptimisticDeducting={lastOptimisticDeduction > 0} // 새로운 prop 전달
       />
 
       <main

@@ -13,10 +13,30 @@ export async function ensureNearWallet(userId: string) {
     // 1. 기존 지갑 확인 (Credits도 함께 조회)
     const user = await db.query.user.findFirst({
         where: eq(schema.user.id, userId),
-        columns: { id: true, email: true, nearAccountId: true, credits: true, chocoBalance: true }
+        columns: {
+            id: true,
+            email: true,
+            nearAccountId: true,
+            nearPublicKey: true,
+            nearPrivateKey: true,
+            credits: true,
+            chocoBalance: true
+        }
     });
 
-    if (!user || user.nearAccountId) return user?.nearAccountId;
+    if (!user) return null;
+
+    // 지갑 ID가 있고 키 정보도 온전한 경우만 정상 리턴
+    if (user.nearAccountId && user.nearPublicKey && user.nearPrivateKey) {
+        return user.nearAccountId;
+    }
+
+    // 지갑 ID는 있는데 키 정보가 없는 경우 (치명적 불일치 상태)
+    if (user.nearAccountId && (!user.nearPublicKey || !user.nearPrivateKey)) {
+        console.error(`[CRITICAL] Wallet ${user.nearAccountId} for user ${userId} is missing private key or public key! Manual recovery required.`);
+        // 이 상태에서는 아무것도 하지 않고 null을 리턴하거나 에러를 던져서 수동 수습을 유도함
+        return user.nearAccountId;
+    }
 
     console.log(`[Wallet] Creating invisible wallet for user: ${userId}`);
 

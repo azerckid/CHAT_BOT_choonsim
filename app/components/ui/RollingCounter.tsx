@@ -26,8 +26,15 @@ export function RollingCounter({
         if (value === displayValue) return;
 
         setChangeType(value > displayValue ? "increase" : "decrease");
-        setIsAnimating(true);
 
+        if (duration === 0) {
+            setDisplayValue(value);
+            // 짧은 시간 뒤에 색상 복귀
+            const timer = setTimeout(() => setChangeType("none"), 300);
+            return () => clearTimeout(timer);
+        }
+
+        setIsAnimating(true);
         const startValue = displayValue;
         const endValue = value;
         const startTime = Date.now();
@@ -56,8 +63,9 @@ export function RollingCounter({
             }
         };
 
-        requestAnimationFrame(animate);
-    }, [value]);
+        const animationId = requestAnimationFrame(animate);
+        return () => cancelAnimationFrame(animationId);
+    }, [value, duration]);
 
     return (
         <span

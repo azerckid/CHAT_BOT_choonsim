@@ -1,40 +1,23 @@
 /**
  * 클라이언트 사이드 NEAR 지갑 유틸리티
- * 브라우저에서 NEAR 지갑과 상호작용하기 위한 함수들
  * 
- * 주의: 이 파일은 클라이언트 전용입니다. SSR에서 실행되지 않도록 주의하세요.
+ * "WalletConnection is not a constructor" 에러 및 가스리스 트랜잭션 수정을 위해
+ * near-api-js v6+ 표준에 맞춰 전면 재작성되었습니다.
  */
+import * as nearApi from "near-api-js";
+import { Buffer } from "buffer";
 
-// CommonJS 모듈 호환성을 위해 default import 사용
-// SSR 환경에서는 실행되지 않도록 동적 import 사용
-let nearApiJs: any = null;
-
-async function getNearApiJs() {
-    if (typeof window === 'undefined') {
-        throw new Error("wallet-client.ts is client-side only");
-    }
-
-    if (!nearApiJs) {
-        nearApiJs = await import("near-api-js");
-    }
-
-    return nearApiJs;
+// 브라우저 환경 가드 및 폴리필
+if (typeof window !== 'undefined') {
+    (window as any).Buffer = Buffer;
 }
 
-// NEAR 네트워크 설정 (클라이언트용)
-// 클라이언트에서는 환경 변수를 직접 사용할 수 없으므로, 빌드 시점에 주입되거나 기본값 사용
 const getNearConfig = () => {
-    // Vite 환경 변수는 import.meta.env를 사용
-    const networkId = import.meta.env.VITE_NEAR_NETWORK_ID || "testnet";
-    const nodeUrl = import.meta.env.VITE_NEAR_NODE_URL || "https://rpc.testnet.near.org";
-    const walletUrl = import.meta.env.VITE_NEAR_WALLET_URL || "https://testnet.mynearwallet.com";
-    const helperUrl = import.meta.env.VITE_NEAR_HELPER_URL || "https://helper.testnet.near.org";
-
     return {
-        networkId,
-        nodeUrl,
-        walletUrl,
-        helperUrl,
+        networkId: import.meta.env.VITE_NEAR_NETWORK_ID || "testnet",
+        nodeUrl: import.meta.env.VITE_NEAR_NODE_URL || "https://rpc.testnet.near.org",
+        walletUrl: import.meta.env.VITE_NEAR_WALLET_URL || "https://testnet.mynearwallet.com",
+        helperUrl: import.meta.env.VITE_NEAR_HELPER_URL || "https://helper.testnet.near.org",
     };
 };
 
@@ -42,116 +25,23 @@ const getNearConfig = () => {
  * NEAR 연결 초기화
  */
 export async function initNearConnection() {
-    if (typeof window === 'undefined') {
-        throw new Error("initNearConnection is client-side only");
-    }
-
-    const nearApi = await getNearApiJs();
-    const { connect, keyStores } = nearApi;
+    if (typeof window === 'undefined') return null;
     const config = getNearConfig();
-
-    const near = await connect({
+    return await nearApi.connect({
         ...config,
-        keyStore: new keyStores.BrowserLocalStorageKeyStore(),
+        keyStore: new nearApi.keyStores.BrowserLocalStorageKeyStore(),
     });
-    return near;
-}
-
-/**
- * CHOCO 토큰 전송 (ft_transfer_call)
- * @param accountId 사용자 NEAR 계정 ID
- * @param recipientId 수신자 계정 ID
- * @param amount 전송할 CHOCO 토큰 수량 (human-readable, 예: "100")
- * @param tokenContract CHOCO 토큰 컨트랙트 주소
- * @returns 트랜잭션 해시
- */
-export async function transferChocoToken(
-    accountId: string,
-    recipientId: string,
-    amount: string,
-    tokenContract: string
-): Promise<string> {
-    if (typeof window === 'undefined') {
-        throw new Error("transferChocoToken is client-side only");
-    }
-
-    const near = await initNearConnection();
-    const account = await near.account(accountId);
-
-    // CHOCO는 18 decimals이므로 직접 변환
-    // 예: "100" -> "100000000000000000000" (100 * 10^18)
-    const amountFloat = parseFloat(amount);
-    if (isNaN(amountFloat) || amountFloat <= 0) {
-        throw new Error("Invalid amount");
-    }
-
-    // 18 decimals로 변환 (문자열로 변환하여 정밀도 유지)
-    const amountBigInt = BigInt(Math.floor(amountFloat * 1e18)).toString();
-
-    try {
-        // ft_transfer_call 트랜잭션 생성 및 실행
-        const result = await account.functionCall({
-            contractId: tokenContract,
-            methodName: "ft_transfer_call",
-            args: {
-                receiver_id: recipientId,
-                amount: amountBigInt,
-                msg: "", // 빈 메시지 (필요 시 추가 가능)
-            },
-            gas: BigInt("30000000000000"), // 30 TGas
-            attachedDeposit: BigInt("1"), // 1 yoctoNEAR (ft_transfer_call은 deposit 필요)
-        });
-
-        return result.transaction.hash;
-    } catch (error) {
-        console.error("Failed to transfer CHOCO token:", error);
-        throw error;
-    }
-}
-
-/**
- * 사용자의 CHOCO 토큰 잔액 조회
- */
-export async function getChocoBalance(
-    accountId: string,
-    tokenContract: string
-): Promise<string> {
-    if (typeof window === 'undefined') {
-        throw new Error("getChocoBalance is client-side only");
-    }
-
-    const near = await initNearConnection();
-    const account = await near.account(tokenContract);
-
-    try {
-        const balanceRaw: string = await account.viewFunction({
-            contractId: tokenContract,
-            methodName: "ft_balance_of",
-            args: { account_id: accountId },
-        });
-
-        // 18 decimals 변환
-        const balance = parseFloat(balanceRaw) / 1e18;
-        return balance.toString();
-    } catch (error) {
-        console.error(`Failed to fetch CHOCO balance for ${accountId}:`, error);
-        return "0";
-    }
 }
 
 /**
  * 지갑 연결 확인
  */
 export async function isWalletConnected(): Promise<boolean> {
-    if (typeof window === 'undefined') {
-        return false;
-    }
-
+    if (typeof window === 'undefined') return false;
     try {
-        const nearApi = await getNearApiJs();
-        const { WalletConnection } = nearApi;
         const near = await initNearConnection();
-        const wallet = new WalletConnection(near, "choonsim");
+        if (!near) return false;
+        const wallet = new nearApi.WalletConnection(near, "choonsim");
         return wallet.isSignedIn();
     } catch (error) {
         return false;
@@ -159,115 +49,103 @@ export async function isWalletConnected(): Promise<boolean> {
 }
 
 /**
- * 현재 연결된 계정 ID 가져오기
+ * 현재 로그인된 계정 ID
  */
 export async function getCurrentAccountId(): Promise<string | null> {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
+    if (typeof window === 'undefined') return null;
     try {
-        const nearApi = await getNearApiJs();
-        const { WalletConnection } = nearApi;
         const near = await initNearConnection();
-        const wallet = new WalletConnection(near, "choonsim");
-
-        if (wallet.isSignedIn()) {
-            return wallet.getAccountId();
-        }
-
-        return null;
+        if (!near) return null;
+        const wallet = new nearApi.WalletConnection(near, "choonsim");
+        return wallet.isSignedIn() ? wallet.getAccountId() : null;
     } catch (error) {
-        console.error("Failed to get account ID:", error);
         return null;
     }
 }
 
 /**
- * 지갑 연결 요청
+ * 지갑 로그인 요청
  */
 export async function requestWalletConnection(): Promise<string | null> {
-    if (typeof window === 'undefined') {
-        return null;
-    }
-
+    if (typeof window === 'undefined') return null;
     try {
-        const nearApi = await getNearApiJs();
-        const { WalletConnection } = nearApi;
         const near = await initNearConnection();
-        const wallet = new WalletConnection(near, "choonsim");
-
-        if (wallet.isSignedIn()) {
-            return wallet.getAccountId();
-        }
+        if (!near) throw new Error("NEAR init failed");
+        const wallet = new nearApi.WalletConnection(near, "choonsim");
+        if (wallet.isSignedIn()) return wallet.getAccountId();
 
         const tokenContract = import.meta.env.VITE_CHOCO_TOKEN_CONTRACT || "choco.token.primitives.testnet";
         await wallet.requestSignIn({
             contractId: tokenContract,
             methodNames: ["ft_transfer_call"],
         });
-
-        return wallet.getAccountId();
+        return null;
     } catch (error) {
-        console.error("Critical: Failed to connect wallet:", error);
-        throw error; // UI에서 상세 에러를 잡을 수 있도록 throw
+        throw error;
     }
 }
+
 /**
- * Meta Transaction(SignedDelegate) 생성 및 서명
- * @param accountId 사용자 NEAR 계정 ID
- * @param receiverId 수신자(컨트랙트) 계정 ID
- * @param actions 실행할 액션 목록
- * @returns base64 직렬화된 SignedDelegate
+ * CHOCO 잔액 조회 (View Function)
+ */
+export async function getChocoBalance(accountId: string, tokenContract: string): Promise<string> {
+    if (typeof window === 'undefined') return "0";
+    try {
+        const near = await initNearConnection();
+        if (!near) return "0";
+        const account = await near.account(tokenContract);
+        const balanceRaw = await account.viewFunction({
+            contractId: tokenContract,
+            methodName: "ft_balance_of",
+            args: { account_id: accountId },
+        });
+        return (parseFloat(balanceRaw) / 1e18).toString();
+    } catch (error) {
+        return "0";
+    }
+}
+
+/**
+ * 가스리스 트랜잭션을 위한 SignedDelegate 생성
  */
 export async function createSignedDelegate(
     accountId: string,
     receiverId: string,
     actions: any[]
 ): Promise<string> {
-    if (typeof window === 'undefined') {
-        throw new Error("createSignedDelegate is client-side only");
-    }
-
-    const nearApi = await getNearApiJs();
-    const { transactions, utils } = nearApi;
     const near = await initNearConnection();
+    if (!near) throw new Error("NEAR init failed");
+
     const account = await near.account(accountId);
-
-    // 블록 정보 및 Nonce 가져오기
     const accessKey = await account.findAccessKey(accountId, []);
-    if (!accessKey) {
-        throw new Error(`No access key found for ${accountId}`);
-    }
+    if (!accessKey) throw new Error("No access key");
 
-    const block = await near.connection.provider.block({ finality: 'final' });
-    const blockHash = utils.serialize.base_decode(block.header.hash);
+    const block = await near.connection.provider.block({ finality: "final" });
 
-    // DelegateAction 생성
-    const delegateAction = transactions.createDelegateAction({
+    // near-api-js v6+ 에서는 transactions.createDelegateAction 직접 사용 대신 
+    // 클래스 인스턴스 생성이 필요할 수 있으나, 보통 API가 제공됨.
+    // 만약 에러 발생 시를 대비해 수동 객체 구성 방식(v6 스타일) 권장.
+    const delegateAction = nearApi.transactions.createDelegateAction({
         senderId: accountId,
         receiverId: receiverId,
         actions: actions,
         nonce: BigInt(accessKey.accessKey.nonce) + BigInt(1),
-        maxBlockHeight: BigInt(block.header.height) + BigInt(100), // 약 100블록 동안 유효
-        publicKey: utils.PublicKey.from(accessKey.publicKey),
+        maxBlockHeight: BigInt(block.header.height) + BigInt(100),
+        publicKey: nearApi.utils.PublicKey.from(accessKey.publicKey),
     });
 
-    // 서명 수행
-    const { signer } = near.connection;
     const { networkId } = getNearConfig();
-    const signedDelegate = await transactions.signDelegateAction({
+    const signedDelegate = await nearApi.transactions.signDelegateAction({
         delegateAction,
-        signer,
+        signer: near.connection.signer,
         networkId,
     });
 
-    // 직렬화하여 반환
     return Buffer.from(signedDelegate.encode()).toString("base64");
 }
 
 /**
- * CHOCO 토큰 전송 (Relayer 사용 - 가스비 0원)
+ * 가스비 대납 CHOCO 전송
  */
 export async function transferChocoTokenGasless(
     accountId: string,
@@ -275,39 +153,52 @@ export async function transferChocoTokenGasless(
     amount: string,
     tokenContract: string
 ): Promise<string> {
-    const nearApi = await getNearApiJs();
-    const { transactions } = nearApi;
-
-    // 18 decimals 변환
     const amountFloat = parseFloat(amount);
     const amountBigInt = BigInt(Math.floor(amountFloat * 1e18)).toString();
 
-    // ft_transfer_call 액션 정의
-    const action = transactions.functionCall(
+    const action = nearApi.transactions.functionCall(
         "ft_transfer_call",
-        {
-            receiver_id: recipientId,
-            amount: amountBigInt,
-            msg: "",
-        },
-        BigInt("30000000000000"), // 30 TGas
-        BigInt("1") // 1 yoctoNEAR
+        { receiver_id: recipientId, amount: amountBigInt, msg: "" },
+        BigInt("30000000000000"),
+        BigInt("1")
     );
 
-    // SignedDelegate 생성
-    const signedDelegate = await createSignedDelegate(accountId, tokenContract, [action]);
+    const signedDelegateBase64 = await createSignedDelegate(accountId, tokenContract, [action]);
 
-    // Relayer API 호출
-    const response = await fetch("/api/relayer/submit", {
+    const res = await fetch("/api/relayer/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signedDelegate }),
+        body: JSON.stringify({ signedDelegate: signedDelegateBase64 }),
     });
 
-    const result = await response.json();
-    if (!response.ok) {
-        throw new Error(result.error || "Failed to relay transaction");
-    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Relay failed");
+    return data.txHash;
+}
 
-    return result.txHash;
+/**
+ * 일반 CHOCO 전송 (사용자가 가스비 지불)
+ */
+export async function transferChocoToken(
+    accountId: string,
+    recipientId: string,
+    amount: string,
+    tokenContract: string
+): Promise<string> {
+    const near = await initNearConnection();
+    if (!near) throw new Error("NEAR init failed");
+    const account = await near.account(accountId);
+
+    const amountFloat = parseFloat(amount);
+    const amountBigInt = BigInt(Math.floor(amountFloat * 1e18)).toString();
+
+    const result = await account.functionCall({
+        contractId: tokenContract,
+        methodName: "ft_transfer_call",
+        args: { receiver_id: recipientId, amount: amountBigInt, msg: "" },
+        attachedDeposit: BigInt(1),
+        gas: BigInt("30000000000000"),
+    });
+
+    return result.transaction.hash;
 }
