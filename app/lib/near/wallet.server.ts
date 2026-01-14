@@ -126,22 +126,56 @@ export async function ensureNearWallet(userId: string) {
         // 5. CHOCO 토큰 스토리지 예치
         await ensureStorageDeposit(newAccountId);
 
-        // 6. 개인키 암호화
-        const { encrypt } = await import("./key-encryption.server");
+        // [New Guard 1] 생성된 키 형식의 유효성 즉시 검증 (ed25519: 접두사 명시적 확인 포함)
+        if (!privateKey.startsWith("ed25519:")) {
+            throw new Error(`Generated private key is missing 'ed25519:' prefix. Security policy violation.`);
+        }
+        try {
+            KeyPair.fromString(privateKey as any);
+        } catch (formatError) {
+            throw new Error(`Generated private key format is invalid: ${formatError}`);
+        }
+
+        // [New Guard 2] 온체인 계정 및 권한(Access Key) 검증
+        const account = await near.account(newAccountId);
+        try {
+            const state = await account.getState();
+            if (!state) throw new Error("Account was not found on-chain immediately after creation.");
+
+            const accessKeys = await account.getAccessKeys();
+            const hasCorrectKey = accessKeys.some(k => k.public_key === publicKey);
+            if (!hasCorrectKey) {
+                throw new Error(`On-chain access key mismatch. Expected ${publicKey} to be registered.`);
+            }
+            console.log(`[Wallet] On-chain verification successful for ${newAccountId}`);
+        } catch (verifyError) {
+            console.error(`[Wallet] Post-creation on-chain verification failed:`, verifyError);
+            throw verifyError;
+        }
+
+        // 6. 개인키 암호화 및 무결성 검증
+        const { encrypt, decrypt } = await import("./key-encryption.server");
         const encryptedPrivateKey = encrypt(privateKey);
 
+        // [New Guard 3] 저장 전 복호화 라운드트립 테스트 (데이터 유실 방지)
+        const verifyDecrypted = decrypt(encryptedPrivateKey);
+        if (verifyDecrypted !== privateKey) {
+            throw new Error("Encryption integrity check failed. Private key mismatch after round-trip.");
+        }
+
         // 7. DB 업데이트 (지갑 정보 저장)
+        // 이 시점까지 모든 검증(형식, 온체인, 암호화)을 통과해야만 DB에 기록함
         await db.update(schema.user)
             .set({
                 nearAccountId: newAccountId,
                 nearPublicKey: publicKey,
                 nearPrivateKey: encryptedPrivateKey,
-                chocoBalance: "0", // 초기값, Credits 변환 후 업데이트됨
+                chocoBalance: "0",
                 updatedAt: new Date(),
             })
             .where(eq(schema.user.id, userId));
 
-        console.log(`[Wallet] Successfully created wallet: ${newAccountId}`);
+        console.log(`[Wallet] Successfully created and verified wallet: ${newAccountId}`);
 
         // 8. Credits → CHOCO 변환 (지갑 생성 후)
         if (user.credits && user.credits > 0) {

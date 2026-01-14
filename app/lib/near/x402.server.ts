@@ -143,5 +143,28 @@ export async function verifyX402Payment(token: string, txHash: string) {
             .where(eq(schema.user.id, invoice.userId));
     });
 
+    // 4. (보고서 권장사항) 온체인 잔액과 최종 동기화 (정합성 보장 가드레일)
+    try {
+        const user = await db.query.user.findFirst({
+            where: eq(schema.user.id, invoice.userId),
+            columns: { nearAccountId: true }
+        });
+
+        if (user?.nearAccountId) {
+            const { getChocoBalance } = await import("./token.server");
+            const onChainBalanceRaw = await getChocoBalance(user.nearAccountId);
+            const onChainBalanceBN = new BigNumber(onChainBalanceRaw).dividedBy(new BigNumber(10).pow(18));
+
+            await db.update(schema.user).set({
+                chocoBalance: onChainBalanceBN.toString(),
+                chocoLastSyncAt: new Date(),
+            }).where(eq(schema.user.id, invoice.userId));
+
+            console.log(`[X402] On-chain balance sync completed for ${user.nearAccountId}: ${onChainBalanceBN.toString()} CHOCO`);
+        }
+    } catch (syncError) {
+        console.error("[X402] Final balance sync failed, but payment was already processed:", syncError);
+    }
+
     return { success: true, chocoDeducted: chocoToDeduct };
 }

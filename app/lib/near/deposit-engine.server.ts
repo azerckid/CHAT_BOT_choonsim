@@ -78,7 +78,8 @@ export async function runDepositMonitoring() {
         const failedLogs = await db.select().from(exchangeLogTable).where(
             and(
                 eq(exchangeLogTable.fromChain, "NEAR"),
-                sql`${exchangeLogTable.status} IN ('FAILED', 'PENDING_SWEEP')`
+                // 네트워크 오류로 인한 실패나 아직 시도되지 않은 항목만 재시도
+                sql`${exchangeLogTable.status} IN ('FAILED_NETWORK_ERROR', 'PENDING_SWEEP', 'FAILED')`
             )
         );
 
@@ -247,16 +248,23 @@ async function executeSweep(user: any, balanceToSweep: string, exchangeLogId: st
             actualAvailableBalance = "0";
         }
 
-        // 가스비와 스토리지 예약분을 고려하여 여유있게 0.02 NEAR를 남기고 회수합니다.
+        // 가스비(0.01 NEAR)와 토큰 스토리지 예약분(0.01 NEAR)을 고려하여 총 0.02 NEAR를 남기고 회수합니다.
+        // 이는 향후 추가적인 토큰 수령이나 전송 시 발생할 수 있는 스토리지 예치금 오류를 방지하기 위함입니다.
         const safetyMargin = new BigNumber(utils.format.parseNearAmount("0.02")!);
         const sweepAmount = new BigNumber(actualAvailableBalance).minus(safetyMargin);
 
         if (sweepAmount.lte(0)) {
             logger.info({
                 category: "PAYMENT",
-                message: `Available balance too low for sweep for ${user.nearAccountId}`,
+                message: `Available balance too low for sweep for ${user.nearAccountId} (Needs > 0.02 NEAR)`,
                 metadata: { userId: user.id, nearAccountId: user.nearAccountId, actualBalance: actualAvailableBalance }
             });
+
+            // 잔액 부족으로 인한 실패 기록 (재시도 대상에서 제외하기 위함)
+            await db.update(exchangeLogTable).set({
+                status: "FAILED_INSUFFICIENT_BALANCE"
+            }).where(eq(exchangeLogTable.id, exchangeLogId));
+
             return;
         }
 
@@ -306,24 +314,39 @@ async function executeSweep(user: any, balanceToSweep: string, exchangeLogId: st
             errorMessage.includes("invalid signature") ||
             errorMessage.includes("public key");
 
+        const isInsufficientBalance = errorMessage.includes("insufficient balance") ||
+            errorMessage.includes("too low");
+
+        let finalStatus = "FAILED";
+
         if (isKeyMismatch) {
+            finalStatus = "FAILED_KEY_MISMATCH";
             logger.error({
                 category: "PAYMENT",
                 message: `CRITICAL: NEAR Key Mismatch for ${user.nearAccountId}. Automated sweep impossible.`,
                 metadata: { userId: user.id, nearAccountId: user.nearAccountId, error: errorMessage }
             });
+        } else if (isInsufficientBalance) {
+            finalStatus = "FAILED_INSUFFICIENT_BALANCE";
+            logger.warn({
+                category: "PAYMENT",
+                message: `Sweep skipped: Insufficient balance for ${user.nearAccountId}`,
+                metadata: { userId: user.id, nearAccountId: user.nearAccountId, error: errorMessage }
+            });
         } else {
+            // 네트워크 오류 등 일시적 장애인 경우 재시도 가능하도록 표시
+            finalStatus = "FAILED_NETWORK_ERROR";
             logger.error({
                 category: "PAYMENT",
-                message: `Sweep failed for user ${user.id}`,
+                message: `Sweep failed for user ${user.id} due to transient error`,
                 stackTrace: (error as Error).stack,
-                metadata: { userId: user.id, nearAccountId: user.nearAccountId, exchangeLogId }
+                metadata: { userId: user.id, nearAccountId: user.nearAccountId, exchangeLogId, error: errorMessage }
             });
         }
 
-        // 실패 시 로그 상태 업데이트
+        // 실패 사유에 따른 정밀 상태 업데이트
         await db.update(exchangeLogTable).set({
-            status: "FAILED"
+            status: finalStatus as any
         }).where(eq(exchangeLogTable.id, exchangeLogId));
     }
 }
