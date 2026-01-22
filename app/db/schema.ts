@@ -378,6 +378,15 @@ export const media = sqliteTable("Media", {
 // Misc & Others
 // ---------------------------------------------------------
 
+// --- NEW SCHEMA FOR SYSTEM SETTINGS ---
+export const systemSettings = sqliteTable("SystemSettings", {
+    key: text("key").primaryKey(),
+    value: text("value").notNull(),
+    description: text("description"),
+    updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+});
+// --------------------------------------
+
 export const follow = sqliteTable("Follow", {
     id: text("id").primaryKey(),
     followerId: text("followerId").notNull(),
@@ -619,6 +628,13 @@ export const characterRelations = relations(character, ({ one, many }) => ({
     conversations: many(conversation),
 }));
 
+export const characterStatRelations = relations(characterStat, ({ one }) => ({
+    character: one(character, {
+        fields: [characterStat.characterId],
+        references: [character.id],
+    }),
+}));
+
 export const characterMediaRelations = relations(characterMedia, ({ one }) => ({
     character: one(character, {
         fields: [characterMedia.characterId],
@@ -806,50 +822,31 @@ export const userMissionRelations = relations(userMission, ({ one }) => ({
     }),
 }));
 
-export const missionRelations = relations(mission, ({ many }) => ({
-    userMissions: many(userMission),
-}));
-
-export const tweetTravelTagRelations = relations(tweetTravelTag, ({ one }) => ({
-    tweet: one(tweet, {
-        fields: [tweetTravelTag.tweetId],
-        references: [tweet.id],
-    }),
-    travelTag: one(travelTag, {
-        fields: [tweetTravelTag.travelTagId],
-        references: [travelTag.id],
+export const fanPostRelations = relations(fanPost, ({ one }) => ({
+    user: one(user, {
+        fields: [fanPost.userId],
+        references: [user.id],
     }),
 }));
 
-export const travelTagRelations = relations(travelTag, ({ many }) => ({
-    tweetTags: many(tweetTravelTag),
-}));
-
-export const noticeRelations = relations(notice, ({ one }) => ({
-    // If notice has relations, define them here. Currently it seems standalone or related to admin/user implicitly?
-    // Based on usage, notice seems standalone but let's check if it needs 'author' or similar.
-    // If no relations, this block is not strictly needed but good for consistency if we expand.
-    // However, the error 'Property 'mission' does not exist on type 'never'' suggests 'with: { mission: true }' failed.
-    // So userMissionRelations is the critical one.
+export const bookmarkCollectionRelations = relations(bookmarkCollection, ({ one, many }) => ({
+    user: one(user, {
+        fields: [bookmarkCollection.userId],
+        references: [user.id],
+    }),
+    bookmarks: many(bookmark),
 }));
 
 export const followRelations = relations(follow, ({ one }) => ({
     follower: one(user, {
         fields: [follow.followerId],
         references: [user.id],
-        relationName: "followers",
+        relationName: "following",
     }),
     following: one(user, {
         fields: [follow.followingId],
         references: [user.id],
-        relationName: "following",
-    }),
-}));
-
-export const fanPostRelations = relations(fanPost, ({ one }) => ({
-    user: one(user, {
-        fields: [fanPost.userId],
-        references: [user.id],
+        relationName: "followers",
     }),
 }));
 
@@ -863,25 +860,6 @@ export const multichainAddressRelations = relations(multichainAddress, ({ one })
 export const exchangeLogRelations = relations(exchangeLog, ({ one }) => ({
     user: one(user, {
         fields: [exchangeLog.userId],
-        references: [user.id],
-    }),
-}));
-
-export const bookmarkCollectionRelations = relations(bookmarkCollection, ({ one, many }) => ({
-    user: one(user, {
-        fields: [bookmarkCollection.userId],
-        references: [user.id],
-    }),
-    bookmarks: many(bookmark),
-}));
-
-export const messageLikeRelations = relations(messageLike, ({ one }) => ({
-    message: one(message, {
-        fields: [messageLike.messageId],
-        references: [message.id],
-    }),
-    user: one(user, {
-        fields: [messageLike.userId],
         references: [user.id],
     }),
 }));
@@ -904,13 +882,6 @@ export const x402InvoiceRelations = relations(x402Invoice, ({ one }) => ({
     user: one(user, {
         fields: [x402Invoice.userId],
         references: [user.id],
-    }),
-}));
-
-export const characterStatRelations = relations(characterStat, ({ one }) => ({
-    character: one(character, {
-        fields: [characterStat.characterId],
-        references: [character.id],
     }),
 }));
 

@@ -5,24 +5,30 @@ import { requireAdmin } from "~/lib/auth.server";
 import { cn } from "~/lib/utils";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, asc } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     await requireAdmin(request);
 
     const characters = await db.query.character.findMany({
         with: {
-            media: true,
+            media: {
+                orderBy: [asc(schema.characterMedia.sortOrder)]
+            },
             stats: true
         },
         orderBy: [desc(schema.character.createdAt)]
     });
 
-    // Sort/Filter media to ensure avatar comes first or filtering happen here if strictly needed
-    const charactersWithSortedMedia = characters.map(char => ({
-        ...char,
-        media: char.media.filter(m => m.type === "AVATAR").concat(char.media.filter(m => m.type !== "AVATAR"))
-    }));
+    const charactersWithSortedMedia = characters.map(char => {
+        const coverImage = char.media.find(m => m.type === "AVATAR")?.url ||
+            char.media.find(m => m.type === "COVER")?.url ||
+            char.media[0]?.url;
+        return {
+            ...char,
+            representativeImage: coverImage
+        };
+    });
 
     return { characters: charactersWithSortedMedia };
 }
@@ -61,9 +67,9 @@ export default function AdminCharacters() {
                         characters.map((char) => (
                             <div key={char.id} className="bg-[#1A1821]/60 border border-white/5 rounded-[32px] overflow-hidden group hover:border-primary/20 transition-all duration-300">
                                 <div className="h-48 bg-gradient-to-br from-[#2A2635] to-[#1A1821] relative overflow-hidden">
-                                    {char.media[0] ? (
+                                    {char.representativeImage ? (
                                         <img
-                                            src={char.media[0].url}
+                                            src={char.representativeImage}
                                             alt={char.name}
                                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                                         />

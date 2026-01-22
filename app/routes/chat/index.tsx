@@ -11,7 +11,7 @@ import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs } from "react-router";
 import * as schema from "~/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 import { useNavigate } from "react-router";
 import {
   Dialog,
@@ -40,12 +40,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
           orderBy: [desc(schema.message.createdAt)],
           limit: 1,
         },
-        character: { with: { media: true } }
+        character: {
+          with: {
+            media: {
+              orderBy: [asc(schema.characterMedia.sortOrder)]
+            }
+          }
+        }
       },
       orderBy: [desc(schema.conversation.updatedAt)],
     }),
     db.query.character.findMany({
-      with: { media: true }
+      with: {
+        media: {
+          orderBy: [asc(schema.characterMedia.sortOrder)]
+        }
+      }
     })
   ]);
 

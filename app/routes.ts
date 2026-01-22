@@ -93,6 +93,7 @@ export default [
   route("admin/users/:id", "routes/admin/users/detail.tsx"),
   route("admin/payments", "routes/admin/payments/index.tsx"),
   route("admin/content", "routes/admin/content/index.tsx"),
+  route("admin/content/home", "routes/admin/content/home.tsx"),
   route("admin/content/feed", "routes/admin/content/feed.tsx"),
   route("admin/content/notices", "routes/admin/notices/index.tsx"),
   route("admin/content/notices/new", "routes/admin/notices/edit.tsx", { id: "admin-notice-new" }),

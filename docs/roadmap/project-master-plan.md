@@ -84,10 +84,11 @@
 
 ## 5. 시스템 아키텍처 및 DB 설계
 
-### 5.1 Tech Stack (제안)
-- **Frontend:** React (Next.js) - 모바일 웹 최적화 및 PWA 지원 용이.
-- **Backend & DB:** Supabase - Auth(소셜로그인), Database(PostgreSQL), Realtime(채팅) 올인원 처리.
-- **AI:** Gemini API (via Edge Function).
+### 5.1 Tech Stack (현재 적용)
+- **Frontend/Backend:** React Router (v7) - 모바일 최적화 및 뛰어난 개발 생산성 제공.
+- **Database:** Turso (LibSQL) + Drizzle ORM - 고성능 분산 Edge SQLite.
+- **Auth:** Better Auth - X(Twitter) OAuth 2.0 연동 및 세션 관리.
+- **AI:** Google Gemini 1.5 Pro / Flash.
 
 ### 5.2 데이터베이스 스키마 (ERD Draft)
 
@@ -108,7 +109,7 @@
 - [ ] 춘심 페르소나별 시스템 프롬프트 작성 및 테스트 (Gemini Playground 활용).
 
 ### Phase 2: MVP 핵심 개발 (W3~W5)
-- [ ] Supabase 프로젝트 세팅 및 X OAuth 연동.
+- [ ] Turso/Drizzle 프로젝트 세팅 및 Better Auth(X OAuth) 연동.
 - [ ] 채팅 UI 개발 (Frontend).
 - [ ] Gemini API 연동 및 응답 생성 로직 구현 (Backend).
 - [ ] 스타일(페르소나) 변경 기능 구현.

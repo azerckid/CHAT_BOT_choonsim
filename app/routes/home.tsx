@@ -7,11 +7,11 @@ import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { DateTime } from "luxon";
 import { cn } from "~/lib/utils";
 import * as schema from "~/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "AI Idol Chat - Home" },
+    { title: "AI Chat - Home" },
     { name: "description", content: "AI 아이돌과의 특별한 일상 대화" },
   ];
 }
@@ -27,7 +27,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
       with: {
         character: {
           with: {
-            media: true
+            media: {
+              orderBy: [asc(schema.characterMedia.sortOrder)]
+            }
           }
         },
         messages: {
@@ -43,12 +45,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // 모든 캐릭터 가져오기
   const allCharacters = await db.query.character.findMany({
     with: {
-      media: true,
+      media: {
+        orderBy: [asc(schema.characterMedia.sortOrder)]
+      },
     }
   });
 
-  // Today's Pick: Rina (or first character)
-  const todaysPick = allCharacters.find(c => c.id === "rina") || allCharacters[0];
+  // Today's Pick: Fetch from dynamic system settings (fallback to 'rina' if or first if not set)
+  const todaysPickSetting = await db.query.systemSettings.findFirst({
+    where: eq(schema.systemSettings.key, "TODAYS_PICK_ID")
+  });
+  const todaysPick = allCharacters.find(c => c.id === todaysPickSetting?.value) ||
+    allCharacters.find(c => c.id === "rina") ||
+    allCharacters[0];
 
   // Trending Idols: DB에 있는 캐릭터들 (최대 4개)
   const trendingIdols = allCharacters.slice(0, 4);
@@ -120,7 +129,7 @@ export default function HomeScreen() {
       {/* Top App Bar */}
       <div className="sticky top-0 z-50 flex items-center bg-background-dark/80 backdrop-blur-md p-4 justify-between border-b border-white/5">
         <div className="flex flex-col">
-          <h2 className="text-white text-xl font-extrabold leading-tight tracking-[-0.015em]">AI Idol Chat</h2>
+          <h2 className="text-white text-xl font-extrabold leading-tight tracking-[-0.015em]">AI Chat</h2>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -149,8 +158,8 @@ export default function HomeScreen() {
             className="absolute inset-0 h-full w-full bg-cover bg-center"
             style={{
               backgroundImage: `url(${todaysPick?.media
-                  ?.filter((m: any) => m.type === "COVER")
-                  ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                ?.filter((m: any) => m.type === "COVER")
+                ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
                 || todaysPick?.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
                 })`
             }}

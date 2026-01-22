@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLoaderData } from "react-router";
 import { cn } from "~/lib/utils";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, asc } from "drizzle-orm";
 import * as schema from "~/db/schema";
 import type { LoaderFunctionArgs } from "react-router";
 
@@ -18,7 +18,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const character = await db.query.character.findFirst({
     where: eq(schema.character.id, characterId),
     with: {
-      media: true,
+      media: {
+        orderBy: [asc(schema.characterMedia.sortOrder)]
+      },
       stats: true,
     }
   });
@@ -84,7 +86,11 @@ export default function CharacterProfileScreen() {
       { icon: "headphones", label: "Music", sublabel: "Favorite", color: "bg-blue-500/10 text-blue-500" },
       { icon: "favorite", label: "Fans", sublabel: "Loved", color: "bg-pink-500/10 text-pink-500" },
     ],
-    heroImage: character.media?.find((m: any) => m.type === "AVATAR")?.url || character.media?.[0]?.url,
+    // Priority: 1. COVER (Main), 2. AVATAR (Main), 3. First available image
+    heroImage:
+      character.media?.find((m: any) => m.type === "COVER")?.url ||
+      character.media?.find((m: any) => m.type === "AVATAR")?.url ||
+      character.media?.[0]?.url,
   };
 
   const handleMessage = async () => {

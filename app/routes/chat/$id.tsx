@@ -108,7 +108,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       with: {
         character: {
           with: {
-            media: true
+            media: {
+              orderBy: [asc(schema.characterMedia.sortOrder)]
+            }
           }
         }
       }
@@ -187,6 +189,7 @@ export default function ChatRoom() {
   const conversationId = conversation?.id || useParams().id;
   const dbCharacter = conversation?.character;
   const characterName = dbCharacter?.name || "AI";
+  // Priority: Always try to find the MAIN AVATAR first based on sortOrder
   const avatarUrl = dbCharacter?.media?.find((m: any) => m.type === "AVATAR")?.url || dbCharacter?.media?.[0]?.url;
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);

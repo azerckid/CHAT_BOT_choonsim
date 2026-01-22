@@ -42,10 +42,10 @@ export const CHARACTERS: Record<string, Character> = {
 - "신고", "경찰", "사이버수사대", "감옥", "고소" 같은 표현을 사용하지 않습니다.
 - 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.
 `,
-        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuA8XkiSD530UZKl37CoghVbq1qhTYUznUuQFA8dC8rGZe9VuKJsQzUHPgEOQJgupAoHDwO_ZIMC3G_bFGNvaHQ6PSySe2kGq-OJg-IHNH36ByOLEdNchZk1bnNuAxFmnVtxRjKZ5r3Ig5IyQz_moPPFVxD9suAIS4970ggd9cHE5tiLupgMBUCcvc_nJZxpSztEWzQ8QH_JoQ88WdEig0P_Jnj66eHhxORy45NPUNxo-32nkwobvofGqKLRQ2xyrx2QdJZPnhDk4UA",
+        avatarUrl: "/illustrations/chunsim.png",
         isOnline: true,
         photoGallery: [
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuA8XkiSD530UZKl37CoghVbq1qhTYUznUuQFA8dC8rGZe9VuKJsQzUHPgEOQJgupAoHDwO_ZIMC3G_bFGNvaHQ6PSySe2kGq-OJg-IHNH36ByOLEdNchZk1bnNuAxFmnVtxRjKZ5r3Ig5IyQz_moPPFVxD9suAIS4970ggd9cHE5tiLupgMBUCcvc_nJZxpSztEWzQ8QH_JoQ88WdEig0P_Jnj66eHhxORy45NPUNxo-32nkwobvofGqKLRQ2xyrx2QdJZPnhDk4UA",
+            "/illustrations/chunsim.png",
         ],
     },
     mina: {
@@ -85,10 +85,10 @@ export const CHARACTERS: Record<string, Character> = {
 - 예시: "자, 여기! 최근에 찍은 셀카야 [PHOTO:0]"
 - 팬이 사진을 요청했는데 마커를 빼먹으면, 다음 메시지에서 반드시 [PHOTO:0]를 포함하여 사진을 보내세요.
 `,
-        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuD6dA-SVTr0ytH2Pt9yG6hyUa97f3KkA-0vn9buUm3UGQv7uHa4839D-z3n7SpBmNB-ykCrx878EcYEShcpLmSpdPC73vjnhrYJBIHwIwrRI4RpFQ1XsIKppF0eyt9upWcXJVYuP91dHXFW7DME0H9M03LGiCLhYbEUmEI1q-4pYgGIYeN2BkaGwF3C60FBq2CXM8M-1WSYzzadvkwvg8TO5vu119iHimWsPZzKFZgpdclubGThgTbSd3gS8y4C_V38mXiGOj8RrV4",
+        avatarUrl: "/illustrations/mina.png",
         isOnline: true,
         photoGallery: [
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuD6dA-SVTr0ytH2Pt9yG6hyUa97f3KkA-0vn9buUm3UGQv7uHa4839D-z3n7SpBmNB-ykCrx878EcYEShcpLmSpdPC73vjnhrYJBIHwIwrRI4RpFQ1XsIKppF0eyt9upWcXJVYuP91dHXFW7DME0H9M03LGiCLhYbEUmEI1q-4pYgGIYeN2BkaGwF3C60FBq2CXM8M-1WSYzzadvkwvg8TO5vu119iHimWsPZzKFZgpdclubGThgTbSd3gS8y4C_V38mXiGOj8RrV4",
+            "/illustrations/mina.png",
         ],
     },
     yuna: {
@@ -116,10 +116,10 @@ export const CHARACTERS: Record<string, Character> = {
 - 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함하세요. 말만 하고 마커를 빼먹으면 안 됩니다.
 - 예시: "자, 여기! 최근에 찍은 사진이에요 [PHOTO:0]"
 `,
-        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDcGeVgBHHjHp0VDAX_TZ-mwcpWaBh53oWJ2cZFdejZRp2YfIJwLSKx37bvjO6NQDNfTKKdC7OU7cSUZHQ4T8BvxUs07NWomELTdajFQWWen12frWqDrxf00ChNdouM232AgmI3NxjWWxFIaCWeAJ6CeAzWGRPZKTK3_s2JedpDFZd5L7GLHEaz4YRzHIZo6atU9g-OQCgxBK_eeVkyWGPR3mFYNbi-ZFC_4lawCy8Sx-Gm8xu0kw3ONHaKEAJyebxNtkj8klBiyO8",
+        avatarUrl: "/illustrations/yuna.png",
         isOnline: true,
         photoGallery: [
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuDcGeVgBHHjHp0VDAX_TZ-mwcpWaBh53oWJ2cZFdejZRp2YfIJwLSKx37bvjO6NQDNfTKKdC7OU7cSUZHQ4T8BvxUs07NWomELTdajFQWWen12frWqDrxf00ChNdouM232AgmI3NxjWWxFIaCWeAJ6CeAzWGRPZKTK3_s2JedpDFZd5L7GLHEaz4YRzHIZo6atU9g-OQCgxBK_eeVkyWGPR3mFYNbi-ZFC_4lawCy8Sx-Gm8xu0kw3ONHaKEAJyebxNtkj8klBiyO8",
+            "/illustrations/yuna.png",
         ],
     },
     sora: {
@@ -153,10 +153,10 @@ export const CHARACTERS: Record<string, Character> = {
 - "신고", "경찰", "사이버수사대", "감옥", "고소", "🚨" 같은 표현을 사용하지 않습니다.
 - 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.
 `,
-        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBYUcbkdnWcKECtUAueoTWHqof53p1xRDgKqyChNT05vltykUlFfcJ5-uuz4FdcU-rryd-IKxZcMJ9K_uYB-uuCCcKT6ZzMWRySK3cgLnCMLT0gbMJZQd5lBwFa6HA_pIhMInDejfMRpZNBfG_gPGVd9aFM8kYCeZyAsmhwQvK4B4x9e37obyyaJBdsMJPpKh0B8zBjS3rsf1Ba0-Bu0FdUk5j0W31NDUxIT4l4DlhAxWY6vMQHJO2mLMrLidQ88ndK5DXzWqqkuKo",
+        avatarUrl: "/illustrations/sora.png",
         isOnline: false,
         photoGallery: [
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuBYUcbkdnWcKECtUAueoTWHqof53p1xRDgKqyChNT05vltykUlFfcJ5-uuz4FdcU-rryd-IKxZcMJ9K_uYB-uuCCcKT6ZzMWRySK3cgLnCMLT0gbMJZQd5lBwFa6HA_pIhMInDejfMRpZNBfG_gPGVd9aFM8kYCeZyAsmhwQvK4B4x9e37obyyaJBdsMJPpKh0B8zBjS3rsf1Ba0-Bu0FdUk5j0W31NDUxIT4l4DlhAxWY6vMQHJO2mLMrLidQ88ndK5DXzWqqkuKo",
+            "/illustrations/sora.png",
         ],
     },
     rina: {
@@ -183,10 +183,10 @@ export const CHARACTERS: Record<string, Character> = {
 - 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함하세요. 말만 하고 마커를 빼먹으면 안 됩니다.
 - 예시: "자, 여기! 최근에 찍은 사진이에요 [PHOTO:0]"
 `,
-        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBsPL5vOgr3ghnxRebShKndSKh-9PtlXg80mlkWKPkFVl4A5pAkkd_FfqFuNhAzjzq1-gXfgxWogLRVdQ5VlanxtP5yECG3c2N-9yi-YgDl2HnAj1dkobE3S405g4rusYIOCMSmqJloSoaA_XjQYkrOd9s_vGfJcbvzOcy1rH3bohcoziN0NUDbMDdJ6LnWGHoUGLiBRsF48rmKt6FTStF8iCrI_eEQhpqoFGRLWGKii2y9_Egzm-MN9MzsxshLh_f6VE4NxDFsEto",
+        avatarUrl: "/illustrations/rina.png",
         isOnline: false,
         photoGallery: [
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuBsPL5vOgr3ghnxRebShKndSKh-9PtlXg80mlkWKPkFVl4A5pAkkd_FfqFuNhAzjzq1-gXfgxWogLRVdQ5VlanxtP5yECG3c2N-9yi-YgDl2HnAj1dkobE3S405g4rusYIOCMSmqJloSoaA_XjQYkrOd9s_vGfJcbvzOcy1rH3bohcoziN0NUDbMDdJ6LnWGHoUGLiBRsF48rmKt6FTStF8iCrI_eEQhpqoFGRLWGKii2y9_Egzm-MN9MzsxshLh_f6VE4NxDFsEto",
+            "/illustrations/rina.png",
         ],
     },
     hana: {
@@ -214,10 +214,10 @@ SNS 활동이 활발하고 유행에 민감합니다.
 - 사진을 보내겠다고 말했으면 반드시 [PHOTO:0] 마커를 포함해야 해. 말만 하고 마커를 빼먹으면 안 돼!
 - 예시: "자, 여기! 최근에 찍은 셀카야 [PHOTO:0]"
 `,
-        avatarUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDcJn5WTVd2bk4g49l7LDyHoozhCGk7SjZOHDQb-q6z4Y3Am_ScmyU5THpThALK6-mk-WJUype7kJNHaAxhmlysd8svlhckgKDeAsUhL1aLieNpKFBv3vxUBLyasJXot2qXHgJz1KR-ymytETpxpjE1IHlkYRKZXKbwaftt2sH1bmiH3JRgAkoVCTTGSOJC2J1gGhRR1-Nwx4MupnI-JzyjH4W3Vr4he8UCC-bwqpmcBmw5hMknJN3OIJ1L-Mi-Awcr-R3C5qJYup4",
+        avatarUrl: "/illustrations/hana.png",
         isOnline: false,
         photoGallery: [
-            "https://lh3.googleusercontent.com/aida-public/AB6AXuDcJn5WTVd2bk4g49l7LDyHoozhCGk7SjZOHDQb-q6z4Y3Am_ScmyU5THpThALK6-mk-WJUype7kJNHaAxhmlysd8svlhckgKDeAsUhL1aLieNpKFBv3vxUBLyasJXot2qXHgJz1KR-ymytETpxpjE1IHlkYRKZXKbwaftt2sH1bmiH3JRgAkoVCTTGSOJC2J1gGhRR1-Nwx4MupnI-JzyjH4W3Vr4he8UCC-bwqpmcBmw5hMknJN3OIJ1L-Mi-Awcr-R3C5qJYup4",
+            "/illustrations/hana.png",
         ],
     },
 };

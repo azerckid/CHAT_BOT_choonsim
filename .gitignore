@@ -22,3 +22,5 @@ dev.db
 *.sql
 backups/
 .vercel
+*.log
+build_debug.log

@@ -22,6 +22,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export default function AdminContentIndex() {
     const sections: ContentSection[] = [
         {
+            title: "Home Spotlight",
+            desc: "Configure Today's Pick and main screen highlights.",
+            icon: "star",
+            href: "/admin/content/home",
+            color: "text-amber-400",
+            bg: "bg-amber-400/10"
+        },
+        {
             title: "Fan Feed",
             desc: "Manage user-generated tweets and media posts.",
             icon: "rss_feed",

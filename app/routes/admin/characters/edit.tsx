@@ -256,7 +256,7 @@ export default function EditCharacter() {
 
                 <Form method="post" className="space-y-8">
                     {/* Identity Tab */}
-                    {activeTab === "identity" && (
+                    <div className={cn(activeTab !== "identity" && "hidden")}>
                         <div className="bg-[#1A1821]/60 border border-white/5 rounded-[40px] p-8 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
@@ -330,10 +330,10 @@ export default function EditCharacter() {
                                 />
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     {/* AI Persona Tab */}
-                    {activeTab === "ai" && (
+                    <div className={cn(activeTab !== "ai" && "hidden")}>
                         <div className="bg-[#1A1821]/60 border border-white/5 rounded-[40px] p-8 space-y-6">
                             <div className="space-y-2 text-right">
                                 <div className="flex justify-between items-center mb-2 px-2">
@@ -349,11 +349,11 @@ export default function EditCharacter() {
                                 <p className="text-[10px] text-white/20 italic">* This prompt defines how the AI will behave. Be specific about tone and emojis.</p>
                             </div>
                         </div>
-                    )}
+                    </div>
 
                     {/* Media Tab */}
-                    {activeTab === "media" && (
-                        <div className="space-y-8 animate-in fade-in duration-500">
+                    <div className={cn(activeTab !== "media" && "hidden")}>
+                        <div className="space-y-12 animate-in fade-in duration-500 pb-20">
                             {isNew ? (
                                 <div className="bg-[#1A1821]/60 border border-white/5 rounded-[40px] p-8 flex flex-col items-center justify-center min-h-[300px] text-center space-y-4">
                                     <span className="material-symbols-outlined text-white/10 text-[64px]">priority_high</span>
@@ -364,162 +364,170 @@ export default function EditCharacter() {
                                 </div>
                             ) : (
                                 <>
-                                    {/* Upload Section */}
-                                    <div className="bg-[#1A1821]/60 border border-white/5 rounded-[40px] p-8 space-y-6">
-                                        <div className="flex justify-between items-center px-2">
-                                            <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Add New Media</label>
-                                            <span className="text-[10px] text-primary font-bold italic tracking-tighter px-2 py-1 bg-primary/10 rounded-lg underline cursor-help" title="Max 10MB per image">Cloudinary Network Integrated</span>
-                                        </div>
+                                    {[
+                                        { type: "AVATAR", label: "Profile Avatar", desc: "Small icon for chats and profile identification.", icon: "account_circle" },
+                                        { type: "COVER", label: "Background Cover", desc: "Large background image for home screen and highlights.", icon: "wallpaper" },
+                                        { type: "NORMAL", label: "Standard Gallery", desc: "Public photos available in the character's gallery.", icon: "photo_library" },
+                                        { type: "SECRET", label: "Secret Reward", desc: "Hidden images unlocked through user interaction.", icon: "lock" },
+                                    ].map((section) => {
+                                        const items = character.media.filter(m => m.type === section.type);
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em] ml-2">Classification</label>
-                                                <select
-                                                    id="new-media-type"
-                                                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-bold appearance-none cursor-pointer"
-                                                >
-                                                    <option value="AVATAR">Profile Avatar</option>
-                                                    <option value="COVER">Background Cover</option>
-                                                    <option value="NORMAL">Standard Gallery</option>
-                                                    <option value="SECRET">Secret Reward</option>
-                                                </select>
-                                            </div>
-
-                                            <div className="relative">
-                                                <input
-                                                    type="file"
-                                                    id="media-upload"
-                                                    className="hidden"
-                                                    accept="image/*"
-                                                    onChange={async (e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (!file) return;
-
-                                                        const toastId = toast.loading("Uploading to Cloudinary...");
-                                                        try {
-                                                            const formData = new FormData();
-                                                            formData.append("file", file);
-
-                                                            const res = await fetch("/api/upload", {
-                                                                method: "POST",
-                                                                body: formData
-                                                            });
-
-                                                            const result = await res.json();
-                                                            if (result.url) {
-                                                                const type = (document.getElementById("new-media-type") as HTMLSelectElement).value;
-                                                                const submitData = new FormData();
-                                                                submitData.append("_action", "add_media");
-                                                                submitData.append("url", result.url);
-                                                                submitData.append("type", type);
-
-                                                                const response = await fetch(window.location.pathname, {
-                                                                    method: "POST",
-                                                                    body: submitData
-                                                                });
-
-                                                                if (response.ok) {
-                                                                    toast.success("Media added successfully", { id: toastId });
-                                                                    revalidator.revalidate();
-                                                                } else {
-                                                                    throw new Error("Failed to save media metadata");
-                                                                }
-                                                            }
-                                                        } catch (error) {
-                                                            toast.error("Upload failed", { id: toastId });
-                                                        }
-                                                    }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    disabled={isSubmitting}
-                                                    onClick={() => document.getElementById("media-upload")?.click()}
-                                                    className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-black italic uppercase tracking-tighter hover:bg-white/10 hover:border-primary/30 transition-all flex items-center justify-center gap-2"
-                                                >
-                                                    <span className="material-symbols-outlined">add_photo_alternate</span>
-                                                    Select & Upload
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Media Gallery */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {character.media.map((item, index) => (
-                                            <div key={item.id} className="group relative bg-[#1A1821]/60 border border-white/5 rounded-3xl overflow-hidden aspect-square">
-                                                <img
-                                                    src={item.url}
-                                                    alt={item.type}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                />
-                                                <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-3 p-4">
-                                                    <span className="text-[10px] font-black text-primary uppercase tracking-widest">{item.type}</span>
-
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            type="button"
-                                                            disabled={index === 0}
-                                                            onClick={async () => {
-                                                                const fd = new FormData();
-                                                                fd.append("_action", "reorder_media");
-                                                                fd.append("mediaId", item.id);
-                                                                fd.append("direction", "up");
-                                                                await fetch(window.location.pathname, { method: "POST", body: fd });
-                                                                revalidator.revalidate();
-                                                            }}
-                                                            className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-black transition-all disabled:opacity-20"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[18px]">arrow_upward</span>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            disabled={index === character.media.length - 1}
-                                                            onClick={async () => {
-                                                                const fd = new FormData();
-                                                                fd.append("_action", "reorder_media");
-                                                                fd.append("mediaId", item.id);
-                                                                fd.append("direction", "down");
-                                                                await fetch(window.location.pathname, { method: "POST", body: fd });
-                                                                revalidator.revalidate();
-                                                            }}
-                                                            className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-black transition-all disabled:opacity-20"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[18px]">arrow_downward</span>
-                                                        </button>
+                                        return (
+                                            <div key={section.type} className="space-y-6">
+                                                {/* Section Header */}
+                                                <div className="flex justify-between items-end px-2">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="material-symbols-outlined text-primary text-[20px]">{section.icon}</span>
+                                                            <h3 className="text-xl font-black italic text-white uppercase tracking-tighter">{section.label}</h3>
+                                                        </div>
+                                                        <p className="text-white/40 text-[10px] font-medium uppercase tracking-widest">{section.desc}</p>
                                                     </div>
 
-                                                    <button
-                                                        type="button"
-                                                        onClick={async () => {
-                                                            if (!confirm("Are you sure?")) return;
-                                                            const formData = new FormData();
-                                                            formData.append("_action", "delete_media");
-                                                            formData.append("mediaId", item.id);
+                                                    {/* Upload Button for this specific type */}
+                                                    <div className="relative">
+                                                        <input
+                                                            type="file"
+                                                            id={`upload-${section.type}`}
+                                                            className="hidden"
+                                                            accept="image/*"
+                                                            onChange={async (e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (!file) return;
 
-                                                            const response = await fetch(window.location.pathname, {
-                                                                method: "POST",
-                                                                body: formData
-                                                            });
-                                                            if (response.ok) {
-                                                                toast.success("Media deleted");
-                                                                revalidator.revalidate();
-                                                            }
-                                                        }}
-                                                        className="w-8 h-8 rounded-lg bg-red-500/20 text-red-500 border border-red-500/40 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                    </button>
+                                                                const toastId = toast.loading(`Uploading ${section.label}...`);
+                                                                try {
+                                                                    const formData = new FormData();
+                                                                    formData.append("file", file);
+
+                                                                    const res = await fetch("/api/upload", {
+                                                                        method: "POST",
+                                                                        body: formData
+                                                                    });
+
+                                                                    const result = await res.json();
+                                                                    if (result.url) {
+                                                                        const submitData = new FormData();
+                                                                        submitData.append("_action", "add_media");
+                                                                        submitData.append("url", result.url);
+                                                                        submitData.append("type", section.type);
+
+                                                                        const response = await fetch(window.location.pathname, {
+                                                                            method: "POST",
+                                                                            body: submitData
+                                                                        });
+
+                                                                        if (response.ok) {
+                                                                            toast.success(`${section.label} added!`, { id: toastId });
+                                                                            revalidator.revalidate();
+                                                                        } else {
+                                                                            throw new Error("Failed to save media");
+                                                                        }
+                                                                    }
+                                                                } catch (error) {
+                                                                    toast.error("Upload failed", { id: toastId });
+                                                                }
+                                                            }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled={isSubmitting}
+                                                            onClick={() => document.getElementById(`upload-${section.type}`)?.click()}
+                                                            className="px-6 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-[10px] font-black uppercase tracking-widest hover:bg-white/10 hover:border-primary/50 hover:text-primary transition-all flex items-center gap-2"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[16px]">add_a_photo</span>
+                                                            Upload New
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-[8px] font-black text-white/60 uppercase tracking-tighter">
-                                                    #{index + 1} {item.type}
+
+                                                {/* Media List for this type */}
+                                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                                    {items.length === 0 ? (
+                                                        <div className="col-span-full py-12 bg-black/20 border border-dashed border-white/5 rounded-[32px] flex flex-col items-center justify-center text-center space-y-2 opacity-40">
+                                                            <span className="material-symbols-outlined text-[32px]">no_photography</span>
+                                                            <p className="text-[10px] font-bold uppercase tracking-widest">No {section.label} uploaded</p>
+                                                        </div>
+                                                    ) : (
+                                                        items.map((item, idx) => (
+                                                            <div key={item.id} className="group relative bg-black/40 border border-white/5 rounded-3xl overflow-hidden aspect-square">
+                                                                <img
+                                                                    src={item.url}
+                                                                    alt={section.label}
+                                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                                />
+
+                                                                {/* Overlay Controls */}
+                                                                <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-3 p-4">
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={async () => {
+                                                                                const fd = new FormData();
+                                                                                fd.append("_action", "reorder_media");
+                                                                                fd.append("mediaId", item.id);
+                                                                                fd.append("direction", "up");
+                                                                                await fetch(window.location.pathname, { method: "POST", body: fd });
+                                                                                revalidator.revalidate();
+                                                                            }}
+                                                                            className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-black transition-all"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={async () => {
+                                                                                const fd = new FormData();
+                                                                                fd.append("_action", "reorder_media");
+                                                                                fd.append("mediaId", item.id);
+                                                                                fd.append("direction", "down");
+                                                                                await fetch(window.location.pathname, { method: "POST", body: fd });
+                                                                                revalidator.revalidate();
+                                                                            }}
+                                                                            className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center hover:bg-primary hover:text-black transition-all"
+                                                                        >
+                                                                            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={async () => {
+                                                                            if (!confirm("Are you sure?")) return;
+                                                                            const formData = new FormData();
+                                                                            formData.append("_action", "delete_media");
+                                                                            formData.append("mediaId", item.id);
+
+                                                                            const response = await fetch(window.location.pathname, {
+                                                                                method: "POST",
+                                                                                body: formData
+                                                                            });
+                                                                            if (response.ok) {
+                                                                                toast.success("Media deleted");
+                                                                                revalidator.revalidate();
+                                                                            }
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-lg bg-red-500/20 text-red-500 border border-red-500/40 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                                    </button>
+                                                                </div>
+
+                                                                {/* Indicator */}
+                                                                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-[8px] font-black text-white/60 uppercase tracking-tighter">
+                                                                    {idx === 0 ? "★ Main" : `#${idx + 1}`}
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    )}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        );
+                                    })}
                                 </>
                             )}
                         </div>
-                    )}
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex flex-col gap-4">
