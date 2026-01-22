@@ -48,8 +48,11 @@ export async function ensureNearWallet(userId: string) {
         if (!servicePrivateKey) throw new Error("NEAR_SERVICE_PRIVATE_KEY is missing from environment");
 
         // 3. NEAR 계정 아이디 및 키 페어 생성 (DB에 먼저 안전하게 보관)
-        const sanitizedId = userId.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 16);
-        const derivedAccountId = `${sanitizedId}.${serviceAccountId}`;
+        // [FIX] 기존 userId 기반 생성은 DB 리셋 후 계정 재사용(잔액 찌꺼기) 문제를 일으킴.
+        // 항상 새로운 지갑을 생성하도록 무작위 난수 사용.
+        const { nanoid } = await import("nanoid");
+        const uniqueSuffix = nanoid(10).toLowerCase().replace(/[^a-z0-9]/g, ""); // 소문자+숫자만
+        const derivedAccountId = `${uniqueSuffix}.${serviceAccountId}`;
 
         // 만약 DB에 이미 ID가 적혀있다면 그 ID를 재사용 (과거 실패 복구용)
         newAccountId = user.nearAccountId || derivedAccountId;
