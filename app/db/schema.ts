@@ -28,7 +28,7 @@ export const user = sqliteTable("User", {
     subscriptionId: text("subscriptionId").unique(),
     currentPeriodEnd: integer("currentPeriodEnd", { mode: "timestamp" }),
     lastTokenRefillAt: integer("lastTokenRefillAt", { mode: "timestamp" }),
-    credits: integer("credits").notNull().default(100),
+    credits: integer("credits").notNull().default(0),
     role: text("role").default("USER"),
     nearAccountId: text("nearAccountId").unique(),
     nearPublicKey: text("nearPublicKey"),

@@ -141,24 +141,7 @@ export function initCronJobs() {
         }
     });
 
-    // 2. Daily Credit Refill (Every night at 00:00)
-    cron.schedule("0 0 * * *", async () => {
-        logger.audit({ category: "SYSTEM", message: "Starting Daily Credit Refill job..." });
-        try {
-            const result = await db.update(schema.user)
-                .set({ credits: 500, updatedAt: new Date() })
-                .where(eq(schema.user.subscriptionTier, "FREE"));
 
-            // libSQL result.rowsAffected or similar
-            logger.audit({ category: "SYSTEM", message: `Daily Credit Refill completed for free tier users` });
-        } catch (error) {
-            logger.error({
-                category: "SYSTEM",
-                message: "Credit Refill Cron Error",
-                stackTrace: (error as Error).stack
-            });
-        }
-    });
 
     // 3. NEAR Deposit Monitor (Every Minute - MVP)
     cron.schedule("* * * * *", async () => {
