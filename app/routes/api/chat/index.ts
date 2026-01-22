@@ -280,7 +280,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 // 전체 응답에서 사진 마커 먼저 추출
                 const firstPhotoMarker = await extractPhotoMarker(fullContent, characterId);
                 const photoUrl = firstPhotoMarker.photoUrl;
-                const contentWithoutPhotoMarker = photoUrl ? firstPhotoMarker.content : fullContent;
+                const contentWithoutPhotoMarker = firstPhotoMarker.content;
 
                 // 2단계: 전체 응답을 ---로 나누기
                 let messageParts = contentWithoutPhotoMarker.split('---').map(p => p.trim()).filter(p => p.length > 0);

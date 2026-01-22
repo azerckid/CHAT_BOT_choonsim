@@ -125,7 +125,7 @@ export async function extractPhotoMarker(content: string, characterId: string = 
 
     const character = await db.query.character.findFirst({
         where: eq(schema.character.id, characterId),
-        with: { media: { where: eq(schema.characterMedia.type, "GALLERY") } }
+        with: { media: { where: eq(schema.characterMedia.type, "NORMAL") } }
     });
 
     if (!character || !character.media || photoIndex >= character.media.length) {
