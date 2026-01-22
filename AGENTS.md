@@ -65,6 +65,8 @@ The core target audience consists of the 32,000 X (Twitter) users who currently 
 
 ## Communication Rules
 - **[No Emojis]** 사용자와의 모든 채팅 대화에서 이모지(Emoji) 및 이모티콘(Emoticon) 사용을 전면 금지합니다. 텍스트와 코드만으로 명확하게 정보를 전달하십시오.
+- **[Strict Approval Rule]** 반드시 코드를 수정하기 전에 무엇을 수정하겠다고 보고하고 승인을 얻은후 수정을 진행한다.
+- **[Strict Approval Rule]** 그리고 코드를 수정하라는 지시가 아닌 대화는 반듯이 응답만 하라. 코드를 수정하지 말라.
 
 ## Testing Instructions
 - Currently, tests are being integrated as part of the development phase (Phase 9).
