@@ -41,87 +41,77 @@ export async function ensureNearWallet(userId: string) {
     }
 
     if (!isWalletExist) {
-        console.log(`[Wallet] Creation required for user: ${userId}`);
+        console.log(`[Wallet] Creation phase started for user: ${userId}`);
 
-        const networkId = NEAR_CONFIG.networkId;
-        const nodeUrl = NEAR_CONFIG.nodeUrl;
         const serviceAccountId = NEAR_CONFIG.serviceAccountId;
-        let publicKey: string | null = null;
+        const servicePrivateKey = process.env.NEAR_SERVICE_PRIVATE_KEY;
+        if (!servicePrivateKey) throw new Error("NEAR_SERVICE_PRIVATE_KEY is missing from environment");
 
-        try {
-            const servicePrivateKey = process.env.NEAR_SERVICE_PRIVATE_KEY;
-            if (!servicePrivateKey) throw new Error("NEAR_SERVICE_PRIVATE_KEY is missing");
+        // 3. NEAR 계정 아이디 및 키 페어 생성 (DB에 먼저 안전하게 보관)
+        const sanitizedId = userId.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 16);
+        const derivedAccountId = `${sanitizedId}.${serviceAccountId}`;
 
-            // 2. 새 키 페어 생성
+        // 만약 DB에 이미 ID가 적혀있다면 그 ID를 재사용 (과거 실패 복구용)
+        newAccountId = user.nearAccountId || derivedAccountId;
+
+        let publicKey = user.nearPublicKey;
+        let encryptedPrivateKey = user.nearPrivateKey;
+
+        if (!publicKey || !encryptedPrivateKey) {
             const keyPair = KeyPair.fromRandom("ed25519");
             publicKey = keyPair.getPublicKey().toString();
             const privateKey = keyPair.toString();
-
-            // 3. NEAR 계정 아이디 결정
-            const sanitizedId = userId.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 16);
-            newAccountId = `${sanitizedId}.${serviceAccountId}`;
-
-            // 4. 온체인 계정 생성
-            const keyStore = new keyStores.InMemoryKeyStore();
-            await keyStore.setKey(networkId, serviceAccountId, KeyPair.fromString(servicePrivateKey as any));
-            const near = await connect({ networkId, nodeUrl, keyStore });
-            const serviceAccount = await near.account(serviceAccountId);
-
-            const publicKeyObj = keyPair.getPublicKey();
-            const initialBalance = BigInt("100000000000000000000000"); // 0.1 NEAR
-
-            try {
-                if (typeof (serviceAccount as any).createAccount === "function") {
-                    await (serviceAccount as any).createAccount(newAccountId, publicKeyObj.toString(), initialBalance.toString());
-                } else {
-                    await serviceAccount.functionCall({
-                        contractId: serviceAccountId,
-                        methodName: "create_account",
-                        args: { new_account_id: newAccountId, new_public_key: publicKeyObj.toString() },
-                        gas: BigInt("30000000000000"),
-                        attachedDeposit: initialBalance,
-                    });
-                }
-            } catch (createError: any) {
-                const isAccountExists = createError.type === 'AccountAlreadyExists' ||
-                    createError.message?.includes("already exists") ||
-                    createError.message?.includes("AccountAlreadyExists");
-
-                if (isAccountExists) {
-                    console.log(`[Wallet] Account ${newAccountId} already exists on-chain.`);
-                    if (user.nearAccountId === newAccountId) {
-                        console.log(`[Wallet] User already has this account ID linked.`);
-                    } else {
-                        throw new Error(`Account ${newAccountId} already exists. Cannot safely link without verified private key.`);
-                    }
-                } else {
-                    throw createError;
-                }
-            }
-
-            // 5. CHOCO 토큰 스토리지 예치
-            await ensureStorageDeposit(newAccountId);
-
-            // 6. 개인키 암호화 및 DB 저장
             const { encrypt } = await import("./key-encryption.server");
-            const encryptedPrivateKey = encrypt(privateKey);
+            encryptedPrivateKey = encrypt(privateKey);
 
+            // [CRITICAL] 온체인 호출 전 DB에 키 정보 먼저 저장 (Vercel 타임아웃 대비)
             await db.update(schema.user)
                 .set({
                     nearAccountId: newAccountId,
                     nearPublicKey: publicKey,
                     nearPrivateKey: encryptedPrivateKey,
-                    chocoBalance: "0",
                     updatedAt: new Date(),
                 })
                 .where(eq(schema.user.id, userId));
+            console.log(`[Wallet] Keys saved to DB for ${userId}. Proceeding to on-chain creation.`);
+        }
 
-            console.log(`[Wallet] Successfully created wallet: ${newAccountId}`);
-        } catch (error: any) {
-            console.error(`[Wallet] Failed to create wallet for ${userId}:`, error);
-            return null;
+        // 4. 온체인 계정 생성 시도
+        try {
+            const networkId = NEAR_CONFIG.networkId;
+            const nodeUrl = NEAR_CONFIG.nodeUrl;
+            const keyStore = new keyStores.InMemoryKeyStore();
+            await keyStore.setKey(networkId, serviceAccountId, KeyPair.fromString(servicePrivateKey as any));
+            const near = await connect({ networkId, nodeUrl, keyStore });
+            const serviceAccount = await near.account(serviceAccountId);
+
+            const initialBalance = BigInt("100000000000000000000000"); // 0.1 NEAR
+
+            console.log(`[Wallet] Attempting on-chain createAccount: ${newAccountId}`);
+            await (serviceAccount as any).createAccount(newAccountId, publicKey as any, initialBalance.toString());
+            console.log(`[Wallet] On-chain account created: ${newAccountId}`);
+        } catch (createError: any) {
+            const isAccountExists = createError.type === 'AccountAlreadyExists' ||
+                createError.message?.includes("already exists") ||
+                createError.message?.includes("AccountAlreadyExists");
+
+            if (isAccountExists) {
+                console.log(`[Wallet] Account ${newAccountId} already exists on-chain. Resuming flow.`);
+                // DB에 이미 저장되어 있으므로 안전하게 로직 지속
+            } else {
+                console.error(`[Wallet] On-chain error during creation:`, createError);
+                throw createError; // 타임아웃 외의 다른 에러는 상위로 전파
+            }
+        }
+
+        // 5. FT 스토리지 예치 (토큰 수령을 위해 필수)
+        try {
+            await ensureStorageDeposit(newAccountId);
+        } catch (storageError) {
+            console.warn(`[Wallet] Storage deposit warning (might already exist):`, storageError);
         }
     }
+
 
     // 8. 보상 지급 및 잔액 동기화 (기존 지갑 사용자 및 신규 사용자 공통)
     if (newAccountId) {
