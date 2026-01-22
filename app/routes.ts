@@ -17,6 +17,7 @@ export default [
   route("home", "routes/home.tsx"),
   route("login", "routes/login.tsx"),
   route("signup", "routes/signup.tsx"),
+  route("wallet-setup", "routes/wallet-setup.tsx"),
 
   // 채팅
   route("chat/:id", "routes/chat/$id.tsx"),
