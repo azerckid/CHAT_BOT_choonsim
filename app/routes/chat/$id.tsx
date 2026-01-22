@@ -9,7 +9,7 @@ import { NetworkError } from "~/components/ui/NetworkError";
 import { LoadingSpinner } from "~/components/ui/LoadingSpinner";
 
 import { auth } from "~/lib/auth.server";
-import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
+import { type LoaderFunctionArgs, type ActionFunctionArgs, redirect } from "react-router";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ItemStoreModal } from "~/components/payment/ItemStoreModal";
@@ -92,16 +92,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { id } = params;
   if (!id) throw new Response("Not Found", { status: 404 });
 
-  const [messages, user, conversation] = await Promise.all([
+  // 유저 정보 선조회 (지갑 가드)
+  const user = await db.query.user.findFirst({
+    where: eq(schema.user.id, session.user.id),
+    with: { inventory: true }
+  });
+
+  if (!user?.nearAccountId) {
+    throw redirect("/wallet-setup");
+  }
+
+  const [messages, conversation] = await Promise.all([
     db.query.message.findMany({
       where: eq(schema.message.conversationId, id),
       orderBy: [asc(schema.message.createdAt)],
-    }),
-    db.query.user.findFirst({
-      where: eq(schema.user.id, session.user.id),
-      with: {
-        inventory: true,
-      }
     }),
     db.query.conversation.findFirst({
       where: eq(schema.conversation.id, id),

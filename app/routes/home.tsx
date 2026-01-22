@@ -1,4 +1,4 @@
-import { useNavigate, useLoaderData } from "react-router";
+import { useNavigate, useLoaderData, redirect } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import type { LoaderFunctionArgs } from "react-router";
@@ -19,18 +19,17 @@ export function meta({ }: Route.MetaArgs) {
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
 
-  // 인증된 사용자의 경우 지갑 상태 체크 및 자동 동기화 (Foreground Execution)
-  // [CRITICAL] Vercel 서버리스 시간 제한을 극복하기 위해 로더 단계에서 확실히 수행
+  // 인증된 사용자의 경우 지갑 상태 체크
   let recentConversations: any[] = [];
   if (session) {
-    try {
-      const { ensureNearWallet } = await import("~/lib/near/wallet.server");
-      const walletId = await ensureNearWallet(session.user.id);
-      if (walletId) {
-        console.log(`[Home Loader] Wallet sync/recovery completed for: ${walletId}`);
-      }
-    } catch (walletError) {
-      console.error(`[Home Loader] Wallet sync failed but continuing:`, walletError);
+    const user = await db.query.user.findFirst({
+      where: eq(schema.user.id, session.user.id),
+      columns: { nearAccountId: true }
+    });
+
+    // 지갑이 없으면 설정 페이지로 강제 이동 (로딩 및 안내 UI 제공)
+    if (!user?.nearAccountId) {
+      return redirect("/wallet-setup");
     }
 
     recentConversations = await db.query.conversation.findMany({
