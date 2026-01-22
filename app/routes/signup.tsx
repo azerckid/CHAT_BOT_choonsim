@@ -24,7 +24,8 @@ export default function SignUpScreen() {
       }
 
       setIsLoading(false);
-      navigate("/login");
+      // 성공 시 홈으로 강제 이동 (세션 쿠키 확실히 적용 + 자동 로그인)
+      window.location.href = "/home";
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
