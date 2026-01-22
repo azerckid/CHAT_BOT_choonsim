@@ -13,9 +13,9 @@ export default function OnboardingScreen() {
       setShowMessage(true);
     }, 1000);
 
-    // 3초 후 페르소나 모드 선택 화면으로 이동
+    // 3초 후 메인 채팅 목록으로 이동 (기존 페르소나 선택 단계 제거)
     const timer2 = setTimeout(() => {
-      navigate("/onboarding/persona");
+      navigate("/chats");
     }, 4000);
 
     return () => {

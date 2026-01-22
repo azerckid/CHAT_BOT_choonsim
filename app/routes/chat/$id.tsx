@@ -177,6 +177,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (!userMsg) throw new Error("Failed to create user message Record");
 
+  if (formData.get("intent") === "updatePersonaMode") {
+    const mode = formData.get("mode") as string;
+    await db.update(schema.conversation)
+      .set({ personaMode: mode })
+      .where(eq(schema.conversation.id, id));
+    return Response.json({ success: true, mode });
+  }
+
   return Response.json({ success: true, message: userMsg });
 }
 
@@ -206,6 +214,7 @@ export default function ChatRoom() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPersonaMode, setCurrentPersonaMode] = useState<string>(conversation.personaMode || 'lover');
   const [isInterrupting, setIsInterrupting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   // Add heart burst state
@@ -470,7 +479,8 @@ export default function ChatRoom() {
           conversationId,
           mediaUrl,
           characterId: dbCharacter?.id,
-          giftContext
+          giftContext,
+          personaMode: currentPersonaMode
         }),
       });
 
@@ -697,6 +707,15 @@ export default function ChatRoom() {
     setTimeout(() => setLoadingState("idle"), 1000);
   };
 
+  const handlePersonaModeChange = (mode: string) => {
+    setCurrentPersonaMode(mode);
+    fetcher.submit(
+      { intent: "updatePersonaMode", mode },
+      { method: "post" }
+    );
+    toast.info(`말투가 ${(mode === 'lover' ? '애인' : mode === 'idol' ? '아이돌' : mode === 'hybrid' ? '하이브리드' : '롤플레잉')} 모드로 변경되었습니다.`);
+  };
+
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white h-screen flex flex-col overflow-hidden max-w-md mx-auto md:max-w-2xl lg:max-w-3xl">
@@ -713,7 +732,9 @@ export default function ChatRoom() {
         onResetChat={() => setIsResetDialogOpen(true)}
         chocoBalance={Math.floor(currentUserChocoBalance).toString()}
         chocoChange={chocoChange}
-        isOptimisticDeducting={lastOptimisticDeduction > 0} // 새로운 prop 전달
+        isOptimisticDeducting={lastOptimisticDeduction > 0}
+        personaMode={currentPersonaMode}
+        onPersonaModeChange={handlePersonaModeChange}
       />
 
       <main

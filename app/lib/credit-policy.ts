@@ -10,6 +10,7 @@ import { SUBSCRIPTION_PLANS, type SubscriptionPlan } from "./subscription-plans"
 
 export const MODEL_CREDIT_COSTS: Record<string, number> = {
     // Low Cost Models (1 KRW/msg)
+    "gemini-2.5-flash": 10,
     "gemini-2.0-flash-exp": 10,
     "gemini-1.5-flash": 10,
 
@@ -41,7 +42,7 @@ export function canUseModel(tier: string, modelId: string): boolean {
     if (tier === "ULTIMATE" || tier === "PREMIUM") return true;
 
     // BASIC & FREE can only use Flash models
-    const allowedModels = ["gemini-2.0-flash-exp", "gemini-1.5-flash"];
+    const allowedModels = ["gemini-2.5-flash", "gemini-2.0-flash-exp", "gemini-1.5-flash"];
     return allowedModels.includes(modelId);
 }
 

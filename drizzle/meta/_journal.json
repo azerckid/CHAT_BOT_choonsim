@@ -57,6 +57,13 @@
       "when": 1769089740490,
       "tag": "0007_add_system_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1769104823181,
+      "tag": "0008_early_shooting_star",
+      "breakpoints": true
     }
   ]
 }

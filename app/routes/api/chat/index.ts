@@ -20,6 +20,7 @@ const chatSchema = z.object({
         amount: z.number(),
         itemId: z.string(),
     }).optional(),
+    personaMode: z.enum(["idol", "lover", "hybrid", "roleplay"]).optional(),
 }).refine(data => data.message || data.mediaUrl || data.giftContext, {
     message: "Message, media or gift is required",
     path: ["message"],
@@ -42,7 +43,7 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ error: result.error.flatten() }, { status: 400 });
     }
 
-    const { message, conversationId, mediaUrl, characterId, giftContext } = result.data;
+    const { message, conversationId, mediaUrl, characterId, giftContext, personaMode } = result.data;
 
     // 1. 대화 내역 및 사용자 정보 조회
     const [history, currentUser] = await Promise.all([
@@ -54,6 +55,10 @@ export async function action({ request }: ActionFunctionArgs) {
         db.query.user.findFirst({
             where: eq(schema.user.id, session.user.id),
             columns: { id: true, bio: true, subscriptionTier: true, chocoBalance: true, nearAccountId: true, nearPrivateKey: true },
+        }),
+        db.query.conversation.findFirst({
+            where: eq(schema.conversation.id, conversationId),
+            columns: { personaMode: true }
         }),
     ]);
 
@@ -88,20 +93,23 @@ export async function action({ request }: ActionFunctionArgs) {
         return response;
     }
 
-    // bio에서 페르소나 모드 및 기억(Summary) 파싱
-    let personality: any = "hybrid";
     let memory: string = "";
     let bioData: any = {};
 
     if (currentUser?.bio) {
         try {
             bioData = JSON.parse(currentUser.bio);
-            if (bioData.personaMode) personality = bioData.personaMode;
             if (bioData.memory) memory = bioData.memory;
         } catch (e) {
             console.error("Bio parsing error:", e);
         }
     }
+
+    // conversation에서 페르소나 모드 가져오기 (body에 있으면 body 우선)
+    const personality = (personaMode || (history.length > 0 ? (await db.query.conversation.findFirst({
+        where: eq(schema.conversation.id, conversationId),
+        columns: { personaMode: true }
+    }))?.personaMode : "lover") || "lover") as any;
 
     // 1.5 선물 연속성 확인 (최근 10분 이내 선물 횟수 조회)
     let giftCountInSession = 0;
@@ -371,7 +379,7 @@ export async function action({ request }: ActionFunctionArgs) {
                             await db.insert(schema.agentExecution).values({
                                 id: crypto.randomUUID(),
                                 messageId: savedMessage.id,
-                                agentName: `gemini-2.0-flash-${characterId}`,
+                                agentName: `gemini-2.5-flash-${characterId}`,
                                 intent: personality || "hybrid",
                                 promptTokens: usage.promptTokens,
                                 completionTokens: usage.completionTokens,
