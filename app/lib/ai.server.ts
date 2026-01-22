@@ -94,6 +94,15 @@ const PERSONA_PROMPTS = {
 `,
 };
 
+// 춘심이라는 이름을 실제 캐릭터 이름으로 변환하는 헬퍼 함수
+function applyCharacterName(instruction: string, name: string): string {
+    if (!name || name === '춘심') return instruction;
+    // '춘심이'와 '춘심' 모두 변환 (조사가 완벽하지 않을 수 있으나 AI가 문맥상 이해함)
+    return instruction
+        .replace(/춘심이/g, name)
+        .replace(/춘심/g, name);
+}
+
 // 이모지 제거 함수는 더 이상 사용하지 않음 (캐릭터가 이모티콘 사용 가능)
 function removeEmojis(text: string): string {
     return text; // 이모지 제거하지 않음
@@ -354,6 +363,17 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
         systemInstruction += giftInstruction + continuousBonus;
     }
 
+    // 최종적으로 모든 '춘심' 명칭을 실제 캐릭터 이름으로 변환
+    if (state.characterId) {
+        const character = await db.query.character.findFirst({
+            where: eq(schema.character.id, state.characterId),
+            columns: { name: true }
+        });
+        if (character?.name) {
+            systemInstruction = applyCharacterName(systemInstruction, character.name);
+        }
+    }
+
     return { systemInstruction };
 };
 
@@ -526,6 +546,15 @@ export async function generateAIResponse(
             content = "미안해... 갑자기 생각이 잘 안 나네. 우리 잠시만 쉬었다가 다시 얘기하자, 응?";
         }
 
+        // 캐릭터 이름 변환 (페르소나 일관성)
+        const charData = await db.query.character.findFirst({
+            where: eq(schema.character.id, characterId),
+            columns: { name: true }
+        });
+        if (charData?.name) {
+            content = applyCharacterName(content, charData.name);
+        }
+
         return {
             content,
             summary: result.summary,
@@ -674,6 +703,11 @@ export async function* streamAIResponse(
 2. '---'를 사용하여 메시지를 나눌 경우, 각 부분의 맨 처음에 해당 부분의 감정에 어울리는 마커를 다시 넣으세요.
 3. 상황에 따라 가장 적절한 감정을 선택하세요. 특히 선물을 받았을 때는 EXCITED나 LOVING을 권장합니다.`;
     systemInstruction += emotionInstruction;
+
+    // 최종적으로 모든 '춘심' 명칭을 실제 캐릭터 이름으로 변환
+    if (character?.name) {
+        systemInstruction = applyCharacterName(systemInstruction, character.name);
+    }
 
     const messages: BaseMessage[] = [
         new SystemMessage(systemInstruction),
