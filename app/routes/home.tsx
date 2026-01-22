@@ -19,9 +19,20 @@ export function meta({ }: Route.MetaArgs) {
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
 
-  // 인증된 사용자의 경우 최근 대화 목록 가져오기 (최대 5개)
+  // 인증된 사용자의 경우 지갑 상태 체크 및 자동 동기화 (Foreground Execution)
+  // [CRITICAL] Vercel 서버리스 시간 제한을 극복하기 위해 로더 단계에서 확실히 수행
   let recentConversations: any[] = [];
   if (session) {
+    try {
+      const { ensureNearWallet } = await import("~/lib/near/wallet.server");
+      const walletId = await ensureNearWallet(session.user.id);
+      if (walletId) {
+        console.log(`[Home Loader] Wallet sync/recovery completed for: ${walletId}`);
+      }
+    } catch (walletError) {
+      console.error(`[Home Loader] Wallet sync failed but continuing:`, walletError);
+    }
+
     recentConversations = await db.query.conversation.findMany({
       where: eq(schema.conversation.userId, session.user.id),
       with: {
