@@ -8,7 +8,7 @@ import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
 import { toast } from "sonner";
 import * as schema from "~/db/schema";
-import { eq, desc, and, like, sql, inArray } from "drizzle-orm";
+import { eq, desc, and, like, sql, inArray, asc } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -21,7 +21,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // 0. All Characters for Selector
   const allCharacters = await db.query.character.findMany({
-    with: { media: true }
+    with: {
+      media: {
+        orderBy: [asc(schema.characterMedia.sortOrder)]
+      }
+    }
   });
 
   const selectedCharacter = allCharacters.find(c => c.id === characterId) || allCharacters[0];
@@ -262,7 +266,12 @@ export default function FandomScreen() {
         {/* Bias Spotlight Card */}
         <div className="px-4">
           <div className="relative overflow-hidden rounded-2xl bg-surface-dark dark:bg-surface-dark shadow-lg dark:shadow-none group">
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1506979287313-09437452d37c?q=80&w=800&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay" />
+            <div
+              className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay"
+              style={{
+                backgroundImage: `url('${(selectedCharacter.media?.find((m: any) => m.type === "COVER")?.url) || selectedCharacter.media?.[0]?.url}')`
+              }}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-90" />
             <div className="relative p-6 flex flex-col gap-4">
               <div className="flex justify-between items-start">

@@ -58,7 +58,7 @@ export default function SignUpScreen() {
                 <img
                   alt="AI Idol Avatar Abstract"
                   className="w-full h-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQGb-stBrzZItbL8XtoURESagB9zpHzwLm-HoCQwPYG7AFSrfFoZq-VB_TceAgImuDoO8Yp4i7B0v3LU7JGNPzD9LYZGvvOuUmGaixZwgMVZlJCg56yEjlrhDZ8wh_gCr4EYwb6oqFo00lr1b-NFhhfCwlhrDeBLFmWqTTSycCR-fj28lfGTYtFj3Vq9MnXoHkkGSyTaJgAlS25R7G9MJU00fGU4iYu5TwX8k-d0DZrhACuvfqqgRDBHpDcg_7wBwh7q1vzu8W61g"
+                  src="/illustrations/rina.png"
                 />
               </div>
               <div className="ml-4 flex flex-col justify-center">
@@ -72,7 +72,7 @@ export default function SignUpScreen() {
           <div className="mb-6">
             <h2 className="text-slate-900 dark:text-white tracking-tight text-[28px] font-bold leading-tight mb-2">Create your account</h2>
             <p className="text-slate-500 dark:text-[#c992ad] text-base font-normal leading-relaxed">
-              Start your journey with your AI idol today. She's waiting to meet you.
+              Start your journey with your AI today. She's waiting to meet you.
             </p>
           </div>
 
