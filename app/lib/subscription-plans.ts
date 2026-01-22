@@ -23,9 +23,9 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         monthlyPrice: 0,
         monthlyPriceKRW: 0,
         creditsPerMonth: 1500, // 일 50회 * 30일
-        aiModel: "gemini-2.5-flash",
+        aiModel: "gemini-2.0-flash-exp",
         features: [
-            "기본 AI 대화 (Gemini 2.5 Flash)",
+            "기본 AI 대화 (Gemini Flash)",
             "일일 50 CHOCO",
             "광고 포함",
             "커뮤니티 지원"
@@ -38,7 +38,7 @@ export const SUBSCRIPTION_PLANS: Record<string, SubscriptionPlan> = {
         monthlyPrice: 4.99,
         monthlyPriceKRW: 6900,
         creditsPerMonth: 2000,
-        aiModel: "gemini-2.5-flash",
+        aiModel: "gemini-2.0-flash-exp",
         features: [
             "모든 Free 기능 포함",
             "광고 제거",

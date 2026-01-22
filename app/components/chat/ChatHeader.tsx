@@ -24,8 +24,6 @@ interface ChatHeaderProps {
   chocoBalance?: string; // 추가: CHOCO 토큰 잔액
   chocoChange?: number;  // 추가: CHOCO 변동량
   isOptimisticDeducting?: boolean; // 추가: 낙관적 차감 중 여부
-  personaMode?: string; // 추가: 현재 페르소나 모드
-  onPersonaModeChange?: (mode: string) => void; // 추가: 모드 전환 핸들러
 }
 
 import {
@@ -50,8 +48,6 @@ export function ChatHeader({
   chocoBalance,
   chocoChange,
   isOptimisticDeducting,
-  personaMode,
-  onPersonaModeChange,
 }: ChatHeaderProps) {
   const [balanceDialogOpen, setBalanceDialogOpen] = useState(false);
 
@@ -165,33 +161,6 @@ export function ChatHeader({
                 <span className="material-symbols-outlined mr-2 text-[18px]">restart_alt</span>
                 대화 초기화 (기억 포함)
               </DropdownMenuItem>
-
-              <div className="h-px bg-gray-200 dark:bg-white/5 my-1" />
-              <div className="px-2 py-1.5 min-w-[160px]">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mb-2 px-2">대화 모드 설정</p>
-                <div className="grid grid-cols-1 gap-1">
-                  {[
-                    { id: 'lover', label: '애인 모드', icon: 'favorite' },
-                    { id: 'idol', label: '아이돌 모드', icon: 'star' },
-                    { id: 'hybrid', label: '하이브리드', icon: 'auto_awesome' },
-                    { id: 'roleplay', label: '롤플레잉', icon: 'theater_comedy' },
-                  ].map((mode) => (
-                    <button
-                      key={mode.id}
-                      onClick={() => onPersonaModeChange?.(mode.id)}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors",
-                        personaMode === mode.id
-                          ? "bg-primary/20 text-primary font-bold"
-                          : "hover:bg-black/5 dark:hover:bg-white/5 text-slate-600 dark:text-gray-300"
-                      )}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">{mode.icon}</span>
-                      {mode.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

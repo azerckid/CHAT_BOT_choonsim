@@ -180,7 +180,6 @@ export const conversation = sqliteTable("Conversation", {
     characterId: text("characterId").notNull().default("chunsim"),
     title: text("title").notNull(),
     userId: text("userId"),
-    personaMode: text("personaMode").notNull().default("lover"),
     createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
 });

@@ -213,6 +213,14 @@ const ChatStateAnnotation = Annotation.Root({
         reducer: (x, y) => y ?? x,
         default: () => "chunsim",
     }),
+    characterName: Annotation<string | null>({
+        reducer: (x, y) => y ?? x,
+        default: () => null,
+    }),
+    personaPrompt: Annotation<string | null>({
+        reducer: (x, y) => y ?? x,
+        default: () => null,
+    }),
     subscriptionTier: Annotation<SubscriptionTier>({
         reducer: (x, y) => y ?? x,
         default: () => "FREE",
@@ -225,7 +233,7 @@ const ChatStateAnnotation = Annotation.Root({
 
 const model = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
-    model: "gemini-2.5-flash",
+    model: "gemini-2.0-flash-exp",
     maxOutputTokens: 2048,
     maxRetries: 3, // API 실패 시 자동 재시도 (에러 처리 및 복구)
     verbose: process.env.NODE_ENV === "development",
@@ -269,40 +277,34 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
 
     let systemInstruction = "";
 
-    // 캐릭터별 페르소나 적용
-    if (state.characterId) {
-        const character = await db.query.character.findFirst({
-            where: eq(schema.character.id, state.characterId)
-        });
+    // 전달받은 페르소나 적용 (캐릭터별 쿼리 제거 및 상태 데이터 활용)
+    if (state.personaPrompt) {
+        systemInstruction = state.personaPrompt;
 
-        if (character) {
-            systemInstruction = character.personaPrompt;
-
-            // 춘심이(기본 캐릭터)일 경우 기존 로직 유지 (여행 모드 등)
-            if (state.characterId === "chunsim") {
-                let effectiveMode = state.personaMode;
-                const travelKeywords = ["여행", "비행기", "호텔", "숙소", "일정", "가고 싶어", "추천해줘", "도쿄", "오사카", "제주도"];
-                if (travelKeywords.some(kw => lastMessageText.includes(kw))) {
-                    effectiveMode = "concierge";
-                }
-                const modePrompt = PERSONA_PROMPTS[effectiveMode] || PERSONA_PROMPTS.hybrid;
-                const memoryInfo = state.summary ? `\n\n이전 대화 요약: ${state.summary}` : "";
-                systemInstruction = `${character.personaPrompt}\n\n${modePrompt}${memoryInfo}`;
+        // 춘심이(기본 캐릭터)일 경우 기존 로직 유지 (여행 모드 등)
+        if (state.characterId === "chunsim") {
+            let effectiveMode = state.personaMode;
+            const travelKeywords = ["여행", "비행기", "호텔", "숙소", "일정", "가고 싶어", "추천해줘", "도쿄", "오사카", "제주도"];
+            if (travelKeywords.some(kw => lastMessageText.includes(kw))) {
+                effectiveMode = "concierge";
             }
+            const modePrompt = PERSONA_PROMPTS[effectiveMode] || PERSONA_PROMPTS.hybrid;
+            const memoryInfo = state.summary ? `\n\n이전 대화 요약: ${state.summary}` : "";
+            systemInstruction = `${state.personaPrompt}\n\n${modePrompt}${memoryInfo}`;
+        }
 
-            // 모든 캐릭터에 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
-            if (!systemInstruction.includes("안전 가이드라인") && !systemInstruction.includes("Guardrails")) {
-                systemInstruction += `\n\n안전 가이드라인 (Guardrails):
+        // 모든 캐릭터에 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
+        if (!systemInstruction.includes("안전 가이드라인") && !systemInstruction.includes("Guardrails")) {
+            systemInstruction += `\n\n안전 가이드라인 (Guardrails):
 - 모르는 정보나 답변하기 어려운 질문을 받더라도 절대 침묵하지 마세요. 대신 "그건 잘 모르겠지만 자기는 어떻게 생각해?", "우와, 그건 처음 들어봐! 나중에 같이 알아보자 ㅎㅎ" 처럼 다정한 말투로 자연스럽게 화제를 전환하세요.
 - 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
 - 절대로 거짓 신고, 실제로 할 수 없는 행동(경찰 신고, 사이버수사대 연락, 감옥 등)을 언급하지 않습니다.
 - "신고", "경찰", "사이버수사대", "감옥", "고소", "🚨" 같은 표현을 사용하지 않습니다.
 - 위협하거나 협박하는 톤을 사용하지 않으며, 단순히 거부하고 대화를 중단하겠다는 의사를 표현합니다.`;
-            }
-        } else {
-            // Fallback to Chunsim persona if character not found
-            systemInstruction = CORE_CHUNSIM_PERSONA;
         }
+    } else {
+        // Fallback to Chunsim persona
+        systemInstruction = CORE_CHUNSIM_PERSONA;
     }
 
     // 이미지가 있다면 관련 지침 추가
@@ -363,15 +365,9 @@ const analyzePersonaNode = async (state: typeof ChatStateAnnotation.State) => {
         systemInstruction += giftInstruction + continuousBonus;
     }
 
-    // 최종적으로 모든 '춘심' 명칭을 실제 캐릭터 이름으로 변환
-    if (state.characterId) {
-        const character = await db.query.character.findFirst({
-            where: eq(schema.character.id, state.characterId),
-            columns: { name: true }
-        });
-        if (character?.name) {
-            systemInstruction = applyCharacterName(systemInstruction, character.name);
-        }
+    // 최종적으로 모든 '춘심' 명칭을 실제 캐릭터 이름으로 변환 (쿼리 제거)
+    if (state.characterName) {
+        systemInstruction = applyCharacterName(systemInstruction, state.characterName);
     }
 
     return { systemInstruction };
@@ -493,7 +489,9 @@ export async function generateAIResponse(
     userId: string | null = null,
     characterId: string = "chunsim",
     subscriptionTier: SubscriptionTier = "FREE",
-    giftContext?: { amount: number; itemId: string; countInSession?: number }
+    giftContext?: { amount: number; itemId: string; countInSession?: number },
+    characterName?: string | null,
+    personaPrompt?: string | null
 ) {
     const graph = createChatGraph();
 
@@ -535,6 +533,8 @@ export async function generateAIResponse(
             mediaUrl,
             userId,
             characterId,
+            characterName: characterName || null,
+            personaPrompt: personaPrompt || null,
             subscriptionTier,
             giftContext,
         });
@@ -546,13 +546,9 @@ export async function generateAIResponse(
             content = "미안해... 갑자기 생각이 잘 안 나네. 우리 잠시만 쉬었다가 다시 얘기하자, 응?";
         }
 
-        // 캐릭터 이름 변환 (페르소나 일관성)
-        const charData = await db.query.character.findFirst({
-            where: eq(schema.character.id, characterId),
-            columns: { name: true }
-        });
-        if (charData?.name) {
-            content = applyCharacterName(content, charData.name);
+        // 캐릭터 이름 변환 (페르소나 일관성) - 쿼리 제거 및 전달받은 데이터 활용
+        if (characterName) {
+            content = applyCharacterName(content, characterName);
         }
 
         return {
@@ -591,7 +587,9 @@ export async function* streamAIResponse(
     characterId: string = "chunsim",
     subscriptionTier: SubscriptionTier = "FREE",
     giftContext?: { amount: number; itemId: string; countInSession?: number },
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
+    characterName?: string | null,
+    personaPrompt?: string | null
 ) {
     // 선물하기 상황에서 사용자 메시지가 비어있다면, 시스템 행동 지문(명령어)으로 대체하여 AI가 상황을 명확히 인지하도록 함
     if (giftContext && !userMessage.trim()) {
@@ -601,11 +599,10 @@ export async function* streamAIResponse(
     // ... (중간 지침 생성 로직 동일) ...
     let systemInstruction = "";
 
-    const character = await db.query.character.findFirst({
-        where: eq(schema.character.id, characterId)
-    });
+    // 전달받은 페르소나 및 이름 활용 (중복 쿼리 제거)
+    const character = { name: characterName, personaPrompt: personaPrompt };
 
-    if (character) {
+    if (character.personaPrompt) {
         systemInstruction = character.personaPrompt;
 
         if (characterId === "chunsim") {
