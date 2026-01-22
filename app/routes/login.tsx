@@ -16,7 +16,7 @@ export default function LoginScreen() {
       const { data, error: signInError } = await signIn.email({
         email,
         password,
-        callbackURL: "/onboarding",
+        callbackURL: "/home",
       });
 
       if (signInError) {
@@ -24,7 +24,7 @@ export default function LoginScreen() {
       }
 
       setIsLoading(false);
-      navigate("/onboarding");
+      navigate("/home");
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
@@ -39,7 +39,7 @@ export default function LoginScreen() {
       // Better Auth 1.x social login
       const { data, error: socialError } = await signIn.social({
         provider: provider as any,
-        callbackURL: "/onboarding",
+        callbackURL: "/home",
       });
 
       if (socialError) {

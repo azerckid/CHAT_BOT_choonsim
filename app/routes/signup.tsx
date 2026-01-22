@@ -17,7 +17,7 @@ export default function SignUpScreen() {
         email,
         password,
         name: nickname,
-        callbackURL: "/onboarding",
+        callbackURL: "/home",
       });
 
       if (signUpError) {
@@ -25,7 +25,7 @@ export default function SignUpScreen() {
       }
 
       setIsLoading(false);
-      navigate("/onboarding");
+      navigate("/home");
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
