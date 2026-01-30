@@ -378,7 +378,7 @@ export async function action({ request }: ActionFunctionArgs) {
                             await db.insert(schema.agentExecution).values({
                                 id: crypto.randomUUID(),
                                 messageId: savedMessage.id,
-                                agentName: `gemini-2.0-flash-${characterId}`,
+                                agentName: `gemini-2.5-flash-${characterId}`,
                                 intent: personality || "hybrid",
                                 promptTokens: usage.promptTokens,
                                 completionTokens: usage.completionTokens,

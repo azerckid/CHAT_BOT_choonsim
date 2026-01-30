@@ -233,7 +233,7 @@ const ChatStateAnnotation = Annotation.Root({
 
 const model = new ChatGoogleGenerativeAI({
     apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-2.5-flash",
     maxOutputTokens: 2048,
     maxRetries: 3, // API 실패 시 자동 재시도 (에러 처리 및 복구)
     verbose: process.env.NODE_ENV === "development",
