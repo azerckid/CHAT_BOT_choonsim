@@ -6,6 +6,7 @@
 
 import { getFullContextData, updateTools } from "./db";
 import { type ToolsDoc, DEFAULT_TOOLS } from "./types";
+import { truncateToTokenLimit } from "./token-budget";
 
 /**
  * Tools 정보 갱신
@@ -29,10 +30,12 @@ export async function updateUserTools(
 /**
  * 프롬프트 주입용 Tools 문자열 생성
  * 예: "[GUIDELINES] Avoid: 정치 / Start: 생일"
+ * @param maxTokens 계층 토큰 상한 (미지정 시 무제한)
  */
 export async function compressToolsForPrompt(
     userId: string,
-    characterId: string
+    characterId: string,
+    maxTokens?: number
 ): Promise<string> {
     const context = await getFullContextData(userId, characterId);
     const tools = context?.tools;
@@ -68,5 +71,9 @@ export async function compressToolsForPrompt(
 
     if (lines.length === 0) return "";
 
-    return `[GUIDELINES & TOOLS]\n${lines.join("\n")}`;
+    const raw = `[GUIDELINES & TOOLS]\n${lines.join("\n")}`;
+    if (maxTokens != null && maxTokens > 0) {
+        return truncateToTokenLimit(raw, maxTokens);
+    }
+    return raw;
 }

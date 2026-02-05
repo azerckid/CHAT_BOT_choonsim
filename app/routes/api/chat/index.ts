@@ -10,13 +10,17 @@ import { eq, and, sql, desc, gte, count } from "drizzle-orm";
 import { createX402Invoice, createX402Response } from "~/lib/near/x402.server";
 import { checkSilentPaymentAllowance } from "~/lib/near/silent-payment.server";
 import {
+    getFullContextData,
     compressMemoryForPrompt,
     extractAndSaveMemoriesFromConversation,
     compressHeartbeatForPrompt,
     updateHeartbeatContext,
     compressIdentityForPrompt,
     compressSoulForPrompt,
-    compressToolsForPrompt
+    compressToolsForPrompt,
+    classifyConversation,
+    isSpecialDateToday,
+    getLayerBudgets,
 } from "~/lib/context";
 
 const chatSchema = z.object({
@@ -105,14 +109,26 @@ export async function action({ request }: ActionFunctionArgs) {
     let memory: string = "";
     let bioData: any = {};
 
-    // Phase 3 & 4 & 5 & 6: Context Loading
+    // Phase 10: 대화 유형 분류 → 동적 토큰 예산 적용 후 5계층 로드
     try {
+        const fullContext = await getFullContextData(session.user.id, characterId);
+        const recentText = history
+            .slice(0, 3)
+            .map((m) => (m as any).content || "")
+            .join(" ");
+        const conversationType = classifyConversation({
+            messageCount: history.length,
+            isSpecialDateToday: isSpecialDateToday(fullContext?.tools),
+            recentText,
+        });
+        const budget = getLayerBudgets(conversationType);
+
         const [contextMemory, contextHeartbeat, contextIdentity, contextSoul, contextTools] = await Promise.all([
-            compressMemoryForPrompt(session.user.id, characterId),
-            compressHeartbeatForPrompt(session.user.id, characterId),
-            compressIdentityForPrompt(session.user.id, characterId),
-            compressSoulForPrompt(session.user.id, characterId, (currentUser?.subscriptionTier as any) || "FREE"),
-            compressToolsForPrompt(session.user.id, characterId)
+            compressMemoryForPrompt(session.user.id, characterId, budget.memory),
+            compressHeartbeatForPrompt(session.user.id, characterId, budget.heartbeat),
+            compressIdentityForPrompt(session.user.id, characterId, budget.identity),
+            compressSoulForPrompt(session.user.id, characterId, (currentUser?.subscriptionTier as any) || "FREE", budget.soul),
+            compressToolsForPrompt(session.user.id, characterId, budget.tools),
         ]);
 
         const parts = [];

@@ -6,6 +6,7 @@
 
 import { getFullContextData, updateIdentity } from "./db";
 import { type IdentityDoc, DEFAULT_IDENTITY, type Honorific, type RelationshipType } from "./types";
+import { truncateToTokenLimit } from "./token-budget";
 
 /**
  * Identity 정보 갱신 (Partial update)
@@ -29,10 +30,12 @@ export async function updateUserIdentity(
 /**
  * 프롬프트 주입용 Identity 문자열 생성
  * 예: "[Identity] User: 지훈(오빠), Relationship: 연인(반말)"
+ * @param maxTokens 계층 토큰 상한 (미지정 시 무제한)
  */
 export async function compressIdentityForPrompt(
     userId: string,
-    characterId: string
+    characterId: string,
+    maxTokens?: number
 ): Promise<string> {
     const context = await getFullContextData(userId, characterId);
     const identity = context?.identity || DEFAULT_IDENTITY;
@@ -52,9 +55,13 @@ export async function compressIdentityForPrompt(
             ? "존댓말 사용"
             : "반말/존댓말 혼용";
 
-    return `[USER INFO]
+    const raw = `[USER INFO]
 - 이름/호칭: ${namePart} ${titlePart}
 - 관계: ${relationPart}
 - 말투: ${honorificPart}
 - 특이사항: ${identity.inferredTraits?.join(", ") || "없음"}`;
+    if (maxTokens != null && maxTokens > 0) {
+        return truncateToTokenLimit(raw, maxTokens);
+    }
+    return raw;
 }

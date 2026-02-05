@@ -38,5 +38,9 @@ export * from "./soul";
 // Tools layer (Phase 6)
 export * from "./tools";
 
+// Phase 10: 대화 유형 분류 및 토큰 예산
+export * from "./conversation-classifier";
+export * from "./token-budget";
+
 // Security (Phase 8)
 export * from "./pii-filter";

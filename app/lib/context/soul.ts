@@ -8,6 +8,7 @@
 import { getFullContextData, updateSoul } from "./db";
 import { type SoulDoc, DEFAULT_SOUL } from "./types";
 import { getUserTier, type SubscriptionTier } from "./tier";
+import { truncateToTokenLimit } from "./token-budget";
 
 /**
  * Soul 정보 갱신 (Partial update)
@@ -33,10 +34,14 @@ export async function updateUserSoul(
  * 예: "[DEEP MIND] Values: 자유, 성장 / Dreams: 세계일주"
  */
 // [5.4] 등급에 따른 접근 제어: FREE/BASIC은 Soul 미지원
+/**
+ * @param maxTokens 계층 토큰 상한 (미지정 시 무제한)
+ */
 export async function compressSoulForPrompt(
     userId: string,
     characterId: string,
-    tier?: SubscriptionTier
+    tier?: SubscriptionTier,
+    maxTokens?: number
 ): Promise<string> {
     const userTier = tier || await getUserTier(userId);
 
@@ -71,5 +76,9 @@ export async function compressSoulForPrompt(
     if (soul.recurringWorries && soul.recurringWorries.length > 0) lines.push(`- 마음의 짐(고민): ${soul.recurringWorries.join(", ")}`);
     if (soul.summary) lines.push(`- 내면 요약: ${soul.summary}`);
 
-    return lines.join("\n");
+    const raw = lines.join("\n");
+    if (maxTokens != null && maxTokens > 0) {
+        return truncateToTokenLimit(raw, maxTokens);
+    }
+    return raw;
 }

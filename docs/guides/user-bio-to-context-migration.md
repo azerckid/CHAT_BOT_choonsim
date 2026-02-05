@@ -46,3 +46,7 @@ npx tsx scripts/rollback-context-to-bio.ts
 - **User.bio**: 스키마에 deprecation 주석 적용. memory 관련 **쓰기**는 제거됨.  
   읽기 fallback은 마이그레이션·검증 기간 동안 유지 가능.
 - **채팅**: memory 갱신은 5계층(`extractAndSaveMemoriesFromConversation`)만 사용.
+
+---
+
+**작성일**: 2026-02-05

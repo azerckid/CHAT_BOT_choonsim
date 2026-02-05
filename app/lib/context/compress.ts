@@ -2,6 +2,7 @@
  * User Context - 프롬프트 주입용 압축
  *
  * 토큰 예산 내에서 계층별 내용을 문자열로 반환 (명세 12.1)
+ * Phase 10: 계층별 maxTokens 지원으로 동적 토큰 할당 적용
  */
 
 import {
@@ -13,8 +14,9 @@ import { formatHeartbeatForPrompt } from "./heartbeat";
 import { compressIdentityForPrompt } from "./identity";
 import { compressSoulForPrompt } from "./soul";
 import { compressToolsForPrompt } from "./tools";
+import { truncateToTokenLimit } from "./token-budget";
 
-/** 한글/영문 대략 1토큰 ≈ 2글자로 간이 계산 */
+/** 한글/영문 대략 1토큰 ≈ 2글자로 간이 계산 (token-budget.CHARS_PER_TOKEN과 동일) */
 const CHARS_PER_TOKEN = 2;
 
 /**
@@ -50,13 +52,19 @@ export async function compressMemoryForPrompt(
 
 /**
  * Heartbeat 계층을 프롬프트용 문자열로 변환
+ * @param maxTokens 계층 토큰 상한 (미지정 시 무제한)
  */
 export async function compressHeartbeatForPrompt(
     userId: string,
-    characterId: string
+    characterId: string,
+    maxTokens?: number
 ): Promise<string> {
     const context = await getFullContextData(userId, characterId);
-    return formatHeartbeatForPrompt(context?.heartbeat || null);
+    const raw = formatHeartbeatForPrompt(context?.heartbeat || null);
+    if (maxTokens != null && maxTokens > 0 && raw) {
+        return truncateToTokenLimit(raw, maxTokens);
+    }
+    return raw;
 }
 
 export { compressIdentityForPrompt } from "./identity";

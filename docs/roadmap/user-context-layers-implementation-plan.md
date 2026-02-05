@@ -393,5 +393,10 @@
 |------|-----------|
 | (작성일) | 명세서 기반 구현 계획서 초안 작성 |
 | 2026-02-05 | 명세서 업데이트 반영: Phase 0 캐릭터/메모리 분석 추가, Phase 1 격리 검증 추가, Phase 2 한도 상수 상세화, Phase 5 저장 빈도 정책 추가, Phase 7 시스템 API 3개 추가, Phase 8 삭제 유형 상세화, Phase 10 동적 할당 분류기 추가, 테스트 전략 섹션 신설 |
+| 2026-02-05 | Phase 10 구현 완료: 대화 유형 분류기(conversation-classifier), 토큰 예산 모듈(token-budget), 채팅 라우트 동적 예산 적용, 계층별 maxTokens 지원, context-integration-summary.md 추가 |
 
 이 계획서는 `docs/features/chat/user-context-layers-spec.md`가 수정될 경우, 해당 변경을 반영해 갱신한다.
+
+---
+
+**작성일**: 2026-02-05
