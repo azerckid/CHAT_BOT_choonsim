@@ -14,7 +14,8 @@ import {
     extractAndSaveMemoriesFromConversation,
     compressHeartbeatForPrompt,
     updateHeartbeatContext,
-    compressIdentityForPrompt
+    compressIdentityForPrompt,
+    compressSoulForPrompt
 } from "~/lib/context";
 
 const chatSchema = z.object({
@@ -103,16 +104,18 @@ export async function action({ request }: ActionFunctionArgs) {
     let memory: string = "";
     let bioData: any = {};
 
-    // Phase 3 & 4: Context Loading
+    // Phase 3 & 4 & 5: Context Loading
     try {
-        const [contextMemory, contextHeartbeat, contextIdentity] = await Promise.all([
+        const [contextMemory, contextHeartbeat, contextIdentity, contextSoul] = await Promise.all([
             compressMemoryForPrompt(session.user.id, characterId),
             compressHeartbeatForPrompt(session.user.id, characterId),
-            compressIdentityForPrompt(session.user.id, characterId)
+            compressIdentityForPrompt(session.user.id, characterId),
+            compressSoulForPrompt(session.user.id, characterId, (currentUser?.subscriptionTier as any) || "FREE")
         ]);
 
         const parts = [];
         if (contextIdentity) parts.push(contextIdentity);
+        if (contextSoul) parts.push(contextSoul);
         if (contextHeartbeat) parts.push(contextHeartbeat);
         if (contextMemory) parts.push(contextMemory);
 

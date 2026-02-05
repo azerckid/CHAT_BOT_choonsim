@@ -11,6 +11,7 @@ import {
 import { MEMORY_PROMPT_MAX_TOKENS, MEMORY_PROMPT_MAX_ITEMS } from "./constants";
 import { formatHeartbeatForPrompt } from "./heartbeat";
 import { compressIdentityForPrompt } from "./identity";
+import { compressSoulForPrompt } from "./soul";
 
 /** 한글/영문 대략 1토큰 ≈ 2글자로 간이 계산 */
 const CHARS_PER_TOKEN = 2;
@@ -58,3 +59,4 @@ export async function compressHeartbeatForPrompt(
 }
 
 export { compressIdentityForPrompt } from "./identity";
+export { compressSoulForPrompt } from "./soul";

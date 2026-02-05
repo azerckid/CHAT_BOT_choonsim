@@ -79,6 +79,9 @@ export default [
   route("api/payment/near/create-request", "routes/api/payment/near/create-request.ts"),
   route("api/payment/near/verify", "routes/api/payment/near/verify.ts"),
 
+  // Context API
+  route("api/context/:characterId/soul", "routes/api/context/$characterId.soul.ts"),
+
   // Admin Routes
   route("admin/dashboard", "routes/admin/dashboard.tsx"),
   route("admin/characters", "routes/admin/characters/index.tsx"),

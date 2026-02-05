@@ -31,3 +31,6 @@ export * from "./heartbeat";
 
 // Identity layer (Phase 4)
 export * from "./identity";
+
+// Soul layer (Phase 5)
+export * from "./soul";
