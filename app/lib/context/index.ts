@@ -34,3 +34,6 @@ export * from "./identity";
 
 // Soul layer (Phase 5)
 export * from "./soul";
+
+// Tools layer (Phase 6)
+export * from "./tools";

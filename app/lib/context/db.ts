@@ -246,6 +246,55 @@ export async function deleteAllUserContexts(userId: string): Promise<void> {
         .where(eq(schema.userContext.userId, userId));
 }
 
+/**
+ * Get all contexts for a user (all characters)
+ * Returns summary information for each character context
+ */
+export async function getAllUserContexts(userId: string): Promise<Array<{
+    characterId: string;
+    heartbeat: HeartbeatDoc | null;
+    identity: IdentityDoc | null;
+    soul: SoulDoc | null;
+    tools: ToolsDoc | null;
+    memoryCount: number;
+    updatedAt: Date | null;
+}>> {
+    const contexts = await db
+        .select()
+        .from(schema.userContext)
+        .where(eq(schema.userContext.userId, userId))
+        .orderBy(desc(schema.userContext.updatedAt));
+
+    const results = await Promise.all(
+        contexts.map(async (ctx) => {
+            // Get memory count for this character
+            const memoryCountResult = await db
+                .select({ count: count() })
+                .from(schema.userMemoryItem)
+                .where(
+                    and(
+                        eq(schema.userMemoryItem.userId, userId),
+                        eq(schema.userMemoryItem.characterId, ctx.characterId),
+                        eq(schema.userMemoryItem.isArchived, false)
+                    )
+                )
+                .get();
+
+            return {
+                characterId: ctx.characterId,
+                heartbeat: ctx.heartbeatDoc ? JSON.parse(ctx.heartbeatDoc) as HeartbeatDoc : null,
+                identity: ctx.identityDoc ? JSON.parse(ctx.identityDoc) as IdentityDoc : null,
+                soul: ctx.soulDoc ? JSON.parse(ctx.soulDoc) as SoulDoc : null,
+                tools: ctx.toolsDoc ? JSON.parse(ctx.toolsDoc) as ToolsDoc : null,
+                memoryCount: memoryCountResult?.count || 0,
+                updatedAt: ctx.updatedAt,
+            };
+        })
+    );
+
+    return results;
+}
+
 // =============================================================================
 // UserMemoryItem Operations
 // =============================================================================

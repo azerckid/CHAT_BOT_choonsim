@@ -80,7 +80,14 @@ export default [
   route("api/payment/near/verify", "routes/api/payment/near/verify.ts"),
 
   // Context API
+  route("api/context/all", "routes/api/context/all.ts"), // GET all character contexts (must be before :characterId)
+  route("api/context/:characterId", "routes/api/context/$characterId.ts"), // GET(Full), DELETE(Reset)
+  route("api/context/:characterId/memory", "routes/api/context/$characterId.memory.ts"),
+  route("api/context/:characterId/identity", "routes/api/context/$characterId.identity.ts"),
   route("api/context/:characterId/soul", "routes/api/context/$characterId.soul.ts"),
+  route("api/context/:characterId/tools", "routes/api/context/$characterId.tools.ts"),
+  route("api/context/:characterId/heartbeat", "routes/api/context/$characterId.heartbeat.ts"),
+  route("api/context/:characterId/export", "routes/api/context/$characterId.export.ts"),
 
   // Admin Routes
   route("admin/dashboard", "routes/admin/dashboard.tsx"),
