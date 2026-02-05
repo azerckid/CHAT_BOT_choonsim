@@ -4,9 +4,13 @@
  * 토큰 예산 내에서 계층별 내용을 문자열로 반환 (명세 12.1)
  */
 
-import { getMemoryItems, getFullContextData } from "./db";
+import {
+    getMemoryItems,
+    getFullContextData,
+} from "./db";
 import { MEMORY_PROMPT_MAX_TOKENS, MEMORY_PROMPT_MAX_ITEMS } from "./constants";
 import { formatHeartbeatForPrompt } from "./heartbeat";
+import { compressIdentityForPrompt } from "./identity";
 
 /** 한글/영문 대략 1토큰 ≈ 2글자로 간이 계산 */
 const CHARS_PER_TOKEN = 2;
@@ -52,3 +56,5 @@ export async function compressHeartbeatForPrompt(
     const context = await getFullContextData(userId, characterId);
     return formatHeartbeatForPrompt(context?.heartbeat || null);
 }
+
+export { compressIdentityForPrompt } from "./identity";

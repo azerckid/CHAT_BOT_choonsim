@@ -9,7 +9,13 @@ import * as schema from "~/db/schema";
 import { eq, and, sql, desc, gte, count } from "drizzle-orm";
 import { createX402Invoice, createX402Response } from "~/lib/near/x402.server";
 import { checkSilentPaymentAllowance } from "~/lib/near/silent-payment.server";
-import { compressMemoryForPrompt, extractAndSaveMemoriesFromConversation, compressHeartbeatForPrompt, updateHeartbeatContext } from "~/lib/context";
+import {
+    compressMemoryForPrompt,
+    extractAndSaveMemoriesFromConversation,
+    compressHeartbeatForPrompt,
+    updateHeartbeatContext,
+    compressIdentityForPrompt
+} from "~/lib/context";
 
 const chatSchema = z.object({
     message: z.string().optional().default(""),
@@ -97,13 +103,16 @@ export async function action({ request }: ActionFunctionArgs) {
     let memory: string = "";
     let bioData: any = {};
 
+    // Phase 3 & 4: Context Loading
     try {
-        const [contextMemory, contextHeartbeat] = await Promise.all([
+        const [contextMemory, contextHeartbeat, contextIdentity] = await Promise.all([
             compressMemoryForPrompt(session.user.id, characterId),
-            compressHeartbeatForPrompt(session.user.id, characterId)
+            compressHeartbeatForPrompt(session.user.id, characterId),
+            compressIdentityForPrompt(session.user.id, characterId)
         ]);
 
         const parts = [];
+        if (contextIdentity) parts.push(contextIdentity);
         if (contextHeartbeat) parts.push(contextHeartbeat);
         if (contextMemory) parts.push(contextMemory);
 

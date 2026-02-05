@@ -28,3 +28,6 @@ export * from "./pii-filter";
 
 // Heartbeat layer (Phase 3)
 export * from "./heartbeat";
+
+// Identity layer (Phase 4)
+export * from "./identity";

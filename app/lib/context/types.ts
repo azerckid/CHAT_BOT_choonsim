@@ -144,7 +144,7 @@ export const DEFAULT_HEARTBEAT: HeartbeatDoc = {
 
 export const DEFAULT_IDENTITY: IdentityDoc = {
     nickname: "",
-    honorific: "반말",
+    honorific: "존댓말",
     relationshipType: "팬",
 };
 
