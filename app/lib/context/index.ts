@@ -37,3 +37,6 @@ export * from "./soul";
 
 // Tools layer (Phase 6)
 export * from "./tools";
+
+// Security (Phase 8)
+export * from "./pii-filter";

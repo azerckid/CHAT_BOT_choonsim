@@ -16,6 +16,7 @@ import type {
     UserContextData,
     MemoryItem,
 } from "./types";
+import { maskPII } from "./pii-filter";
 
 // =============================================================================
 // ID Generation
@@ -321,7 +322,7 @@ export async function addMemoryItem(
         id,
         userId,
         characterId,
-        content,
+        content: maskPII(content),
         category: options?.category,
         importance: options?.importance ?? 5,
         sourceConversationId: options?.sourceConversationId,

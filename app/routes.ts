@@ -80,6 +80,7 @@ export default [
   route("api/payment/near/verify", "routes/api/payment/near/verify.ts"),
 
   // Context API
+  route("api/context", "routes/api/context/index.ts"), // DELETE all context (full, confirm required)
   route("api/context/all", "routes/api/context/all.ts"), // GET all character contexts (must be before :characterId)
   route("api/context/:characterId", "routes/api/context/$characterId.ts"), // GET(Full), DELETE(Reset)
   route("api/context/:characterId/memory", "routes/api/context/$characterId.memory.ts"),

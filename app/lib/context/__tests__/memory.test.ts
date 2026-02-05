@@ -9,7 +9,7 @@ import * as schema from "~/db/schema";
 import { addMemoryItem, getMemoryItemCount } from "../db";
 import { evictOldMemoriesIfOverLimit } from "../memory";
 import { compressMemoryForPrompt } from "../compress";
-import { maskPii, sanitizeForMemory } from "../pii-filter";
+import { maskPII, sanitizeForMemory } from "../pii-filter";
 
 const TEST_PREFIX = "__TEST_MEMORY__";
 const TEST_USER = `${TEST_PREFIX}user_${Date.now()}`;
@@ -48,11 +48,11 @@ async function runTests(): Promise<void> {
         assert(compressed.length > 0 && compressed.includes("이전에 알아둔 것"), `Expected compressed string, got: ${compressed.slice(0, 50)}`);
         console.log("  compressMemoryForPrompt: PASS");
 
-        // Test: PII mask
-        const masked = maskPii("카드 1234-5678-9012-3456 번입니다.");
-        assert(masked.includes("***") && !masked.includes("1234"), "PII should be masked");
+        // Test: PII mask (maskPII uses [CREDIT_CARD], [PHONE] 등 토큰)
+        const masked = maskPII("카드 1234-5678-9012-3456 번입니다.");
+        assert(!masked.includes("1234") && masked.includes("[CREDIT_CARD]"), "PII should be masked");
         const sanitized = sanitizeForMemory("전화 010-1234-5678 로 연락");
-        assert(sanitized !== null && sanitized.includes("***"), "sanitizeForMemory should mask");
+        assert(sanitized !== null && !sanitized.includes("010-1234-5678") && sanitized.includes("[PHONE]"), "sanitizeForMemory should mask");
         console.log("  PII mask/sanitize: PASS");
 
         await cleanup();

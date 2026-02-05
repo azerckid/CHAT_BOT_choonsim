@@ -18,6 +18,7 @@ export const user = sqliteTable("User", {
     emailVerified: integer("emailVerified", { mode: "boolean" }).notNull().default(false),
     avatarUrl: text("avatarUrl"),
     status: text("status").notNull().default("OFFLINE"),
+    /** @deprecated Phase 9: memory는 5계층(UserContext/UserMemoryItem)으로 이전. 읽기 fallback만 유지, 쓰기 중단. */
     bio: text("bio"),
     coverImage: text("coverImage"),
     isPrivate: integer("isPrivate", { mode: "boolean" }).default(false),

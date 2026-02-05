@@ -2,7 +2,7 @@ import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import type { ActionFunctionArgs } from "react-router";
-import { streamAIResponse, generateSummary, extractPhotoMarker, extractEmotionMarker } from "~/lib/ai.server";
+import { streamAIResponse, extractPhotoMarker, extractEmotionMarker } from "~/lib/ai.server";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { logger } from "~/lib/logger.server";
 import * as schema from "~/db/schema";
@@ -450,7 +450,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, usage })}\n\n`));
 
-                // 대화 요약 고도화 (기존 bio)
+                // 5계층 memory: 대화에서 기억 추출용 메시지 구성 (Phase 9: User.bio memory 쓰기 제거, 새 테이블만 사용)
                 const allMessagesForSummary: BaseMessage[] = [
                     ...formattedHistory.map(h => {
                         let content = h.content || (h.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
@@ -462,22 +462,6 @@ export async function action({ request }: ActionFunctionArgs) {
                     new HumanMessage(message || (mediaUrl ? "이 사진(그림)을 확인해줘." : " ")),
                     new AIMessage(fullContent)
                 ];
-
-                if (history.length >= 8) {
-                    const newSummary = await generateSummary(allMessagesForSummary);
-                    if (newSummary) {
-                        await db.update(schema.user)
-                            .set({
-                                bio: JSON.stringify({
-                                    ...bioData,
-                                    memory: newSummary,
-                                    lastMemoryUpdate: new Date().toISOString()
-                                }),
-                                updatedAt: new Date()
-                            })
-                            .where(eq(schema.user.id, session.user.id));
-                    }
-                }
 
                 // 5계층 memory: 대화에서 기억 추출 후 저장 (실패 시 로그만)
                 try {

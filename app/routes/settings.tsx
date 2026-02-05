@@ -424,6 +424,8 @@ export default function SettingsScreen() {
                   <DialogTitle>계정 삭제</DialogTitle>
                   <DialogDescription>
                     계정을 삭제하면 모든 데이터가 영구적으로 삭제되며 복구할 수 없습니다.
+                    탈퇴 전에 대화·기억 데이터를 보관하려면 프로필 또는 채팅 설정에서
+                    &quot;컨텍스트 내보내기&quot;를 이용해 주세요.
                     정말 계정을 삭제하시겠습니까?
                   </DialogDescription>
                 </DialogHeader>
