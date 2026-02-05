@@ -9,7 +9,7 @@ import * as schema from "~/db/schema";
 import { eq, and, sql, desc, gte, count } from "drizzle-orm";
 import { createX402Invoice, createX402Response } from "~/lib/near/x402.server";
 import { checkSilentPaymentAllowance } from "~/lib/near/silent-payment.server";
-import { compressMemoryForPrompt, extractAndSaveMemoriesFromConversation } from "~/lib/context";
+import { compressMemoryForPrompt, extractAndSaveMemoriesFromConversation, compressHeartbeatForPrompt, updateHeartbeatContext } from "~/lib/context";
 
 const chatSchema = z.object({
     message: z.string().optional().default(""),
@@ -98,14 +98,34 @@ export async function action({ request }: ActionFunctionArgs) {
     let bioData: any = {};
 
     try {
-        const contextMemory = await compressMemoryForPrompt(session.user.id, characterId);
-        if (contextMemory) {
-            memory = contextMemory;
+        const [contextMemory, contextHeartbeat] = await Promise.all([
+            compressMemoryForPrompt(session.user.id, characterId),
+            compressHeartbeatForPrompt(session.user.id, characterId)
+        ]);
+
+        const parts = [];
+        if (contextHeartbeat) parts.push(contextHeartbeat);
+        if (contextMemory) parts.push(contextMemory);
+
+        if (parts.length > 0) {
+            memory = parts.join("\n\n");
         }
     } catch (e) {
         logger.error({
             category: "API",
-            message: "compressMemoryForPrompt failed, falling back to bio",
+            message: "Context load failed, falling back to bio",
+            metadata: { userId: session.user.id, characterId },
+        });
+    }
+
+    // Phase 3 Heartbeat: 대화 시작 시점 갱신 (Streak, LastSeen 등)
+    // 프롬프트 생성(위 compress)은 '갱신 전' 데이터로 하고, DB는 '갱신'하여 현재 상태 반영
+    try {
+        await updateHeartbeatContext(session.user.id, characterId, false);
+    } catch (e) {
+        logger.error({
+            category: "API",
+            message: "Failed to update heartbeat at start",
             metadata: { userId: session.user.id, characterId },
         });
     }
@@ -446,12 +466,15 @@ export async function action({ request }: ActionFunctionArgs) {
 
                 // 5계층 memory: 대화에서 기억 추출 후 저장 (실패 시 로그만)
                 try {
-                    await extractAndSaveMemoriesFromConversation(
-                        session.user.id,
-                        characterId,
-                        allMessagesForSummary,
-                        { conversationId }
-                    );
+                    await Promise.all([
+                        extractAndSaveMemoriesFromConversation(
+                            session.user.id,
+                            characterId,
+                            allMessagesForSummary,
+                            { conversationId }
+                        ),
+                        updateHeartbeatContext(session.user.id, characterId, true)
+                    ]);
                 } catch (memErr) {
                     logger.error({
                         category: "API",

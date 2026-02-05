@@ -25,3 +25,6 @@ export * from "./compress";
 
 // PII filter
 export * from "./pii-filter";
+
+// Heartbeat layer (Phase 3)
+export * from "./heartbeat";
