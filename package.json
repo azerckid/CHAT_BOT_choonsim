@@ -6,7 +6,9 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "test:context": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/isolation.test.ts",
+    "test:context-memory": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/memory.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
@@ -69,6 +71,7 @@
     "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.8",
     "tailwindcss": "^4.1.13",
+    "tsx": "^4.19.0",
     "typescript": "^5.9.2",
     "vite": "^7.1.7",
     "vite-tsconfig-paths": "^5.1.4"

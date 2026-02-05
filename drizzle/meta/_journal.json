@@ -64,6 +64,13 @@
       "when": 1769104823181,
       "tag": "0008_early_shooting_star",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1770274596333,
+      "tag": "0009_burly_colleen_wing",
+      "breakpoints": true
     }
   ]
 }

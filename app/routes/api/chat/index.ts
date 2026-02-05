@@ -9,6 +9,7 @@ import * as schema from "~/db/schema";
 import { eq, and, sql, desc, gte, count } from "drizzle-orm";
 import { createX402Invoice, createX402Response } from "~/lib/near/x402.server";
 import { checkSilentPaymentAllowance } from "~/lib/near/silent-payment.server";
+import { compressMemoryForPrompt, extractAndSaveMemoriesFromConversation } from "~/lib/context";
 
 const chatSchema = z.object({
     message: z.string().optional().default(""),
@@ -92,11 +93,24 @@ export async function action({ request }: ActionFunctionArgs) {
         return response;
     }
 
-    // bio에서 기억(Summary) 파싱
+    // 기억(memory): 5계층 컨텍스트 우선, 없으면 기존 bio 요약 사용
     let memory: string = "";
     let bioData: any = {};
 
-    if (currentUser?.bio) {
+    try {
+        const contextMemory = await compressMemoryForPrompt(session.user.id, characterId);
+        if (contextMemory) {
+            memory = contextMemory;
+        }
+    } catch (e) {
+        logger.error({
+            category: "API",
+            message: "compressMemoryForPrompt failed, falling back to bio",
+            metadata: { userId: session.user.id, characterId },
+        });
+    }
+
+    if (!memory && currentUser?.bio) {
         try {
             bioData = JSON.parse(currentUser.bio);
             if (bioData.memory) memory = bioData.memory;
@@ -401,20 +415,20 @@ export async function action({ request }: ActionFunctionArgs) {
                 const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, usage })}\n\n`));
 
-                // 대화 요약 고도화
-                if (history.length >= 8) {
-                    const allMessagesForSummary: BaseMessage[] = [
-                        ...formattedHistory.map(h => {
-                            let content = h.content || (h.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
-                            if (h.role === "assistant" && h.isInterrupted && content.endsWith("...")) {
-                                content = content.slice(0, -3).trim();
-                            }
-                            return h.role === "user" ? new HumanMessage(content) : new AIMessage(content);
-                        }),
-                        new HumanMessage(message || (mediaUrl ? "이 사진(그림)을 확인해줘." : " ")),
-                        new AIMessage(fullContent)
-                    ];
+                // 대화 요약 고도화 (기존 bio)
+                const allMessagesForSummary: BaseMessage[] = [
+                    ...formattedHistory.map(h => {
+                        let content = h.content || (h.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
+                        if (h.role === "assistant" && h.isInterrupted && content.endsWith("...")) {
+                            content = content.slice(0, -3).trim();
+                        }
+                        return h.role === "user" ? new HumanMessage(content) : new AIMessage(content);
+                    }),
+                    new HumanMessage(message || (mediaUrl ? "이 사진(그림)을 확인해줘." : " ")),
+                    new AIMessage(fullContent)
+                ];
 
+                if (history.length >= 8) {
                     const newSummary = await generateSummary(allMessagesForSummary);
                     if (newSummary) {
                         await db.update(schema.user)
@@ -428,6 +442,22 @@ export async function action({ request }: ActionFunctionArgs) {
                             })
                             .where(eq(schema.user.id, session.user.id));
                     }
+                }
+
+                // 5계층 memory: 대화에서 기억 추출 후 저장 (실패 시 로그만)
+                try {
+                    await extractAndSaveMemoriesFromConversation(
+                        session.user.id,
+                        characterId,
+                        allMessagesForSummary,
+                        { conversationId }
+                    );
+                } catch (memErr) {
+                    logger.error({
+                        category: "API",
+                        message: "extractAndSaveMemoriesFromConversation failed",
+                        metadata: { conversationId, characterId },
+                    });
                 }
 
                 controller.close();

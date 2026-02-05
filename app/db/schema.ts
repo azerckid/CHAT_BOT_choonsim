@@ -172,6 +172,58 @@ export const userInventory = sqliteTable("UserInventory", {
 });
 
 // ---------------------------------------------------------
+// User Context (5-Layer Context System)
+// ---------------------------------------------------------
+
+export const userContext = sqliteTable("UserContext", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    characterId: text("characterId").notNull(),
+
+    // heartbeat (JSON) - 접속 리듬, 빈도
+    heartbeatDoc: text("heartbeatDoc"),
+
+    // identity (JSON) - 닉네임, 호칭, 관계
+    identityDoc: text("identityDoc"),
+
+    // soul (JSON) - 가치관, 소원, 고민
+    soulDoc: text("soulDoc"),
+
+    // tools (JSON) - 규칙, 특별한 날
+    toolsDoc: text("toolsDoc"),
+
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+}, (table) => [
+    unique("userContext_user_character_unique").on(table.userId, table.characterId),
+    index("userContext_userId_idx").on(table.userId),
+]);
+
+export const userMemoryItem = sqliteTable("UserMemoryItem", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    characterId: text("characterId").notNull(),
+
+    // 기억 내용
+    content: text("content").notNull(),
+    category: text("category"),  // preference, event, person, worry, etc.
+    importance: integer("importance").notNull().default(5),  // 1-10
+
+    // 추출 원본 추적
+    sourceConversationId: text("sourceConversationId"),
+    sourceMessageId: text("sourceMessageId"),
+
+    // 메타데이터
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+    expiresAt: integer("expiresAt", { mode: "timestamp" }),  // 만료일 (선택)
+    isArchived: integer("isArchived", { mode: "boolean" }).notNull().default(false),
+}, (table) => [
+    index("userMemoryItem_user_character_idx").on(table.userId, table.characterId),
+    index("userMemoryItem_category_idx").on(table.category),
+    index("userMemoryItem_importance_idx").on(table.importance),
+]);
+
+// ---------------------------------------------------------
 // Chat & Messaging
 // ---------------------------------------------------------
 
@@ -620,6 +672,35 @@ export const userRelations = relations(user, ({ many }) => ({
     followers: many(follow, { relationName: "followers" }),
     multichainAddresses: many(multichainAddress),
     exchangeLogs: many(exchangeLog),
+    userContexts: many(userContext),
+    userMemoryItems: many(userMemoryItem),
+}));
+
+export const userContextRelations = relations(userContext, ({ one, many }) => ({
+    user: one(user, {
+        fields: [userContext.userId],
+        references: [user.id],
+    }),
+    memoryItems: many(userMemoryItem),
+}));
+
+export const userMemoryItemRelations = relations(userMemoryItem, ({ one }) => ({
+    user: one(user, {
+        fields: [userMemoryItem.userId],
+        references: [user.id],
+    }),
+    context: one(userContext, {
+        fields: [userMemoryItem.userId, userMemoryItem.characterId],
+        references: [userContext.userId, userContext.characterId],
+    }),
+    sourceConversation: one(conversation, {
+        fields: [userMemoryItem.sourceConversationId],
+        references: [conversation.id],
+    }),
+    sourceMessage: one(message, {
+        fields: [userMemoryItem.sourceMessageId],
+        references: [message.id],
+    }),
 }));
 
 export const characterRelations = relations(character, ({ one, many }) => ({

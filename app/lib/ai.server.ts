@@ -799,6 +799,40 @@ export async function* streamAIResponse(
 }
 
 /**
+ * 대화에서 기억 후보 문장 추출 (5계층 memory용)
+ * 반환: 저장할 만한 기억 문장 배열 (1~5개), 실패 시 null
+ */
+export async function extractMemoryCandidates(messages: BaseMessage[]): Promise<string[] | null> {
+    if (messages.length < 3) return null;
+
+    const prompt = `다음은 AI 캐릭터와 사용자의 대화입니다.
+대화에서 "기억할 만한" 내용만 골라 각각 한 문장으로 적어 주세요.
+- 사용자 선호 (음식, 취미, 좋아하는 것)
+- 언급한 인물, 사건, 중요한 날
+- 반복되는 고민이나 상태
+- 개인을 특정할 수 있는 민감 정보(전화번호, 주민번호, 계좌 등)는 포함하지 마세요.
+
+최대 5개, 한국어로만 작성. 문장만 한 줄에 하나씩 번호 없이 나열하세요.
+
+대화:
+${messages.map((m) => `${m._getType()}: ${typeof m.content === "string" ? m.content : "[미디어]"}`).join("\n")}`;
+
+    try {
+        const res = await model.invoke([new HumanMessage(prompt)]);
+        const text = res.content.toString().trim();
+        if (!text) return null;
+        const lines = text
+            .split(/\n+/)
+            .map((s) => s.replace(/^\s*\d+[.)]\s*/, "").trim())
+            .filter((s) => s.length > 5 && s.length < 300);
+        return lines.length > 0 ? lines : null;
+    } catch (err) {
+        console.error("extractMemoryCandidates Error:", err);
+        return null;
+    }
+}
+
+/**
  * 명시적 대화 요약 생성 함수
  */
 export async function generateSummary(messages: BaseMessage[]) {
