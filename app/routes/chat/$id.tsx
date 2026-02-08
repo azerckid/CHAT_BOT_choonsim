@@ -102,6 +102,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw redirect("/wallet-setup");
   }
 
+  // 지갑이 아직 준비되지 않은 경우 홈으로 리다이렉트 (채팅 비활성화)
+  if (user.walletStatus && user.walletStatus !== "READY") {
+    throw redirect("/home");
+  }
+
   const [messages, conversation] = await Promise.all([
     db.query.message.findMany({
       where: eq(schema.message.conversationId, id),

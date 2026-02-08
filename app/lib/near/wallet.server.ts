@@ -183,6 +183,178 @@ export async function ensureNearWallet(userId: string) {
 }
 
 /**
+ * [비동기 방식] DB에 키 정보만 저장하고 즉시 반환합니다.
+ * 온체인 계정 생성·CHOCO 전송은 백그라운드 큐에서 처리됩니다.
+ * @param userId 시스템 내부 사용자 ID
+ * @returns nearAccountId 또는 null
+ */
+export async function ensureNearWalletAsync(userId: string): Promise<string | null> {
+    const user = await db.query.user.findFirst({
+        where: eq(schema.user.id, userId),
+        columns: {
+            id: true,
+            nearAccountId: true,
+            nearPublicKey: true,
+            nearPrivateKey: true,
+            walletStatus: true,
+        }
+    });
+
+    if (!user) return null;
+
+    // 이미 READY 상태면 즉시 반환
+    if (user.nearAccountId && user.walletStatus === "READY") {
+        return user.nearAccountId;
+    }
+
+    // 이미 PENDING/CREATING 상태면 기존 accountId 반환 (큐에서 처리 중)
+    if (user.nearAccountId && (user.walletStatus === "PENDING" || user.walletStatus === "CREATING")) {
+        return user.nearAccountId;
+    }
+
+    // FAILED 상태면 재시도를 위해 PENDING으로 리셋
+    if (user.nearAccountId && user.walletStatus === "FAILED") {
+        await db.update(schema.user)
+            .set({
+                walletStatus: "PENDING",
+                walletError: null,
+                walletCreatedAt: new Date(),
+                updatedAt: new Date(),
+            })
+            .where(eq(schema.user.id, userId));
+        return user.nearAccountId;
+    }
+
+    // 신규: 키 페어 생성 + DB 저장 (PENDING 상태)
+    const { nanoid } = await import("nanoid");
+    const serviceAccountId = NEAR_CONFIG.serviceAccountId;
+    const uniqueSuffix = nanoid(10).toLowerCase().replace(/[^a-z0-9]/g, "");
+    const newAccountId = user.nearAccountId || `${uniqueSuffix}.${serviceAccountId}`;
+
+    let publicKey = user.nearPublicKey;
+    let encryptedPrivateKey = user.nearPrivateKey;
+
+    if (!publicKey || !encryptedPrivateKey) {
+        const keyPair = KeyPair.fromRandom("ed25519");
+        publicKey = keyPair.getPublicKey().toString();
+        const privateKey = keyPair.toString();
+        const { encrypt } = await import("./key-encryption.server");
+        encryptedPrivateKey = encrypt(privateKey);
+    }
+
+    // DB에 키 + PENDING 상태 저장 → 즉시 반환
+    await db.update(schema.user)
+        .set({
+            nearAccountId: newAccountId,
+            nearPublicKey: publicKey,
+            nearPrivateKey: encryptedPrivateKey,
+            walletStatus: "PENDING",
+            walletCreatedAt: new Date(),
+            walletRetryCount: 0,
+            walletError: null,
+            updatedAt: new Date(),
+        })
+        .where(eq(schema.user.id, userId));
+
+    console.log(`[Wallet Async] Keys saved, status=PENDING for user ${userId} (${newAccountId})`);
+    return newAccountId;
+}
+
+/**
+ * [백그라운드 전용] 온체인 계정 생성 + Storage deposit + CHOCO 전송 + 잔액 동기화.
+ * wallet-queue에서 호출됩니다. 직접 호출하지 마세요.
+ */
+export async function ensureNearWalletOnChain(
+    userId: string,
+    nearAccountId: string,
+    publicKey: string,
+    encryptedPrivateKey: string
+): Promise<void> {
+    const serviceAccountId = NEAR_CONFIG.serviceAccountId;
+    const servicePrivateKey = process.env.NEAR_SERVICE_PRIVATE_KEY;
+    if (!servicePrivateKey) throw new Error("NEAR_SERVICE_PRIVATE_KEY is missing");
+
+    // 1. 온체인 계정 생성
+    const networkId = NEAR_CONFIG.networkId;
+    const nodeUrl = NEAR_CONFIG.nodeUrl;
+    const keyStore = new keyStores.InMemoryKeyStore();
+    await keyStore.setKey(networkId, serviceAccountId, KeyPair.fromString(servicePrivateKey as any));
+    const near = await connect({ networkId, nodeUrl, keyStore });
+    const serviceAccount = await near.account(serviceAccountId);
+
+    const initialBalance = BigInt("100000000000000000000000"); // 0.1 NEAR
+
+    try {
+        console.log(`[Wallet OnChain] Creating account: ${nearAccountId}`);
+        await (serviceAccount as any).createAccount(nearAccountId, publicKey as any, initialBalance.toString());
+        console.log(`[Wallet OnChain] Account created: ${nearAccountId}`);
+    } catch (createError: any) {
+        const isAccountExists = createError.type === 'AccountAlreadyExists' ||
+            createError.message?.includes("already exists") ||
+            createError.message?.includes("AccountAlreadyExists");
+        if (!isAccountExists) throw createError;
+        console.log(`[Wallet OnChain] Account ${nearAccountId} already exists. Continuing.`);
+    }
+
+    // 2. Storage deposit
+    try {
+        await ensureStorageDeposit(nearAccountId);
+    } catch (storageError) {
+        console.warn(`[Wallet OnChain] Storage deposit warning:`, storageError);
+    }
+
+    // 3. CHOCO 가입 보상 전송
+    const { BigNumber } = await import("bignumber.js");
+    const { sendChocoToken, getChocoBalance } = await import("./token.server");
+    const { nanoid } = await import("nanoid");
+
+    const existingReward = await db.query.tokenTransfer.findFirst({
+        where: (table, { and, eq }) => and(
+            eq(table.userId, userId),
+            eq(table.purpose, "SIGNUP_REWARD"),
+            eq(table.status, "COMPLETED")
+        )
+    });
+
+    if (!existingReward) {
+        const signupReward = 100;
+        const chocoAmountRaw = new BigNumber(signupReward).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
+
+        console.log(`[Wallet OnChain] Sending ${signupReward} CHOCO to ${nearAccountId}`);
+        const sendResult = await sendChocoToken(nearAccountId, chocoAmountRaw);
+        const chocoTxHash = (sendResult as any).transaction?.hash;
+
+        if (chocoTxHash) {
+            await db.insert(schema.tokenTransfer).values({
+                id: nanoid(),
+                userId,
+                txHash: chocoTxHash,
+                amount: chocoAmountRaw,
+                tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
+                status: "COMPLETED",
+                purpose: "SIGNUP_REWARD",
+                createdAt: new Date(),
+            });
+        }
+    }
+
+    // 4. 잔액 동기화
+    const onChainBalanceRaw = await getChocoBalance(nearAccountId);
+    const onChainBalanceBN = new BigNumber(onChainBalanceRaw).dividedBy(new BigNumber(10).pow(18));
+
+    await db.update(schema.user)
+        .set({
+            chocoBalance: onChainBalanceBN.toString(),
+            credits: 0,
+            chocoLastSyncAt: new Date(),
+            updatedAt: new Date(),
+        })
+        .where(eq(schema.user.id, userId));
+
+    console.log(`[Wallet OnChain] Synced ${nearAccountId} balance: ${onChainBalanceBN.toString()} CHOCO`);
+}
+
+/**
  * 기존 계정의 키 페어를 재생성합니다.
  * 계정 ID는 유지하고 새 키 페어만 생성하여 저장합니다.
  * @param userId 사용자 ID

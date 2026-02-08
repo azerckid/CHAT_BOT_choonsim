@@ -4,6 +4,7 @@ import { db } from "~/lib/db.server";
 import type { LoaderFunctionArgs } from "react-router";
 import type { Route } from "./+types/home";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
+import { WalletStatusBanner } from "~/components/wallet/WalletStatusBanner";
 import { DateTime } from "luxon";
 import { cn } from "~/lib/utils";
 import * as schema from "~/db/schema";
@@ -24,10 +25,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (session) {
     const user = await db.query.user.findFirst({
       where: eq(schema.user.id, session.user.id),
-      columns: { nearAccountId: true }
+      columns: { nearAccountId: true, walletStatus: true }
     });
 
-    // 지갑이 없으면 설정 페이지로 강제 이동 (로딩 및 안내 UI 제공)
+    // 지갑이 없으면 설정 페이지로 강제 이동
     if (!user?.nearAccountId) {
       return redirect("/wallet-setup");
     }
@@ -89,11 +90,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
     trendingIdols,
     notices,
     isAuthenticated: !!session,
+    walletStatus: user?.walletStatus ?? null,
   });
 }
 
 export default function HomeScreen() {
-  const { user, todaysPick, recentConversations, trendingIdols, notices, isAuthenticated } = useLoaderData<typeof loader>() as any;
+  const { user, todaysPick, recentConversations, trendingIdols, notices, isAuthenticated, walletStatus } = useLoaderData<typeof loader>() as any;
   const navigate = useNavigate();
 
   const handleStartChat = async (characterId: string) => {
@@ -160,6 +162,11 @@ export default function HomeScreen() {
           </button>
         </div>
       </div>
+
+      {/* Wallet Status Banner */}
+      {walletStatus && walletStatus !== "READY" && (
+        <WalletStatusBanner initialStatus={walletStatus} />
+      )}
 
       {/* Hero Section - Today's Pick */}
       <div className="p-4 pt-2">

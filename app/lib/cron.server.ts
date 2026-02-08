@@ -156,4 +156,18 @@ export function initCronJobs() {
             });
         }
     });
+
+    // 4. Wallet Creation Queue (Every 30 seconds)
+    setInterval(async () => {
+        try {
+            const { processWalletCreationQueue } = await import("./near/wallet-queue.server");
+            await processWalletCreationQueue();
+        } catch (error) {
+            logger.error({
+                category: "SYSTEM",
+                message: "Wallet Creation Queue Error",
+                stackTrace: (error as Error).stack
+            });
+        }
+    }, 30 * 1000);
 }

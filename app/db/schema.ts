@@ -42,6 +42,11 @@ export const user = sqliteTable("User", {
     allowanceExpiresAt: integer("allowanceExpiresAt", { mode: "timestamp" }),
     isSweepEnabled: integer("isSweepEnabled", { mode: "boolean" }).default(true),
     nearLastBalance: text("nearLastBalance").notNull().default("0"), // BigNumber string for deposit detection
+    walletStatus: text("walletStatus"), // "PENDING" | "CREATING" | "READY" | "FAILED" | null (no wallet yet)
+    walletCreatedAt: integer("walletCreatedAt", { mode: "timestamp" }), // background job start time
+    walletCompletedAt: integer("walletCompletedAt", { mode: "timestamp" }), // completion time
+    walletError: text("walletError"), // error message on failure
+    walletRetryCount: integer("walletRetryCount").notNull().default(0), // retry count (max 3)
 });
 
 export const account = sqliteTable("account", {
