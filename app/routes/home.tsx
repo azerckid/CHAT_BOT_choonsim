@@ -22,8 +22,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // 인증된 사용자의 경우 지갑 상태 체크
   let recentConversations: any[] = [];
+  let user: { nearAccountId: string | null; walletStatus: string | null } | null = null;
+  
   if (session) {
-    const user = await db.query.user.findFirst({
+    user = await db.query.user.findFirst({
       where: eq(schema.user.id, session.user.id),
       columns: { nearAccountId: true, walletStatus: true }
     });
