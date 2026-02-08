@@ -24,3 +24,5 @@ backups/
 .vercel
 *.log
 build_debug.log
+
+.agent
