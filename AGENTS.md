@@ -74,21 +74,19 @@ The core target audience consists of the 32,000 X (Twitter) users who currently 
 - Run available tests using: `npm test`
 
 ## Key Documentation
-- `docs/IMPLEMENTATION_PLAN.md`: The roadmap for project completion.
-- `docs/UI_DESIGN_SYSTEM.md`: Design tokens and visual guidelines.
+- `docs/01_Foundation/05_ROADMAP.md`: The roadmap for project completion.
+- `docs/01_Foundation/01_UI_DESIGN.md`: Design tokens and visual guidelines.
 - `app/db/schema.ts`: Drizzle schema and storage logic.
-- `docs/PLAN.md`: Project specification and requirements.
+- `docs/01_Foundation/08_DOCUMENT_MANAGEMENT_PLAN.md`: Document management rules and structure.
 
 ### [Strict Document Hierarchy Rule]
-To ensure the structural integrity and maintainability of the project, all documentation within the `docs/` directory must be strictly categorized into the following 7 core sub-directories (as defined in `DOCUMENT_MANAGEMENT_PLAN.md`):
 
-1. **`docs/core/`**: System-wide design foundations, DB schemas, and standard rules.
-2. **`docs/features/`**: Detailed specifications of how individual features (billing, ai, chat, etc.) currently operate.
-3. **`docs/roadmap/`**: Future implementation plans and strategic proposals.
-4. **`docs/reports/`**: Historical verification reports and test results from previous phases.
-5. **`docs/guides/`**: Practical guides and troubleshooting notes for developers and operators.
-6. **`docs/stitch/`**: Detailed UI/UX designs and flowcharts for each screen.
-7. **`docs/archive/`**: Legacy documentation retained for historical context only.
+All documentation follows the **5-Layer Documentation Standard**:
+- **Foundation** (`docs/01_Foundation/`): Planning, Purpose, UI Design
+- **Prototype** (`docs/02_Prototype/`): UI Results, Screen Flows
+- **Specs** (`docs/03_Specs/`): Detailed feature specifications, API inputs/outputs
+- **Logic** (`docs/04_Logic/`): Business Rules, Algorithms
+- **Test** (`docs/05_Test/`): Test scenarios, checklists, bug reports
 
 AI agents MUST respect this hierarchy when creating or modifying documents and proactively rebase misplaced files.
 
