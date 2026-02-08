@@ -25,10 +25,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   let user: { nearAccountId: string | null; walletStatus: string | null } | null = null;
   
   if (session) {
-    user = await db.query.user.findFirst({
+    const userResult = await db.query.user.findFirst({
       where: eq(schema.user.id, session.user.id),
       columns: { nearAccountId: true, walletStatus: true }
     });
+    user = userResult || null;
 
     // 지갑이 없으면 설정 페이지로 강제 이동
     if (!user?.nearAccountId) {
@@ -183,7 +184,7 @@ export default function HomeScreen() {
                 })`
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-background-dark/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-linear-to-t from-background-dark via-background-dark/40 to-transparent"></div>
           <div className="relative flex min-h-[420px] flex-col justify-end p-6">
             <span className="mb-2 inline-flex w-fit items-center rounded-full bg-primary/20 px-3 py-1 text-xs font-bold text-primary backdrop-blur-sm border border-primary/30">
               ✨ Today's Pick
@@ -330,7 +331,7 @@ export default function HomeScreen() {
                     || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
                   }
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-60"></div>
+                <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent opacity-60"></div>
                 <div className="absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#FFD700] text-black text-xs font-bold">
                   {index + 1}
                 </div>
@@ -374,7 +375,7 @@ export default function HomeScreen() {
                 className="relative overflow-hidden rounded-xl bg-surface-dark border border-white/5 active:bg-white/10 transition-colors cursor-pointer group"
               >
                 <div className="flex flex-col sm:flex-row">
-                  <div className="h-28 w-full sm:w-28 shrink-0 bg-cover bg-center bg-gradient-to-br from-primary/30 to-purple-600/30">
+                  <div className="h-28 w-full sm:w-28 shrink-0 bg-cover bg-center bg-linear-to-br from-primary/30 to-purple-600/30">
                     {notice.imageUrl && <img src={notice.imageUrl} alt="" className="w-full h-full object-cover" />}
                   </div>
                   <div className="flex-1 p-4 flex flex-col justify-center">
