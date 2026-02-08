@@ -1,4 +1,6 @@
 # NEAR 지갑 E2E 테스트 가이드
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 지갑 생성 → NEAR 입금 → CHOCO 전환 → CHOCO 소비(대화/하트 구매) 전체 플로우를 테스트하는 방법.
 

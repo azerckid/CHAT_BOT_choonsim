@@ -1,4 +1,6 @@
 # CHOCO 토큰 발행 가이드 (테스트넷)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 `rogulus.testnet` 계정을 사용하여 NEAR 테스트넷에 CHOCO 토큰을 발행하는 단계별 가이드를 제공합니다.
 

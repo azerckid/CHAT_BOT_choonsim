@@ -1,4 +1,6 @@
 ---
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 title: "문서 관리 리뷰 및 통합 요약"
 consolidated_from:
   - "docs/reports/DOCUMENT_STRUCTURE_VERIFICATION.md"

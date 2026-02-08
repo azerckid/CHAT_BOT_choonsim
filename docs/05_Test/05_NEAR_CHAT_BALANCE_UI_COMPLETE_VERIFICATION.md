@@ -1,4 +1,6 @@
 # NEAR Chat Balance UI 완전 검증 보고서
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 **통합일**: 2026-01-14  
 **통합 대상**: 
@@ -236,7 +238,9 @@ setCurrentUserCredits((prev: number) => Math.max(0, prev - 10));
 3. **백엔드에서 tokenUsage 전송**:
    ```typescript
    const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, usage })}\n\n`));
+   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, usage })}
+
+`));
    ```
 
 4. **실제 비용으로 조정**:

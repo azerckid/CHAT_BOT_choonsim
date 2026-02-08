@@ -1,4 +1,6 @@
 # NEAR Zero-Friction UX 사용자 인수 테스트(UAT) 가이드
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 사용자가 직접 애플리케이션을 실행하고, **"Zero-Friction(무마찰)"** 경험이 실제로 작동하는지 검증하기 위한 단계별 가이드입니다.
 

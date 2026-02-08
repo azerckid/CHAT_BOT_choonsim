@@ -1,4 +1,6 @@
 # Phase 7 (API 엔드포인트 및 삭제·export) 검증 보고서
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 **작업일**: 2026-02-05  
 **명세서**: `../03_Specs/21_user-context-layers-spec.md` (Section 7.1, 11)  

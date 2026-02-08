@@ -1,4 +1,6 @@
 # Phase 6 (Tools 계층) 검증 보고서
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 **작업일**: 2026-02-05  
 **명세서**: `../03_Specs/21_user-context-layers-spec.md` (Section 3.5, 11, 12)  

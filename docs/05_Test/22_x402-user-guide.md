@@ -1,4 +1,6 @@
 # NEAR X402 & Relayer 사용자 가이드 (User & Admin Guide)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 춘심(CHOONSIM) 프로젝트에 적용된 NEAR Protocol 기반 X402 결제 시스템과 가스비 대납(Relayer) 서비스의 작동 방식 및 확인 방법을 설명합니다.
 

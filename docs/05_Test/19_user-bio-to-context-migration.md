@@ -1,4 +1,6 @@
 # User.bio → 5계층 마이그레이션 가이드 (Phase 9)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 명세서: `../03_Specs/21_user-context-layers-spec.md` Section 9  
 구현 계획: `../01_Foundation/16_USER_CONTEXT_LAYERS_PLAN.md` Section 11

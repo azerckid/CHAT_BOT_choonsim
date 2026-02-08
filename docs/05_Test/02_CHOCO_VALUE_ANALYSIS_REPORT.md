@@ -1,4 +1,6 @@
 # CHOCO 토큰 가치 산정 분석 보고서 (Gemini 3 Flash 기반)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 **작성일**: 2026-01-13  
 **대상 모델**: Google Gemini 3 Flash (2025년 12월 출시 모델)  

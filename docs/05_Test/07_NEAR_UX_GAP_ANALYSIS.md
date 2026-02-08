@@ -1,4 +1,6 @@
 # NEAR Zero-Friction UX 흐름 및 필수 UI 분석 보고서
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 사용자가 NEAR 기반의 결제 및 서비스를 이용하는 전체 흐름(User Journey)을 정의하고, 각 단계에서 필수적으로 요구되는 UI와 현재 구현 상태를 분석하여 누락된 요소(Gap)를 도출합니다.
 
