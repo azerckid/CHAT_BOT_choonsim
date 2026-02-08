@@ -1,4 +1,6 @@
 # [구현 완료 보고서] NEAR 지갑 키 불일치 사태의 복구 및 근본 수정 완료
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 (Migration Report: Recovery and Systemic Patching for Key Mismatch Issue)
 
 ## 1. 정밀 분석 및 근본 원인 제거 (Root Cause Eliminated)

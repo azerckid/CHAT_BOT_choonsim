@@ -1,4 +1,6 @@
 # NEAR Chain Signatures: Multi-chain Deposit & Management Specification
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 NEAR 프로토콜의 **Chain Signatures (체인 서명)** 기술을 활용하여, 단일 NEAR 계정(`user.rogulus.testnet`)에서 비트코인(BTC), 이더리움(ETH), 솔라나(SOL) 등 타 블록체인의 자산을 직접 수용하고 관리하기 위한 기술적 명세를 정의합니다.
 

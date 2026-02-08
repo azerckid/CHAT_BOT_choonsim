@@ -1,4 +1,6 @@
 # AI 기억 시스템 로드맵 (AI Memory Roadmap)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 춘심 AI의 사용자 기억 및 지능 고도화를 위한 단계별 발전 계획입니다.
 

@@ -1,4 +1,6 @@
 # NEAR Deposit Engine 후속 작업 및 NEAR 사용 정리
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 본 문서는 다음 두 가지를 다룬다.  
 (1) **후속 작업**: NEAR 입금·스윕 모니터링 및 deposit-engine 관련 로그에서 확인된 작업 목록 (deprecation, sweep 실패, 모니터링 오류).  

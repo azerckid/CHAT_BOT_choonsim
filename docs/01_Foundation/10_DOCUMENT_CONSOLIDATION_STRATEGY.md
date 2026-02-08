@@ -1,4 +1,6 @@
 # 문서 통합 전략 (Document Consolidation Strategy)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 **작성일**: 2026-01-14  
 **목적**: 중복되거나 통합 가능한 문서들을 식별하고 통합 방법론 제안

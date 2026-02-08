@@ -1,4 +1,6 @@
 
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 # 요금제 및 마진 분석 보고서 (Pricing & Margin Analysis)
 
 ## 1. 개요 (Overview)

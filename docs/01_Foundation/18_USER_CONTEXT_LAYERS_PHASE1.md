@@ -1,4 +1,6 @@
 # Phase 1 스키마 검증 체크리스트
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 **작업일**: 2026-02-05
 **명세서**: `../03_Specs/21_user-context-layers-spec.md` (Section 10)

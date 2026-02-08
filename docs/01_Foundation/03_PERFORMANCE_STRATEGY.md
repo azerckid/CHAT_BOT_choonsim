@@ -1,4 +1,6 @@
 # Scalability and Performance Strategy: System Scaling Roadmap
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 서비스 사용자 및 동시 접속자 증가에 대응하기 위한 단계별 시스템 확장(Scaling) 전략을 정의합니다. 특히 `node-cron` 기반의 작업 지연 문제를 해결한 사례를 바탕으로, 수만 명 이상의 사용자를 수용할 수 있는 아키텍처로의 전환 가이드를 제공합니다.
 

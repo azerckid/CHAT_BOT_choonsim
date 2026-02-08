@@ -26,3 +26,5 @@ backups/
 build_debug.log
 
 .agent
+
+.claude

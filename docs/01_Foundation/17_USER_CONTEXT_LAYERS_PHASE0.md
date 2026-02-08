@@ -1,4 +1,6 @@
 # 유저 컨텍스트 5계층 Phase 0 산출물
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 구현 계획서(`user-context-layers-implementation-plan.md`) Phase 0 작업 결과를 정리한 문서이다. 5계층 구현 착수 전 사전 준비·의존성·삽입 지점을 기록한다.
 

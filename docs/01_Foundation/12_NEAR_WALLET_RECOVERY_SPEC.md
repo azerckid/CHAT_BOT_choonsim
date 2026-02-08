@@ -1,4 +1,6 @@
 # [장애 결산 보고서] NEAR 지갑 시스템 장애 복구 완료 및 신뢰 회복 증명
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 (Post-Mortem: NEAR Wallet System Recovery and Rebuilding Trust)
 
 ## 1. 개요: 신뢰의 회복 (The Restoration of Trust)

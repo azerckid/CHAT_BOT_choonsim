@@ -1,4 +1,6 @@
 # 📄 Vercel AI SDK 도입 분석 및 전략 보고서
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 ## 1. 개요
 현재 '춘심(CHOONSIM)' 프로젝트의 AI 채팅 서비스 고도화를 위해 **Vercel AI SDK** 도입을 검토한 결과와 향후 실행 전략을 정리한 문서입니다.

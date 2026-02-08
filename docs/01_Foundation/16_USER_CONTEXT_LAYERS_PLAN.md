@@ -1,4 +1,6 @@
 # 유저 컨텍스트 5계층 구현 계획서
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 본 문서는 **USER_CONTEXT_LAYERS_SPEC**(`../03_Specs/21_user-context-layers-spec.md`)을 바탕으로 한 단계별 구현 계획이다. 명세서의 5계층(memory, heartbeat, identity, soul, tools), 스키마, API, 보안, 마이그레이션을 실제 작업 단위로 나누어 진행 순서와 검증 기준을 정의한다.
 
