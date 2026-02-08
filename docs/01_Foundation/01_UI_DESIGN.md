@@ -1,4 +1,6 @@
 # UI 디자인 시스템 (UI Design System)
+> Created: 2025-12-31
+> Last Updated: 2026-02-08 18:01
 
 춘심 AI 챗봇 프로젝트의 디자인 토큰 및 시각 가이드라인입니다.
 
