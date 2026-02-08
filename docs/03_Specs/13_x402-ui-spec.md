@@ -1,4 +1,6 @@
 # NEAR Payment UI/UX Design Specification (Invisible Web3)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 춘심(CHOONSIM) 프로젝트의 NEAR Protocol 기반 결제 시스템을 위한 UI/UX 디자인 사양을 정의합니다. 본 사양의 핵심 목표는 사용자가 블록체인 기술을 인식하지 못하게 하면서도, 직관적이고 감성적인 결제 경험을 제공하는 **"Invisible Web3"** 구현에 있습니다.
 

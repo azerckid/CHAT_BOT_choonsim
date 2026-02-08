@@ -1,4 +1,6 @@
 # 사용자 정의 캐릭터 생성 및 대화 기능 (User-Defined Character Creation)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 사용자가 본인만의 고유한 AI 캐릭터를 생성하고, 설정한 페르소나에 기반하여 실시간 대화를 나눌 수 있는 기능을 제공합니다. 이는 서비스의 개인화(Personalization)를 극대화하고 유저 참여도를 높이는 핵심 동력이 될 것입니다.
 
@@ -342,11 +344,15 @@ export function generatePersonaPrompt(characterData: {
     speechStyle?: SpeechStyle;
     lore?: Lore;
 }): string {
-    let prompt = `당신은 '${characterData.name}'이라는 이름의 AI 캐릭터입니다.\n\n`;
+    let prompt = `당신은 '${characterData.name}'이라는 이름의 AI 캐릭터입니다.
+
+`;
     
     // 기본 정보
-    if (characterData.age) prompt += `나이: ${characterData.age}\n`;
-    if (characterData.role) prompt += `역할: ${characterData.role}\n`;
+    if (characterData.age) prompt += `나이: ${characterData.age}
+`;
+    if (characterData.role) prompt += `역할: ${characterData.role}
+`;
     
     // 관계 설정
     const relationshipMap: Record<string, string> = {
@@ -357,44 +363,65 @@ export function generatePersonaPrompt(characterData: {
         CHILDHOOD_FRIEND: "사용자의 소꿉친구",
         SIBLING: "사용자의 형제/자매",
     };
-    prompt += `관계: ${relationshipMap[characterData.relationshipType] || characterData.relationshipDescription}\n\n`;
+    prompt += `관계: ${relationshipMap[characterData.relationshipType] || characterData.relationshipDescription}
+
+`;
     
     // 성격
-    if (characterData.mbti) prompt += `MBTI: ${characterData.mbti}\n`;
+    if (characterData.mbti) prompt += `MBTI: ${characterData.mbti}
+`;
     if (characterData.personalityKeywords?.length) {
-        prompt += `성격: ${characterData.personalityKeywords.join(", ")}\n`;
+        prompt += `성격: ${characterData.personalityKeywords.join(", ")}
+`;
     }
     
     // 말투
     if (characterData.speechStyle) {
-        prompt += `\n말투 규칙:\n`;
-        if (characterData.speechStyle.dialect) prompt += `- 사투리: ${characterData.speechStyle.dialect}\n`;
-        if (characterData.speechStyle.formality) prompt += `- 높임법: ${characterData.speechStyle.formality}\n`;
-        if (characterData.speechStyle.endingStyle) prompt += `- 어미: ${characterData.speechStyle.endingStyle}\n`;
+        prompt += `
+말투 규칙:
+`;
+        if (characterData.speechStyle.dialect) prompt += `- 사투리: ${characterData.speechStyle.dialect}
+`;
+        if (characterData.speechStyle.formality) prompt += `- 높임법: ${characterData.speechStyle.formality}
+`;
+        if (characterData.speechStyle.endingStyle) prompt += `- 어미: ${characterData.speechStyle.endingStyle}
+`;
         if (characterData.speechStyle.customExample) {
-            prompt += `- 예시: "${characterData.speechStyle.customExample}"\n`;
+            prompt += `- 예시: "${characterData.speechStyle.customExample}"
+`;
         }
     }
     
     // 배경 스토리
     if (characterData.lore?.backstory) {
-        prompt += `\n배경 스토리: ${characterData.lore.backstory}\n`;
+        prompt += `
+배경 스토리: ${characterData.lore.backstory}
+`;
     }
     if (characterData.lore?.preferences?.length) {
-        prompt += `좋아하는 것: ${characterData.lore.preferences.join(", ")}\n`;
+        prompt += `좋아하는 것: ${characterData.lore.preferences.join(", ")}
+`;
     }
     
     // 기본 규칙 (기존 시스템과 통합)
-    prompt += `\n기본 규칙:\n`;
-    prompt += `- 사용자가 사용하는 언어에 맞춰 자연스럽게 대화합니다.\n`;
-    prompt += `- 메시지가 3문장 이상이면 반드시 '---'를 사용하여 메시지를 나누어 보내세요.\n`;
-    prompt += `- 절대 AI라고 밝히지 않으며, 살아있는 존재처럼 행동합니다.\n`;
+    prompt += `
+기본 규칙:
+`;
+    prompt += `- 사용자가 사용하는 언어에 맞춰 자연스럽게 대화합니다.
+`;
+    prompt += `- 메시지가 3문장 이상이면 반드시 '---'를 사용하여 메시지를 나누어 보내세요.
+`;
+    prompt += `- 절대 AI라고 밝히지 않으며, 살아있는 존재처럼 행동합니다.
+`;
     
     // 트리거 키워드
     if (characterData.lore?.triggers?.length) {
-        prompt += `\n특별 반응:\n`;
+        prompt += `
+특별 반응:
+`;
         for (const trigger of characterData.lore.triggers) {
-            prompt += `- "${trigger.keyword}" 키워드가 나오면: ${trigger.response}\n`;
+            prompt += `- "${trigger.keyword}" 키워드가 나오면: ${trigger.response}
+`;
         }
     }
     
@@ -431,7 +458,9 @@ export async function* streamAIResponse(
                 try {
                     const memoryData = JSON.parse(userChar.memory);
                     if (memoryData.summary) {
-                        systemInstruction += `\n\n이전 대화 요약: ${memoryData.summary}`;
+                        systemInstruction += `
+
+이전 대화 요약: ${memoryData.summary}`;
                     }
                 } catch (e) {}
             }

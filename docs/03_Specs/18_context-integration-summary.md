@@ -1,4 +1,6 @@
 # 5계층 컨텍스트 연동 요약 (Phase 10)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 유저 컨텍스트 5계층이 채팅 API 및 토큰 예산과 어떻게 연동되는지 요약한다. 상세 명세는 `user-context-layers-spec.md` 참조.
 

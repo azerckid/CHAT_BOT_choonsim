@@ -1,4 +1,6 @@
 # Character Media & Emotion System Expansion Plan (100+ Asset Strategy)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 캐릭터별 100장 이상의 고해상도 이미지 자산을 활용하여, 사용자의 대화 맥락과 캐릭터의 감정에 따라 동적인 상호작용을 제공하기 위한 기술 설계 및 단계별 로드맵입니다.
 

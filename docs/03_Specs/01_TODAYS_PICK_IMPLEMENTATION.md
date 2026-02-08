@@ -1,4 +1,6 @@
 # Admin System Configuration Feature Specification
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 ## 1. Overview
 This document outlines the implementation plan for the **"Today's Pick" Management** feature within the Admin Console.

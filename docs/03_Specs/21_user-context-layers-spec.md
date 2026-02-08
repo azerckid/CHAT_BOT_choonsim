@@ -1,4 +1,6 @@
 # USER_CONTEXT_LAYERS_SPEC: 유저별 대화 컨텍스트 5계층 설계
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 본 문서는 춘심 대화 품질 업그레이드를 위해 **유저별로 유지하는 5가지 컨텍스트 계층**(memory, heartbeat, identity, soul, tools)의 개념, 역할, 저장 전략, 그리고 구현 방향을 정의합니다.
 

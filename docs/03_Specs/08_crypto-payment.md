@@ -1,4 +1,6 @@
 
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 # 암호화폐 결제 시스템 구현 계획 (Crypto Payment Implementation Plan)
 
 ## 1. 개요 (Overview)

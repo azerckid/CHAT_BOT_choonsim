@@ -1,4 +1,6 @@
 # NEAR Protocol Fungible Token (NEP-141) Issuance & Management Specification
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 춘심(CHOONSIM) 프로젝트의 자체 토큰인 **CHOCO** 토큰을 NEAR Protocol 상에 발행하고, 이를 서비스와 통합하여 효율적으로 운영하기 위한 기술적 명세를 정의합니다.
 

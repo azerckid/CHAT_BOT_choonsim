@@ -1,4 +1,6 @@
 # NEAR X402 System: Internal Workflow & Architecture
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 사용자가 회원가입부터 결제, 충전까지 진행하는 과정에서 시스템 내부적으로 어떤 기술적 상호작용이 일어나는지 정리한 아키텍처 가이드입니다.
 

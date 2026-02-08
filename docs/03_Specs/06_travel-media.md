@@ -1,4 +1,6 @@
 # AI Travel Media Generation Specification (Travel with Choonsim)
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 춘심이 캐릭터와 유저의 사진을 합성하여 전 세계 명소를 배경으로 한 고품질 이미지 및 영상을 생성하는 기능에 대한 기술 규격 및 구현 전략을 정의합니다.
 

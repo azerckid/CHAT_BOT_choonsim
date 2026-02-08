@@ -1,4 +1,6 @@
 # ADMIN_PAGE_IMPLEMENTATION_PLAN: 통합 관리자 시스템 구축 계획
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 본 문서는 `docs/ADMIN_PAGE_REQUIREMENTS.md`와 `docs/CHATTING_ITEM_PLAN.md`를 통합하여, 캐릭터 관리부터 가상 아이템(하트) 선물 시스템까지 아우르는 어드민 페이지 구현 가이드를 정의합니다.
 

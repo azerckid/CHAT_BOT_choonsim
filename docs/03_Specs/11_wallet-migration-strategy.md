@@ -1,4 +1,6 @@
 # NEAR Invisible Wallet Management & Migration Strategy
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 이 문서는 춘심(CHOONSIM) 프로젝트에서 사용자에게 번거로운 지갑 생성 과정 없이 온체인 자산(CHOCO 토큰)을 제공하기 위한 **임베디드 지갑 생성 및 기존 사용자 마이그레이션 전략**을 정의합니다.
 

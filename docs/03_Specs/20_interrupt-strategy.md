@@ -1,4 +1,6 @@
 # CHAT_INTERRUPT_STRATEGY: 인터럽트 기반 실시간 대화 시스템
+> Created: 2026-02-08
+> Last Updated: 2026-02-08
 
 본 문서는 AI 캐릭터(춘심 등)가 답변을 생성 중일 때 유저가 개입하여 대화를 중단하고 주도권을 가져올 수 있는 **인터럽트(Interrupt) 시스템**의 설계 및 구현 전략을 정의합니다.
 
@@ -255,7 +257,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
           if (item.type === 'content') {
             fullContent += item.content;
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: item.content })}\n\n`));
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: item.content })}
+
+`));
           }
         }
 
@@ -266,7 +270,9 @@ export async function action({ request }: ActionFunctionArgs) {
       } catch (err) {
         // 중단된 경우는 이미 처리됨
         if (!isInterrupted) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Streaming error" })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Streaming error" })}
+
+`));
         }
       } finally {
         controller.close();
