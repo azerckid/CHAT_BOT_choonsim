@@ -334,4 +334,4 @@ VOICE_EMOTION_DETECTION_ENABLED=false # Phase 3 완료 후 활성화
 
 
 ## Related Documents
-- **Foundation**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Foundation**: [Document Management Plan](./09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조

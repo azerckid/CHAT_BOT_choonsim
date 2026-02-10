@@ -223,8 +223,8 @@ tags: [completed, verification, [카테고리], consolidated]
 
 ## 참조 문서
 
-- 문서 통합 전략: `../01_Foundation/10_DOCUMENT_CONSOLIDATION_STRATEGY.md`
-- 문서 아카이브 전략: `../01_Foundation/09_DOCUMENT_ARCHIVAL_STRATEGY.md`
+- 문서 통합 전략: `../01_Foundation/11_DOCUMENT_CONSOLIDATION_STRATEGY.md`
+- 문서 아카이브 전략: `../01_Foundation/10_DOCUMENT_ARCHIVAL_STRATEGY.md`
 - 아카이브 인덱스: `docs/archive/README.md`
 
 ---
@@ -235,4 +235,4 @@ tags: [completed, verification, [카테고리], consolidated]
 
 
 ## Related Documents
-- **Test**: [Document Management Plan](../01_Concept_Design/08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Test**: [Document Management Plan](../01_Concept_Design/09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조

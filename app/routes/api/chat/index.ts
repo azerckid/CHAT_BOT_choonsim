@@ -3,6 +3,7 @@ import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import type { ActionFunctionArgs } from "react-router";
 import { streamAIResponse, extractPhotoMarker, extractEmotionMarker } from "~/lib/ai.server";
+import { streamAIResponseV2 } from "~/lib/ai-v2.server";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { logger } from "~/lib/logger.server";
 import * as schema from "~/db/schema";
@@ -222,20 +223,43 @@ export async function action({ request }: ActionFunctionArgs) {
                 const subscriptionTier = (currentUser?.subscriptionTier as any) || "FREE";
                 let tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
 
-                for await (const item of streamAIResponse(
-                    message,
-                    formattedHistory,
-                    personality,
-                    memory,
-                    mediaUrl,
-                    session.user.id,
-                    characterId,
-                    subscriptionTier,
-                    giftContext ? { ...giftContext, countInSession: giftCountInSession } : undefined,
-                    request.signal, // AbortSignal 전달
-                    (currentConversation as any)?.character?.name,
-                    (currentConversation as any)?.character?.personaPrompt
-                )) {
+                const useVercelAI = process.env.USE_VERCEL_AI_SDK === "true" && !mediaUrl;
+                const historyForV2 = formattedHistory.map((h) => ({
+                    role: h.role as "user" | "assistant",
+                    content: h.content,
+                    mediaUrl: h.mediaUrl,
+                    isInterrupted: h.isInterrupted,
+                }));
+                const streamSource = useVercelAI
+                    ? streamAIResponseV2(
+                          message,
+                          historyForV2,
+                          personality,
+                          memory,
+                          mediaUrl ?? null,
+                          characterId,
+                          subscriptionTier,
+                          giftContext ? { ...giftContext, countInSession: giftCountInSession } : undefined,
+                          request.signal,
+                          (currentConversation as any)?.character?.name,
+                          (currentConversation as any)?.character?.personaPrompt
+                      )
+                    : streamAIResponse(
+                          message,
+                          formattedHistory,
+                          personality,
+                          memory,
+                          mediaUrl,
+                          session.user.id,
+                          characterId,
+                          subscriptionTier,
+                          giftContext ? { ...giftContext, countInSession: giftCountInSession } : undefined,
+                          request.signal,
+                          (currentConversation as any)?.character?.name,
+                          (currentConversation as any)?.character?.personaPrompt
+                      );
+
+                for await (const item of streamSource) {
                     if (isAborted) break;
 
                     if (item.type === 'content') {
@@ -419,11 +443,8 @@ export async function action({ request }: ActionFunctionArgs) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ mediaUrl: photoUrl })}\n\n`));
                     }
 
-                    for (const char of finalContent) {
-                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: char })}\n\n`));
-                        const randomDelay = Math.floor(Math.random() * (120 - 40 + 1)) + 40;
-                        await new Promise(resolve => setTimeout(resolve, randomDelay));
-                    }
+                    // Phase 3: 수동 타이핑 지연 제거 - 전체 텍스트를 즉시 스트리밍
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: finalContent })}\n\n`));
 
                     // 메시지 저장
                     const [savedMessage] = await db.insert(schema.message).values({
@@ -457,9 +478,6 @@ export async function action({ request }: ActionFunctionArgs) {
 
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage?.id, mediaUrl: (i === 0 && photoUrl) ? photoUrl : null })}\n\n`));
 
-                    if (i < messageParts.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                    }
                 }
 
                 // 스트리밍 완료 시 토큰 사용량 정보 전송

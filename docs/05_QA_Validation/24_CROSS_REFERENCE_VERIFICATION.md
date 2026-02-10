@@ -10,7 +10,7 @@
 
 - **대상**: `docs/01_Concept_Design/`, `docs/02_UI_Screens/`, `docs/03_Technical_Specs/`, `docs/04_Logic_Progress/`, `docs/05_QA_Validation/` 내 Active 문서
 - **제외**: `docs/04_Logic_Progress/00_ARCHIVE/` 내 보관 문서
-- **기준**: `08_DOCUMENT_MANAGEMENT_PLAN.md` 제3조 "교차 참조 (Context Linking)" - 문서 하단 Related Documents 섹션의 링크 유효성
+- **기준**: `09_DOCUMENT_MANAGEMENT_PLAN.md` 제3조 "교차 참조 (Context Linking)" - 문서 하단 Related Documents 섹션의 링크 유효성
 
 ---
 
@@ -30,10 +30,10 @@
 
 ### 3.1. 잘못된 상대 경로 (Broken Links)
 
-**원인**: `03_Technical_Specs` 및 `05_QA_Validation` 폴더 내 문서들이 Document Management Plan을 `./08_DOCUMENT_MANAGEMENT_PLAN.md`로 참조. 해당 경로는 각 폴더 내 08번 파일을 가리키며, Document Management Plan은 `01_Concept_Design/` 폴더에 있음.
+**원인**: `03_Technical_Specs` 및 `05_QA_Validation` 폴더 내 문서들이 Document Management Plan을 `./09_DOCUMENT_MANAGEMENT_PLAN.md`로 참조. 해당 경로는 각 폴더 내 08번 파일을 가리키며, Document Management Plan은 `01_Concept_Design/` 폴더에 있음.
 
-**수정 전**: `[Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md)`  
-**수정 후**: `[Document Management Plan](../01_Concept_Design/08_DOCUMENT_MANAGEMENT_PLAN.md)`
+**수정 전**: `[Document Management Plan](./09_DOCUMENT_MANAGEMENT_PLAN.md)`  
+**수정 후**: `[Document Management Plan](../01_Concept_Design/09_DOCUMENT_MANAGEMENT_PLAN.md)`
 
 **영향 문서**:
 - `docs/03_Technical_Specs/*.md` (21개)
@@ -41,7 +41,7 @@
 
 ### 3.2. 파일명 대소문자 불일치
 
-**대상**: `docs/01_Concept_Design/05_ROADMAP.md`  
+**대상**: `docs/01_Concept_Design/02_ROADMAP.md`  
 **참조**: `../03_Technical_Specs/21_USER_CONTEXT_LAYERS_SPEC.md`  
 **실제 파일명**: `21_user-context-layers-spec.md`  
 
@@ -54,7 +54,7 @@ macOS 기본 HFS+/APFS는 대소문자 비구분이므로 동작하나, Linux/CI
 ### 4.1. 현황
 
 - **패턴**: 대부분 문서가 Document Management Plan 단일 참조만 보유
-- **다중 참조 문서**: `05_ROADMAP.md`, `08_DOCUMENT_MANAGEMENT_PLAN.md`, `00_BACKLOG.md` 등은 2~3개 레이어 간 교차 참조
+- **다중 참조 문서**: `02_ROADMAP.md`, `09_DOCUMENT_MANAGEMENT_PLAN.md`, `00_BACKLOG.md` 등은 2~3개 레이어 간 교차 참조
 
 ### 4.2. 개선 권장 사항
 
@@ -75,5 +75,5 @@ macOS 기본 HFS+/APFS는 대소문자 비구분이므로 동작하나, Linux/CI
 
 ## Related Documents
 
-- **Concept_Design**: [Document Management Plan](../01_Concept_Design/08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Concept_Design**: [Document Management Plan](../01_Concept_Design/09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
 - **Logic_Progress**: [Backlog](../04_Logic_Progress/00_BACKLOG.md) - 현재 진행 중인 구현 작업 리스트

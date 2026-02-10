@@ -386,7 +386,7 @@ WHERE id = '{userId}';
 - CHOCO 전송: `app/lib/near/token.server.ts`
 - 대화 API: `app/routes/api/chat/index.ts`
 - 아이템 구매: `app/routes/api/items/purchase.ts`
-- 관련 문서: `../01_Foundation/13_NEAR_DEPOSIT_ENGINE_FOLLOW_UP.md`
+- 관련 문서: `../01_Foundation/14_NEAR_DEPOSIT_ENGINE_FOLLOW_UP.md`
 
 ---
 
@@ -395,4 +395,4 @@ WHERE id = '{userId}';
 
 
 ## Related Documents
-- **Test**: [Document Management Plan](../01_Concept_Design/08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Test**: [Document Management Plan](../01_Concept_Design/09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조

@@ -770,4 +770,4 @@ for (let i = 0; i < usersToCheckIn.length; i += BATCH_SIZE) {
 
 
 ## Related Documents
-- **Foundation**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Foundation**: [Document Management Plan](./09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조

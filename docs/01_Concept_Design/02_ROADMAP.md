@@ -29,6 +29,6 @@
 ---
 
 ## Related Documents
-- **Concept_Design**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Concept_Design**: [Document Management Plan](./09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
 - **Concept_Design**: [UI Design](./01_UI_DESIGN.md) - 디자인 가이드라인
 - **Technical_Specs**: [User Context Layers Spec](../03_Technical_Specs/21_user-context-layers-spec.md) - 장기 기억 및 컨텍스트 설계 명세

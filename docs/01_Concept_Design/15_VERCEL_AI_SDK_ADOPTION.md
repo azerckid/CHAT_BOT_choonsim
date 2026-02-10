@@ -1,6 +1,6 @@
 # 📄 Vercel AI SDK 도입 분석 및 전략 보고서
 > Created: 2026-02-08
-> Last Updated: 2026-02-08
+> Last Updated: 2026-02-11
 
 ## 1. 개요
 현재 '춘심(CHOONSIM)' 프로젝트의 AI 채팅 서비스 고도화를 위해 **Vercel AI SDK** 도입을 검토한 결과와 향후 실행 전략을 정리한 문서입니다.
@@ -31,17 +31,17 @@
 
 ## 4. 단계별 도입 로드맵 (Roadmap)
 
-### Phase 1: 기술 검증 및 환경 구축
-- [ ] `ai`, `@ai-sdk/google` 라이브러리 설치.
-- [ ] `app/lib/ai-v2.server.ts` 프로토타입 생성 (기존 `ai.server.ts`와 병행).
+### Phase 1: 기술 검증 및 환경 구축 (완료)
+- [x] `ai`, `@ai-sdk/google` 라이브러리 설치.
+- [x] `app/lib/ai-v2.server.ts` 프로토타입 생성 (기존 `ai.server.ts`와 병행).
 
-### Phase 2: 핵심 API 전환
-- [ ] `app/routes/api/chat/index.ts`를 Vercel AI SDK 인터페이스로 전환하거나 호환 레이어 구축.
-- [ ] LangGraph의 복잡한 로직(요약, 의도 분석)을 SDK의 `streamText`와 결합.
+### Phase 2: 핵심 API 전환 (완료)
+- [x] `app/routes/api/chat/index.ts`에 Vercel AI SDK 호환 레이어 구축 (`USE_VERCEL_AI_SDK=true` 시 `streamAIResponseV2` 사용).
+- [x] `buildStreamSystemInstruction` 추출, `streamText`와 결합.
 
-### Phase 3: 클라이언트 UI 고도화
-- [ ] `app/routes/chat` 페이지에 `useChat` 적용하여 사용자 경험(UX) 개선.
-- [ ] 수동 타이핑 지연 로직을 걷어내고 SDK의 효율적인 스트리밍 렌더링 사용.
+### Phase 3: 클라이언트 UX 개선 (완료)
+- [x] 수동 타이핑 지연 로직 제거 (문자 단위 setTimeout 제거, 즉시 스트리밍).
+- [ ] (선택) `useChat` 훅 적용 - 추후 클라이언트 전면 전환 시 검토.
 
 ---
 **작성일**: 2026-01-14
@@ -49,4 +49,4 @@
 
 
 ## Related Documents
-- **Foundation**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Foundation**: [Document Management Plan](./09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조

@@ -94,6 +94,8 @@ const PERSONA_PROMPTS = {
 `,
 };
 
+export type PersonaMode = keyof typeof PERSONA_PROMPTS;
+
 // 춘심이라는 이름을 실제 캐릭터 이름으로 변환하는 헬퍼 함수
 function applyCharacterName(instruction: string, name: string): string {
     if (!name || name === '춘심') return instruction;
@@ -573,34 +575,26 @@ export interface TokenUsage {
     totalTokens: number;
 }
 
-/**
- * 스트리밍 응답 (요약 로직은 단순화하여 적용)
- * @returns AsyncGenerator<{ type: 'content', content: string } | { type: 'usage', usage: TokenUsage }>
- */
-export async function* streamAIResponse(
-    userMessage: string,
-    history: HistoryMessage[],
-    personaMode: keyof typeof PERSONA_PROMPTS = "hybrid",
-    currentSummary: string = "",
-    mediaUrl: string | null = null,
-    userId: string | null = null,
-    characterId: string = "chunsim",
-    subscriptionTier: SubscriptionTier = "FREE",
-    giftContext?: { amount: number; itemId: string; countInSession?: number },
-    abortSignal?: AbortSignal,
-    characterName?: string | null,
-    personaPrompt?: string | null
-) {
-    // 선물하기 상황에서 사용자 메시지가 비어있다면, 시스템 행동 지문(명령어)으로 대체하여 AI가 상황을 명확히 인지하도록 함
-    if (giftContext && !userMessage.trim()) {
-        userMessage = `(시스템: 사용자가 하트 ${giftContext.amount}개를 선물했습니다. 이에 대해 당신의 페르소나와 현재 감정에 맞춰 격렬하게 반응하세요.)`;
-    }
+/** 스트리밍용 시스템 지시문 구성 파라미터 (ai-v2 호환) */
+export interface StreamSystemInstructionParams {
+    personaMode: keyof typeof PERSONA_PROMPTS;
+    currentSummary: string;
+    mediaUrl: string | null;
+    characterId: string;
+    subscriptionTier: SubscriptionTier;
+    giftContext?: { amount: number; itemId: string; countInSession?: number };
+    characterName?: string | null;
+    personaPrompt?: string | null;
+}
 
-    // ... (중간 지침 생성 로직 동일) ...
+/**
+ * 스트리밍 AI 호출용 시스템 지시문 생성 (ai-v2.server와 공유)
+ */
+export function buildStreamSystemInstruction(params: StreamSystemInstructionParams): string {
+    const { personaMode, currentSummary, mediaUrl, characterId, subscriptionTier, giftContext, characterName, personaPrompt } = params;
     let systemInstruction = "";
 
-    // 전달받은 페르소나 및 이름 활용 (중복 쿼리 제거)
-    const character = { name: characterName, personaPrompt: personaPrompt };
+    const character = { name: characterName, personaPrompt };
 
     if (character.personaPrompt) {
         systemInstruction = character.personaPrompt;
@@ -611,7 +605,6 @@ export async function* streamAIResponse(
             systemInstruction = `${character.personaPrompt}\n\n${modePrompt}${memoryInfo}`;
         }
 
-        // 다른 캐릭터에도 기본 Guardrail 추가 (캐릭터별 Guardrail이 없을 경우)
         if (!systemInstruction.includes("안전 가이드라인") && !systemInstruction.includes("Guardrails")) {
             systemInstruction += `\n\n안전 가이드라인 (Guardrails):
 - 부적절한 요청이나 언행에 대해서는 단호하게 거부하되, 합리적이고 정중한 방식으로 대응합니다.
@@ -627,12 +620,10 @@ export async function* streamAIResponse(
         systemInstruction += "\n\n(참고: 사용자가 이미지를 보냈습니다. 반드시 이미지의 주요 특징이나 내용을 언급하며 대화를 이어가 주세요. 만약 사진이 무엇인지 혹은 어떤지 묻는다면 친절하게 분석해 주세요.)";
     }
 
-    // 선물(하트) 리액션 지침 추가
     if (giftContext) {
         const { amount, countInSession = 1 } = giftContext;
         let giftInstruction = "";
 
-        // 연속 선물 보너스 지침
         const continuousBonus = countInSession > 1
             ? `\n\n[CONTINUOUS GIFT BONUS: THIS IS THE ${countInSession}th CONSECUTIVE GIFT!]
 - 사용자가 쉬지 않고 계속 사랑을 표현하고 있습니다!
@@ -668,15 +659,13 @@ export async function* streamAIResponse(
         systemInstruction += giftInstruction + continuousBonus;
     }
 
-    // Subscription Tier별 Guardrail 적용 (모든 캐릭터에 공통 적용)
     const tierGuardrail = GUARDRAIL_BY_TIER[subscriptionTier] || GUARDRAIL_BY_TIER.FREE;
     systemInstruction += `\n\n[Subscription Tier: ${subscriptionTier}]\n${tierGuardrail}`;
 
-    // 현재 날짜와 시간 정보 추가
     const now = DateTime.now().setZone("Asia/Seoul");
     const dateInfo = now.toFormat("yyyy년 MM월 dd일");
     const timeInfo = now.toFormat("HH시 mm분");
-    const dayOfWeekNames = ["", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]; // weekday는 1-7 (월=1, 일=7)
+    const dayOfWeekNames = ["", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
     const dayOfWeek = dayOfWeekNames[now.weekday] || "일요일";
     const timeContext = `\n\n[현재 시간 정보]
 오늘은 ${dateInfo} ${dayOfWeek}입니다.
@@ -684,7 +673,6 @@ export async function* streamAIResponse(
 이 정보를 활용하여 자연스럽게 대화하세요. 예를 들어, 아침/점심/저녁 인사, 주말/평일 구분, 특별한 날짜(생일, 기념일 등) 언급 등에 활용할 수 있습니다.`;
     systemInstruction += timeContext;
 
-    // 감정 상태(Emotion) 시스템 지침 추가
     const emotionInstruction = `\n\n[EMOTION SYSTEM]
 당신은 매 답변의 처음에 현재의 감정 상태를 마커 형태로 표시해야 합니다.
 사용 가능한 감정 마커:
@@ -701,10 +689,46 @@ export async function* streamAIResponse(
 3. 상황에 따라 가장 적절한 감정을 선택하세요. 특히 선물을 받았을 때는 EXCITED나 LOVING을 권장합니다.`;
     systemInstruction += emotionInstruction;
 
-    // 최종적으로 모든 '춘심' 명칭을 실제 캐릭터 이름으로 변환
     if (character?.name) {
         systemInstruction = applyCharacterName(systemInstruction, character.name);
     }
+
+    return systemInstruction;
+}
+
+/**
+ * 스트리밍 응답 (요약 로직은 단순화하여 적용)
+ * @returns AsyncGenerator<{ type: 'content', content: string } | { type: 'usage', usage: TokenUsage }>
+ */
+export async function* streamAIResponse(
+    userMessage: string,
+    history: HistoryMessage[],
+    personaMode: keyof typeof PERSONA_PROMPTS = "hybrid",
+    currentSummary: string = "",
+    mediaUrl: string | null = null,
+    userId: string | null = null,
+    characterId: string = "chunsim",
+    subscriptionTier: SubscriptionTier = "FREE",
+    giftContext?: { amount: number; itemId: string; countInSession?: number },
+    abortSignal?: AbortSignal,
+    characterName?: string | null,
+    personaPrompt?: string | null
+) {
+    // 선물하기 상황에서 사용자 메시지가 비어있다면, 시스템 행동 지문(명령어)으로 대체하여 AI가 상황을 명확히 인지하도록 함
+    if (giftContext && !userMessage.trim()) {
+        userMessage = `(시스템: 사용자가 하트 ${giftContext.amount}개를 선물했습니다. 이에 대해 당신의 페르소나와 현재 감정에 맞춰 격렬하게 반응하세요.)`;
+    }
+
+    const systemInstruction = buildStreamSystemInstruction({
+        personaMode,
+        currentSummary,
+        mediaUrl,
+        characterId,
+        subscriptionTier,
+        giftContext,
+        characterName,
+        personaPrompt,
+    });
 
     const messages: BaseMessage[] = [
         new SystemMessage(systemInstruction),

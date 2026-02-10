@@ -2,7 +2,7 @@
 > Created: 2026-02-05
 > Last Updated: 2026-02-08 18:01
 
-본 문서는 **13_NEAR_DEPOSIT_ENGINE_FOLLOW_UP.md** 섹션 9.2 방안 1(비동기 지갑 생성)을 실제로 구현하기 위한 단계별 계획서입니다.
+본 문서는 **14_NEAR_DEPOSIT_ENGINE_FOLLOW_UP.md** 섹션 9.2 방안 1(비동기 지갑 생성)을 실제로 구현하기 위한 단계별 계획서입니다.
 
 ---
 
@@ -576,7 +576,7 @@ export function WalletStatusPolling() {
 
 - 기존 지갑 생성 로직: `app/lib/near/wallet.server.ts`
 - Cron 작업: `app/lib/cron.server.ts`
-- 관련 문서: `./13_NEAR_DEPOSIT_ENGINE_FOLLOW_UP.md` (섹션 9)
+- 관련 문서: `./14_NEAR_DEPOSIT_ENGINE_FOLLOW_UP.md` (섹션 9)
 
 ---
 
@@ -585,4 +585,4 @@ export function WalletStatusPolling() {
 
 
 ## Related Documents
-- **Foundation**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Foundation**: [Document Management Plan](./09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
