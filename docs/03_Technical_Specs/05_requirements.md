@@ -462,4 +462,4 @@ Admin 페이지는 크게 **2가지 주요 영역**으로 구분됩니다:
 
 
 ## Related Documents
-- **Specs**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Specs**: [Document Management Plan](../01_Concept_Design/08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조

@@ -88,4 +88,4 @@ CHOCO 토큰이 프로젝트의 핵심 화폐로 자리 잡음에 따라, 관리
 
 
 ## Related Documents
-- **Specs**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Specs**: [Document Management Plan](../01_Concept_Design/08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조

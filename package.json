@@ -8,7 +8,8 @@
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "test:context": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/isolation.test.ts",
-    "test:context-memory": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/memory.test.ts"
+    "test:context-memory": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/memory.test.ts",
+    "test:identity": "vitest run app/lib/context/__tests__/identity.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
@@ -74,6 +75,7 @@
     "tsx": "^4.19.0",
     "typescript": "^5.9.2",
     "vite": "^7.1.7",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.18"
   }
 }

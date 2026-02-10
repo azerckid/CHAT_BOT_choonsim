@@ -1,3 +1,4 @@
+
 .DS_Store
 .env
 .env*
@@ -25,6 +26,6 @@ backups/
 *.log
 build_debug.log
 
-.agent
 
+.agent
 .claude

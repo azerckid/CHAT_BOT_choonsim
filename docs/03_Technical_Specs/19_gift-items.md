@@ -149,4 +149,4 @@ model GiftLog {
 Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
 
 ## Related Documents
-- **Specs**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Specs**: [Document Management Plan](../01_Concept_Design/08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조

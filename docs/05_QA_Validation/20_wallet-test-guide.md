@@ -222,4 +222,4 @@ curl -X POST http://localhost:5173/api/test-wallet \
 
 
 ## Related Documents
-- **Test**: [Document Management Plan](./08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
+- **Test**: [Document Management Plan](../01_Concept_Design/08_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 규칙 및 구조
