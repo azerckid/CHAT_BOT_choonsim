@@ -83,26 +83,43 @@ function mapOldPathToNew(oldPath: string): string {
     // 경로 패턴 매칭
     if (oldPath.includes("docs/core/")) {
         const newFileName = FILE_NAME_MAP[fileName] || fileName;
-        return `docs/01_Foundation/${newFileName}`;
+        return `docs/01_Concept_Design/${newFileName}`;
     }
     if (oldPath.includes("docs/features/")) {
         const newFileName = FILE_NAME_MAP[fileName] || fileName;
-        return `docs/03_Specs/${newFileName}`;
+        return `docs/03_Technical_Specs/${newFileName}`;
     }
     if (oldPath.includes("docs/roadmap/")) {
         const newFileName = FILE_NAME_MAP[fileName] || fileName;
-        return `docs/01_Foundation/${newFileName}`;
+        return `docs/01_Concept_Design/${newFileName}`;
     }
     if (oldPath.includes("docs/reports/")) {
         const newFileName = FILE_NAME_MAP[fileName] || fileName;
-        return `docs/05_Test/${newFileName}`;
+        return `docs/05_QA_Validation/${newFileName}`;
     }
     if (oldPath.includes("docs/guides/")) {
         const newFileName = FILE_NAME_MAP[fileName] || fileName;
-        return `docs/05_Test/${newFileName}`;
+        return `docs/05_QA_Validation/${newFileName}`;
     }
     if (oldPath.includes("docs/stitch/")) {
-        return oldPath.replace("docs/stitch/", "docs/02_Prototype/");
+        return oldPath.replace("docs/stitch/", "docs/02_UI_Screens/");
+    }
+    
+    // 새로운 폴더명으로 변경된 경로 업데이트
+    if (oldPath.includes("docs/01_Foundation/")) {
+        return oldPath.replace("docs/01_Foundation/", "docs/01_Concept_Design/");
+    }
+    if (oldPath.includes("docs/02_Prototype/")) {
+        return oldPath.replace("docs/02_Prototype/", "docs/02_UI_Screens/");
+    }
+    if (oldPath.includes("docs/03_Specs/")) {
+        return oldPath.replace("docs/03_Specs/", "docs/03_Technical_Specs/");
+    }
+    if (oldPath.includes("docs/04_Logic/")) {
+        return oldPath.replace("docs/04_Logic/", "docs/04_Logic_Progress/");
+    }
+    if (oldPath.includes("docs/05_Test/")) {
+        return oldPath.replace("docs/05_Test/", "docs/05_QA_Validation/");
     }
     
     return oldPath;
@@ -118,6 +135,11 @@ function convertPath(oldPath: string, currentFile: string): string {
         /docs\/reports\//,
         /docs\/guides\//,
         /docs\/stitch\//,
+        /docs\/01_Foundation\//,
+        /docs\/02_Prototype\//,
+        /docs\/03_Specs\//,
+        /docs\/04_Logic\//,
+        /docs\/05_Test\//,
     ];
     
     const needsUpdate = oldPathPatterns.some(pattern => pattern.test(oldPath));
@@ -163,14 +185,14 @@ function updateLinks(content: string, currentFile: string): string {
     });
     
     // 2. 백틱으로 감싸진 경로: `docs/core/file.md` 또는 `docs/features/chat/file.md`
-    const backtickPattern = /`([^`]*docs\/(?:core|features|roadmap|reports|guides|stitch)\/[^`]+\.md[^`]*)`/g;
+    const backtickPattern = /`([^`]*docs\/(?:core|features|roadmap|reports|guides|stitch|01_Foundation|02_Prototype|03_Specs|04_Logic|05_Test)\/[^`]+\.md[^`]*)`/g;
     updated = updated.replace(backtickPattern, (match, oldPath) => {
         const newPath = convertPath(oldPath, currentFile);
         return newPath !== oldPath ? `\`${newPath}\`` : match;
     });
     
     // 3. 일반 텍스트 경로 (백틱 없이): docs/core/file.md
-    const textPathPattern = /(^|[^`])(docs\/(?:core|features|roadmap|reports|guides|stitch)\/[^\s\)\`]+\.md)(?=[\s\)]|$)/gm;
+    const textPathPattern = /(^|[^`])(docs\/(?:core|features|roadmap|reports|guides|stitch|01_Foundation|02_Prototype|03_Specs|04_Logic|05_Test)\/[^\s\)\`]+\.md)(?=[\s\)]|$)/gm;
     updated = updated.replace(textPathPattern, (match, prefix, oldPath) => {
         const newPath = convertPath(oldPath, currentFile);
         return newPath !== oldPath ? `${prefix}${newPath}` : match;
@@ -213,7 +235,7 @@ function getAllMarkdownFiles(dir: string): string[] {
 function main() {
     console.log("Updating document links...\n");
     
-    const layers = ["01_Foundation", "02_Prototype", "03_Specs", "04_Logic", "05_Test"];
+    const layers = ["01_Concept_Design", "02_UI_Screens", "03_Technical_Specs", "04_Logic_Progress", "05_QA_Validation"];
     
     for (const layer of layers) {
         const layerDir = path.join(DOCS_DIR, layer);

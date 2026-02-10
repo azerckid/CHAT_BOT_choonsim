@@ -14,7 +14,7 @@
 
 ### 1. AI 응답 속도 최적화 (Vercel AI SDK 적용)
 - **목표**: 스트리밍 응답 가독성 및 서버 부하 개선.
-- **관련 문서**: `docs/01_Foundation/15_VERCEL_AI_SDK_ADOPTION.md`
+- **관련 문서**: `../01_Concept_Design/15_VERCEL_AI_SDK_ADOPTION.md`
 
 ### 2. 캐릭터 멀티 페르소나 강화
 - **목표**: 상황별 톤앤매너 전환 로직 정교화.
@@ -25,7 +25,7 @@
 
 ### 3. NEAR 지갑 비동기 생성 구현 (2026-02-08)
 - **목표**: 회원가입 시 지갑 생성을 백그라운드 작업으로 전환하여 대기 시간 제거.
-- **관련 문서**: `docs/01_Foundation/14_NEAR_WALLET_ASYNC_CREATION_PLAN.md`
+- **관련 문서**: `../01_Concept_Design/14_NEAR_WALLET_ASYNC_CREATION_PLAN.md`
 - **검증 항목**:
     - [x] Phase 1: DB 스키마 변경 (`walletStatus`, `retryCount` 등 추가)
     - [x] Phase 2: 백엔드 리팩토링 (`ensureNearWalletAsync`, `ensureNearWalletOnChain` 분리)
