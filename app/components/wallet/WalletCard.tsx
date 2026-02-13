@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/button";
 import { Copy, Wallet, RefreshCw, QrCode, History, ExternalLink } from "lucide-react";
 import QRCode from "react-qr-code";
 import { toast } from "sonner";
+import { CHAIN_LABELS, formatChainForDisplay, formatChainUnitForDisplay } from "~/lib/constants/chain-labels";
 
 interface WalletCardProps {
     chocoBalance: string | null;
@@ -50,7 +51,7 @@ export function WalletCard({
 
     return (
         <div className="px-4 pb-4">
-            <div className="p-5 rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 text-white shadow-xl ring-1 ring-white/10 relative overflow-hidden">
+            <div className="p-5 rounded-3xl bg-linear-to-br from-violet-600 via-indigo-600 to-purple-700 text-white shadow-xl ring-1 ring-white/10 relative overflow-hidden">
                 {/* Decorative Circles */}
                 <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 rounded-full bg-white/10 blur-2xl"></div>
                 <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 rounded-full bg-black/10 blur-xl"></div>
@@ -65,7 +66,7 @@ export function WalletCard({
                             </div>
                             <div className="flex items-center gap-2 mt-2">
                                 <div className="text-sm text-indigo-100 flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full">
-                                    <span className="font-medium">≈ {nearBalance} NEAR</span>
+                                    <span className="font-medium">≈ {nearBalance}{CHAIN_LABELS.NATIVE_BALANCE_UNIT ? ` ${CHAIN_LABELS.NATIVE_BALANCE_UNIT}` : ""}</span>
                                 </div>
                                 <span className="text-[10px] text-indigo-300 bg-indigo-950/30 px-2 py-0.5 rounded-full border border-indigo-400/20">
                                     가스비 무료
@@ -122,8 +123,8 @@ export function WalletCard({
             <Dialog open={depositDialogOpen} onOpenChange={onDepositDialogChange}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>입금 받기 (NEAR)</DialogTitle>
-                        <DialogDescription>아래 QR 코드를 스캔하거나 주소를 복사하여 NEAR를 입금하세요.</DialogDescription>
+                        <DialogTitle>{CHAIN_LABELS.DEPOSIT_DIALOG_TITLE}</DialogTitle>
+                        <DialogDescription>{CHAIN_LABELS.DEPOSIT_INSTRUCTION}</DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col items-center justify-center py-6 space-y-6">
                         <div className="p-4 bg-white rounded-xl shadow-inner border mx-auto">
@@ -143,7 +144,7 @@ export function WalletCard({
                         </div>
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-xs text-blue-600 dark:text-blue-300 text-center w-full max-w-xs">
                             <span className="font-bold">실시간 시장 시세 적용</span><br />
-                            입금 확인 시 약 {(nearPriceUSD * 1000).toLocaleString()} CHOCO/NEAR 비율로 자동 환전됩니다.
+                            입금 확인 시 1단위당 약 {(nearPriceUSD * 1000).toLocaleString()} CHOCO로 자동 환전됩니다.
                         </div>
                     </div>
                 </DialogContent>
@@ -154,7 +155,7 @@ export function WalletCard({
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>토큰 환전 (Auto-Swap)</DialogTitle>
-                        <DialogDescription>입금된 NEAR를 감지하여 CHOCO로 변환합니다.</DialogDescription>
+                        <DialogDescription>{CHAIN_LABELS.SWAP_DESCRIPTION}</DialogDescription>
                     </DialogHeader>
                     <div className="py-8 text-center space-y-6">
                         <div className="relative">
@@ -162,14 +163,14 @@ export function WalletCard({
                             <div className="relative p-6 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
                                 <p className="text-sm font-medium text-slate-500 mb-2">현재 적용 환율</p>
                                 <div className="flex items-center justify-center gap-3 text-2xl font-bold text-slate-900 dark:text-white">
-                                    <span>1 NEAR</span>
+                                    <span>{CHAIN_LABELS.RATE_FROM_UNIT}</span>
                                     <span className="material-symbols-outlined text-slate-400">arrow_right_alt</span>
                                     <span className="text-primary">{(nearPriceUSD * 1000).toLocaleString()} CHOCO</span>
                                 </div>
                             </div>
                         </div>
                         <p className="text-sm text-slate-500 leading-relaxed">
-                            NEAR를 입금하셨나요?<br />
+                            {CHAIN_LABELS.DEPOSIT_CONFIRM_PROMPT}<br />
                             아래 버튼을 누르면 <b>최신 입금 내역</b>을 확인하고<br />
                             자동으로 환전하여 지갑에 넣어드립니다.
                         </p>
@@ -213,7 +214,7 @@ export function WalletCard({
                                                         ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
                                                         : 'bg-slate-100 text-slate-700'
                                                         }`}>
-                                                        {log.fromChain === 'NEAR' ? '환전 (Swap)' : '사용'}
+                                                        {formatChainForDisplay(log.fromChain)}
                                                     </span>
                                                     <span className="text-xs text-slate-400">
                                                         {formatDate(log.createdAt)}
@@ -230,7 +231,7 @@ export function WalletCard({
                                             <div className="flex items-center gap-1.5 text-slate-500">
                                                 <span>환율: 1:{log.rate}</span>
                                                 <span className="w-px h-2.5 bg-slate-300 dark:bg-slate-700"></span>
-                                                <span className="text-slate-400">{log.fromAmount} {log.fromChain}</span>
+                                                <span className="text-slate-400">{log.fromAmount} {formatChainUnitForDisplay(log.fromChain)}</span>
                                             </div>
                                             <a
                                                 href={`https://testnet.nearblocks.io/txns/${log.txHash}`}

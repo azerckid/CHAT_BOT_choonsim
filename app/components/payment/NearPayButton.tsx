@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { CheckCircle, Loader2, Copy, ExternalLink, ShieldCheck } from "lucide-react";
+import { CheckCircle, Loader2, Copy, ShieldCheck, Wallet } from "lucide-react";
+import { CHAIN_LABELS } from "~/lib/constants/chain-labels";
 
 interface NearPayButtonProps {
     amount: number;
@@ -36,7 +37,7 @@ export const NearPayButton: React.FC<NearPayButtonProps> = ({
             });
 
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Failed to initiate NEAR payment");
+            if (!response.ok) throw new Error(data.error || "결제 요청에 실패했습니다.");
 
             setPaymentData(data);
             setStatus("PENDING");
@@ -92,7 +93,7 @@ export const NearPayButton: React.FC<NearPayButtonProps> = ({
             <div className="flex flex-col items-center justify-center p-6 bg-green-500/10 rounded-2xl border border-green-500/20 text-center">
                 <CheckCircle className="text-green-500 w-16 h-16 mb-4" />
                 <h3 className="text-xl font-bold text-white mb-2">결제 완료!</h3>
-                <p className="text-green-200/80">NEAR 결제가 성공적으로 확인되었습니다.</p>
+                <p className="text-green-200/80">{CHAIN_LABELS.PAYMENT_SUCCESS_MESSAGE}</p>
             </div>
         );
     }
@@ -115,7 +116,7 @@ export const NearPayButton: React.FC<NearPayButtonProps> = ({
 
                         <div className="flex justify-between items-center pt-2 border-t border-white/5">
                             <span className="text-xs text-slate-400">금액</span>
-                            <span className="text-white font-bold">{paymentData?.nearAmount} NEAR</span>
+                            <span className="text-white font-bold">{paymentData?.nearAmount}</span>
                         </div>
                     </div>
 
@@ -123,7 +124,7 @@ export const NearPayButton: React.FC<NearPayButtonProps> = ({
                         <p className="text-xs text-slate-400 text-center">송금 후 아래 정보를 입력해 주세요.</p>
                         <input
                             type="text"
-                            placeholder="본인 NEAR 계정 ID (예: user.near)"
+                            placeholder={CHAIN_LABELS.ACCOUNT_ID_PLACEHOLDER}
                             className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
                             value={accountId}
                             onChange={(e) => setAccountId(e.target.value)}
@@ -166,8 +167,8 @@ export const NearPayButton: React.FC<NearPayButtonProps> = ({
                 <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
                 <>
-                    <img src="https://cryptologos.cc/logos/near-protocol-near-logo.png" alt="NEAR" className="w-6 h-6 invert" />
-                    <span>NEAR Protocol로 결제</span>
+                    <Wallet className="w-6 h-6" />
+                    <span>{CHAIN_LABELS.PAYMENT_METHOD_BUTTON}</span>
                 </>
             )}
         </button>

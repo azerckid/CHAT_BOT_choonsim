@@ -224,7 +224,7 @@ export default function SettingsScreen() {
                 <DialogHeader>
                   <DialogTitle>지갑 내보내기</DialogTitle>
                   <DialogDescription>
-                    NEAR 지갑의 프라이빗 키를 확인하고 내보낼 수 있습니다.
+                    지갑의 프라이빗 키를 확인하고 내보낼 수 있습니다.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">

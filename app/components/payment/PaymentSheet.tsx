@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, CheckCircle2, ShieldCheck, ArrowRight, Wallet } from "lucide-react";
 import { transferChocoToken, transferChocoTokenGasless, requestWalletConnection, isWalletConnected, getChocoBalance, getCurrentAccountId } from "~/lib/near/wallet-client";
+import { CHAIN_LABELS } from "~/lib/constants/chain-labels";
 
 interface PaymentSheetProps {
     isOpen: boolean;
@@ -176,7 +177,7 @@ export function PaymentSheet({
                                         {walletConnected && accountId ? (
                                             <span className="truncate">{accountId}</span>
                                         ) : (
-                                            <span className="text-pink-400 font-bold animate-pulse">NEAR 지갑을 연결해 주세요</span>
+                                            <span className="text-pink-400 font-bold animate-pulse">{CHAIN_LABELS.WALLET_CONNECT_PROMPT}</span>
                                         )}
                                     </span>
                                 </div>
@@ -221,7 +222,7 @@ export function PaymentSheet({
                                         onClick={handleConnectWallet}
                                         disabled={isProcessing}
                                     >
-                                        {isProcessing ? '지갑 연결 중...' : 'NEAR 지갑 연결하기'}
+                                        {isProcessing ? '지갑 연결 중...' : CHAIN_LABELS.WALLET_CONNECT_BUTTON}
                                         {!isProcessing && <ArrowRight size={18} />}
                                     </button>
                                     {!isProcessing && (
