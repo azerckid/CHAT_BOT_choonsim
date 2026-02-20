@@ -149,10 +149,11 @@ export function initCronJobs() {
             const { runDepositMonitoring } = await import("./near/deposit-engine.server");
             await runDepositMonitoring();
         } catch (error) {
+            const err = error as Error;
             logger.error({
                 category: "SYSTEM",
-                message: "NEAR Deposit Monitor Cron Error",
-                stackTrace: (error as Error).stack
+                message: `NEAR Deposit Monitor Cron Error: ${err.message}`,
+                stackTrace: err.stack
             });
         }
     });
@@ -163,10 +164,11 @@ export function initCronJobs() {
             const { processWalletCreationQueue } = await import("./near/wallet-queue.server");
             await processWalletCreationQueue();
         } catch (error) {
+            const err = error as Error;
             logger.error({
                 category: "SYSTEM",
-                message: "Wallet Creation Queue Error",
-                stackTrace: (error as Error).stack
+                message: `Wallet Creation Queue Error: ${err.message}`,
+                stackTrace: err.stack
             });
         }
     }, 30 * 1000);
