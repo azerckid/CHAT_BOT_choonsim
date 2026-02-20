@@ -1,0 +1,1 @@
+import{j as s}from"./jsx-runtime-u17CrQMm.js";import{c as i}from"./utils-BQHNewu7.js";function d({size:r="md",className:e}){const o={sm:"w-4 h-4 border-2",md:"w-6 h-6 border-2",lg:"w-8 h-8 border-3"};return s.jsx("div",{className:i("border-white/30 border-t-white rounded-full animate-spin",o[r],e)})}export{d as L};

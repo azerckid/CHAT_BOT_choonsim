@@ -1,0 +1,1 @@
+import{w as o}from"./chunk-WWGJGFF6-C0NtPc5H.js";import{j as t}from"./jsx-runtime-u17CrQMm.js";import{C as r}from"./ComingSoon-BNB2XrAK.js";import"./_commonjsHelpers-DaWZu8wl.js";const s=o(function(){return t.jsx(r,{title:"프로필 수정",subtitle:"닉네임과 상태메시지를 변경할 수 있는 기능이 곧 추가됩니다.",icon:"badge",iconBgColor:"bg-purple-500/20"})});export{s as default};
