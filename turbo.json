@@ -1,0 +1,34 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "tasks": {
+        "build": {
+            "dependsOn": [
+                "^build"
+            ],
+            "outputs": [
+                "build/**",
+                ".react-router/**",
+                "dist/**"
+            ],
+            "env": [
+                "VITE_*",
+                "GOOGLE_API_KEY",
+                "TURSO_DATABASE_URL"
+            ]
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true
+        },
+        "typecheck": {
+            "dependsOn": [
+                "^typecheck"
+            ]
+        },
+        "test": {
+            "dependsOn": [
+                "build"
+            ]
+        }
+    }
+}
