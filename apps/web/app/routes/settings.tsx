@@ -54,6 +54,7 @@ export default function SettingsScreen() {
 
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [exportWalletDialogOpen, setExportWalletDialogOpen] = useState(false);
 
   const [privateKey, setPrivateKey] = useState<string | null>(null);
@@ -75,11 +76,29 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleDeleteAccount = () => {
-    // TODO: 계정 탈퇴 로직 구현 (Phase 2)
-    toast.error("계정이 삭제되었습니다");
-    setDeleteAccountDialogOpen(false);
-    // navigate("/login");
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "계정 탈퇴에 실패했습니다.");
+        return;
+      }
+      setDeleteAccountDialogOpen(false);
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("계정이 삭제되었습니다.");
+            navigate("/login");
+          },
+        },
+      });
+    } catch (err) {
+      toast.error("계정 탈퇴 중 오류가 발생했습니다.");
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   const handleExportWallet = async () => {
@@ -436,8 +455,12 @@ export default function SettingsScreen() {
                   >
                     취소
                   </Button>
-                  <Button onClick={handleDeleteAccount} variant="destructive">
-                    계정 삭제
+                  <Button
+                    onClick={handleDeleteAccount}
+                    variant="destructive"
+                    disabled={isDeletingAccount}
+                  >
+                    {isDeletingAccount ? "처리 중..." : "계정 삭제"}
                   </Button>
                 </DialogFooter>
               </DialogContent>

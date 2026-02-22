@@ -63,6 +63,7 @@ export default [
   route("api/test-wallet", "routes/api/test-wallet.ts"),
   route("api/wallet/export-private-key", "routes/api/wallet/export-private-key.ts"),
   route("api/wallet/check-deposit", "routes/api/wallet/check-deposit.ts"),
+  route("api/account/delete", "routes/api/account/delete.ts"),
   route("api/push-subscription", "routes/api/push-subscription.ts"),
   route("api/stats/usage", "routes/api/stats/usage.ts"),
   route("api/items/gift", "routes/api/items/gift.ts"),
