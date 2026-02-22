@@ -1,4 +1,4 @@
-import { type LoaderFunctionArgs, useLoaderData, useNavigate, useFetcher } from "react-router";
+import { type LoaderFunctionArgs, useLoaderData, useNavigate, useFetcher, Link } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { DateTime } from "luxon";
@@ -23,6 +23,51 @@ import { eq, desc } from "drizzle-orm";
 import { getNearConnection } from "~/lib/near/client.server";
 import { utils } from "near-api-js";
 import { getNearPriceUSD } from "~/lib/near/exchange-rate.server";
+
+const TIERS = [
+  {
+    id: "FREE",
+    name: "방문자",
+    icon: "person",
+    iconBg: "bg-white/10",
+    iconColor: "text-white/50",
+    price: null as string | null,
+    choco: 1_500,
+    benefits: ["일 5회 메시지", "기본 텍스트 대화", "월 1,500 CHOCO"],
+  },
+  {
+    id: "BASIC",
+    name: "팬",
+    icon: "star",
+    iconBg: "bg-blue-500/10",
+    iconColor: "text-blue-400",
+    price: "$4.99/월" as string | null,
+    choco: 2_000,
+    benefits: ["일 15회 메시지", "선톡 1회/주", "월 2,000 CHOCO"],
+  },
+  {
+    id: "PREMIUM",
+    name: "조상신",
+    icon: "local_fire_department",
+    iconBg: "bg-orange-500/10",
+    iconColor: "text-orange-400",
+    price: "$14.99/월" as string | null,
+    choco: 10_000,
+    benefits: ["일 30회 메시지", "보이스 3회/월", "월 10,000 CHOCO"],
+  },
+  {
+    id: "ULTIMATE",
+    name: "고래",
+    icon: "crown",
+    iconBg: "bg-yellow-500/10",
+    iconColor: "text-yellow-400",
+    price: "$29.99/월" as string | null,
+    choco: 30_000,
+    benefits: ["무제한 메시지", "모든 혜택 포함", "월 30,000 CHOCO"],
+  },
+] as const;
+
+const TIER_ORDER = ["FREE", "BASIC", "PREMIUM", "ULTIMATE"] as const;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -291,7 +336,130 @@ export default function SubscriptionManagementPage() {
           </div>
         </section>
 
-        {/* 2. Payment History */}
+        {/* 2. Relationship Tier Section */}
+        <section>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest">관계 등급</h2>
+            <Link
+              to="/guide#tiers"
+              className="text-[11px] text-white/30 hover:text-white/50 transition-colors flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[12px]">help</span>
+              등급 안내
+            </Link>
+          </div>
+
+          {/* Tier Cards — Horizontal Scroll */}
+          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+            {TIERS.map((t) => {
+              const isCurrent = tier === t.id;
+              const isUnlocked = TIER_ORDER.indexOf(tier as any) >= TIER_ORDER.indexOf(t.id as any);
+              return (
+                <div
+                  key={t.id}
+                  className={cn(
+                    "shrink-0 w-40 rounded-2xl p-4 flex flex-col gap-3 border transition-all",
+                    isCurrent
+                      ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20"
+                      : isUnlocked
+                      ? "bg-surface-dark border-white/10"
+                      : "bg-surface-dark border-white/5 opacity-50"
+                  )}
+                >
+                  {/* Icon + Current Badge */}
+                  <div className="flex items-start justify-between">
+                    <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center", t.iconBg)}>
+                      <span className={cn("material-symbols-outlined text-[20px]", t.iconColor)}>{t.icon}</span>
+                    </div>
+                    {isCurrent && (
+                      <span className="px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[9px] font-bold border border-primary/30 leading-tight">
+                        현재
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Name + Price */}
+                  <div>
+                    <p className={cn("font-bold text-sm", isCurrent ? "text-white" : "text-white/70")}>{t.name}</p>
+                    <p className="text-white/40 text-[10px]">{t.price ?? "무료"}</p>
+                  </div>
+
+                  {/* Benefits */}
+                  <ul className="space-y-1.5 flex-1">
+                    {t.benefits.map((b) => (
+                      <li key={b} className="flex items-start gap-1.5">
+                        <span className={cn(
+                          "material-symbols-outlined text-[11px] mt-0.5 shrink-0",
+                          isCurrent ? "text-primary" : "text-white/30"
+                        )}>
+                          check_circle
+                        </span>
+                        <span className={cn(
+                          "text-[10px] leading-tight",
+                          isCurrent ? "text-white/80" : "text-white/40"
+                        )}>
+                          {b}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Monthly CHOCO */}
+                  <div className={cn(
+                    "flex items-center gap-1 rounded-lg px-2 py-1.5",
+                    isCurrent ? "bg-primary/10" : "bg-white/5"
+                  )}>
+                    <span className="material-symbols-outlined text-[12px] text-[#FFD700]">toll</span>
+                    <span className="text-[10px] font-bold text-[#FFD700]">
+                      {t.choco.toLocaleString()}/월
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Next Tier Upgrade Banner */}
+          {tier !== "ULTIMATE" && (() => {
+            const nextIdx = TIER_ORDER.indexOf(tier as any) + 1;
+            const next = TIERS[nextIdx];
+            if (!next) return null;
+            return (
+              <div className="mt-3 bg-surface-dark border border-white/8 rounded-2xl p-4">
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-2">
+                  다음 등급으로 업그레이드하면?
+                </p>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center", next.iconBg)}>
+                    <span className={cn("material-symbols-outlined text-[16px]", next.iconColor)}>{next.icon}</span>
+                  </div>
+                  <div>
+                    <span className="text-white font-bold text-sm">{next.name}</span>
+                    {next.price && (
+                      <span className="text-white/40 text-xs ml-2">{next.price}</span>
+                    )}
+                  </div>
+                </div>
+                <ul className="space-y-2 mb-4">
+                  {next.benefits.map((b) => (
+                    <li key={b} className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[13px] text-primary">arrow_forward</span>
+                      <span className="text-white/60 text-xs">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => navigate("/pricing")}
+                  className="w-full py-2.5 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 active:scale-95 transition-all"
+                >
+                  {next.name} 등급으로 업그레이드
+                </button>
+              </div>
+            );
+          })()}
+        </section>
+
+        {/* 3. Payment History */}
         <section>
           <h2 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 ml-2">결제 내역</h2>
           <div className="bg-surface-dark border border-white/5 rounded-2xl overflow-hidden">
