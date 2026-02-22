@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc",
     "test:context": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/isolation.test.ts",
     "test:context-memory": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/memory.test.ts",
+    "db:reset": "tsx scripts/db-reset.ts",
     "test:identity": "vitest run app/lib/context/__tests__/identity.test.ts"
   },
   "dependencies": {

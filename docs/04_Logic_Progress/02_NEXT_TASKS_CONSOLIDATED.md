@@ -69,14 +69,13 @@
 | **예정 내용** | NEAR 마이크로 결제 프로토콜 설계, 5대 유료 아이템 카테고리별 스키마, 기억 각인/나만의 춘심 에디터 연동 |
 | **참조** | [19_MONETIZATION_STRATEGY.md](../01_Concept_Design/19_MONETIZATION_STRATEGY.md), [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #4 |
 
-### 2.4 DB 리셋 및 클린 슬레이트
+### 2.4 DB 리셋 및 클린 슬레이트 ✅ 완료 (2026-02-22)
 
 | 항목 | 내용 |
 |------|------|
-| **목표** | 프로덕션 이전 전체 DB Dump & Reset, 신규 스키마 기준 시드 데이터 재생성 |
-| **배경** | Phase 누적으로 스키마가 비대해져 정리가 필요 |
-| **예정 내용** | (1) 전체 DB 백업, (2) 로컬 환경 확인 후 파괴적 리셋, (3) 신규 스키마 시드 생성 및 E2E 검증 |
-| **참조** | [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #5 |
+| **조치** | `npm run db:reset` 스크립트 구현 - 전체 테이블 DELETE 후 캐릭터/미션 시드 재적재 |
+| **실행** | `DB_RESET_CONFIRM=1 npm run db:reset` (Turso 원격 DB 시 확인 변수 필수) |
+| **참조** | `apps/web/scripts/db-reset.ts`, [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #5 |
 
 ---
 
@@ -86,7 +85,7 @@
 |------|------|------|
 | ~~1~~ | ~~채팅 검색 `/search`~~ | ✅ 버튼 제거 완료 |
 | ~~1~~ | ~~계정 탈퇴 로직~~ | ✅ API 및 UI 연동 완료 |
-| 2 | DB 리셋 및 클린 슬레이트 | 이후 기능 개발 전 기반 정리 |
+| ~~2~~ | ~~DB 리셋 및 클린 슬레이트~~ | ✅ db:reset 스크립트 완료 |
 | 3 | 나만의 춘심 / Voice Chat / NEAR 결제 | 중장기 코어 기능 |
 | ~~5~~ | ~~UI 찌꺼기 (ComingSoon/Placeholder)~~ | ✅ Phase 1~3에서 전체 완료 |
 
