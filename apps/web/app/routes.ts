@@ -97,6 +97,7 @@ export default [
   route("api/context/:characterId/export", "routes/api/context/$characterId.export.ts"),
 
   // Admin Routes
+  route("admin", "routes/admin/index.tsx"),
   route("admin/dashboard", "routes/admin/dashboard.tsx"),
   route("admin/characters", "routes/admin/characters/index.tsx"),
   route("admin/characters/new", "routes/admin/characters/edit.tsx", { id: "admin-character-new" }),
