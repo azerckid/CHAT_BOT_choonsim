@@ -36,13 +36,13 @@
 
 ### 2.2 저장된 순간들 (`/profile/saved`) ✅ 구현 완료 (2026-02-22)
 
-> **커밋**: `(Commit pending) feat(profile): 저장된 순간들(좋아요 내역) 페이지 구현`
+> **커밋**: `feat(profile): 저장된 순간들(좋아요 내역) 페이지 구현`
 
-- **UI/UX**: 
+- **UI/UX**:
   - 유저의 하트(북마크) 상호작용이 일어난 특정 메시지나 이미지 에셋들을 타임라인 뷰로 최신순 정렬 모아보기.
   - 다크 테마 기반의 모바일 친화적 List View UI (각 항목 우측에 핑크색 하트 아이콘 표시).
   - 빈 상태(`Empty State`) UI 지원 ("저장된 순간이 없어요").
-- **구현 방식** (API 분리 대신 Route Loader 패턴 적용): 
+- **구현 방식** (API 분리 대신 Route Loader 패턴 적용):
   - `profile/saved.tsx` 내부 `loader()` 함수에서 Drizzle ORM `db.select()`의 체이닝 `InnerJoin` 문법을 사용.
   - `messageLike` 기준 `message` 및 `conversation` 테이블, 그리고 `character`(이름 텍스트 매핑) 테이블 조인.
   - 1차 조회 후 결과셋의 독자적인 `characterId` 목록으로 `characterMedia(type="COVER")`를 2차 질의, In-memory Mapped 후 클라이언트로 Response 전송 (아바타 URL 매핑).
@@ -53,53 +53,72 @@
 
 ## 3. Phase 2: 코어 상점 및 시스템 알림 (Commerce & Notifications)
 
-### 3.1 인앱 상점 (Shop)
-- **UI/UX**: 
-  - `home.tsx` 내 `Shop` 버튼과 연결될 `route("shop", "routes/shop/index.tsx")`.
-  - 결제된 오프체인 재화(CHOCO)를 사용하여 구매할 수 있는 아이템의 리스트 제공.
-  - 아이템 썸네일, 설명, 가격(CHOCO), 구매 확정 다이얼로그(Double-check 모달) 지원.
-- **API Spec**:
-  - 카탈로그 패치: `GET /api/shop/items`
-  - 구매 트랜잭션: `POST /api/shop/purchase` -> `token.server.ts`의 `transferChocoToken` 메서드를 통해 토큰 차감 후 `userInventory` 반영.
-- **DB Schema**:
-  - `item` 테이블 (카탈로그 기본 정보)
-  - `userInventory` 테이블 (구매 획득 로그 및 잔여 아이템 처리)
+### 3.1 인앱 상점 (`/shop`) ✅ 구현 완료 (2026-02-22)
 
-### 3.2 알림함 (Notifications)
-- **UI/UX**: 
-  - `home.tsx` 톱-오른쪽 `notifications` 버튼과 연결될 `route("notifications", "routes/notifications/index.tsx")` 또는 하프-모달(Drawer).
-  - 알림 종류별 고유 색상(System, Character, Payment) 아이콘 표출.
-  - "모두 읽음 처리" 일괄 액션 지원.
-- **API Spec**:
-  - 리스트 로드: `GET /api/notifications`
-  - 마크 애즈 리드: `PATCH /api/notifications/read-all`
+> **커밋**: `7e9c7eb feat(shop+notifications): Phase 2 인앱 상점 + 알림함 구현`
+
+- **UI/UX**:
+  - `home.tsx` 내 `Shop` 버튼 onClick → `navigate("/shop")` 연결 완료.
+  - DB `item` 테이블 기준 `isActive=true` 아이템 목록 조회 및 2열 그리드 표시.
+  - 아이템 썸네일(Material Symbols 아이콘), 설명, 가격(CHOCO), 바텀시트 구매 확정 모달(Double-check) 지원.
+  - `useFetcher`로 `POST /api/items/purchase` 호출 → 성공 시 `toast.success` + 로컬 잔액 즉시 업데이트, 실패(잔액 부족 등) 시 `toast.error`.
+  - 헤더 CHOCO 잔액 실시간 표시, 잔액 부족 아이템 버튼 비활성화.
+  - 활성 아이템 없을 때 빈 상태("상점 준비 중") UI 지원.
+- **실제 구현 방식** (원안 API Spec과 상이):
+  - 카탈로그 별도 API 대신 **Route Loader 패턴** 사용 (`loader()`에서 DB 직접 조회).
+  - 구매는 기존 `POST /api/items/purchase` 엔드포인트 재사용 (CHOCO 차감 + `userInventory` 증가 ACID 트랜잭션 보장).
 - **DB Schema**:
-  - `notification` 테이블 신설 필요
-    - `id` (uuid)
-    - `userId` (fk)
-    - `type` (enum: SYSTEM, CHAT, PAYMENT, PROMO)
-    - `title` (string), `body` (string)
-    - `isRead` (boolean, default: false)
-    - `createdAt` (timestamp)
+  - `item` 테이블 (카탈로그 기본 정보) — 마이그레이션 불필요.
+  - `userInventory` 테이블 (구매 획득 로그 및 잔여 아이템 처리) — 마이그레이션 불필요.
+
+### 3.2 알림함 (`/notifications`) ✅ 구현 완료 (2026-02-22)
+
+> **커밋**: `7e9c7eb feat(shop+notifications): Phase 2 인앱 상점 + 알림함 구현`
+
+- **UI/UX**:
+  - `home.tsx` 톱-오른쪽 `notifications` 버튼 onClick → `navigate("/notifications")` 연결 완료.
+  - 미읽음 알림 수 > 0 일 때만 red dot badge 표시 (home loader에서 DB count 조회).
+  - 알림 종류별 고유 색상 아이콘 표출: PAYMENT(녹색 credit_card), SYSTEM(파란 campaign), CHAT(보라 chat_bubble), PROMO(주황 local_offer).
+  - 읽음/안읽음 항목 opacity 구분, 상대 시간 표시 (`"3분 전"` 형식).
+  - "모두 읽음" 버튼 → route `action()`에서 일괄 업데이트 후 `useRevalidator`로 목록 갱신.
+  - 알림 없을 때 빈 상태("아직 알림이 없어요") UI 지원.
+- **실제 구현 방식** (원안 API Spec과 상이):
+  - 별도 REST API 대신 **Route Loader + Action 패턴** 사용.
+  - `api.payment.capture-order.ts` PayPal 결제 완료 트랜잭션 내 PAYMENT 알림 자동 생성 트리거 추가.
+- **DB Schema**:
+  - `Notification` 테이블 신설 완료 (`schema.ts` 추가 + Turso 마이그레이션 스크립트 `scripts/create-notification-table.mjs` 실행).
+    - `id` (text, PK)
+    - `userId` (text, NOT NULL)
+    - `type` (text: SYSTEM | CHAT | PAYMENT | PROMO)
+    - `title` (text, NOT NULL), `body` (text, NOT NULL)
+    - `isRead` (integer/boolean, default: false)
+    - `createdAt` (integer/timestamp, default: unixepoch())
+    - 인덱스: `Notification_userId_isRead_idx`, `Notification_userId_createdAt_idx`
 
 ---
 
 ## 4. Phase 3: 캐릭터 미디어 확장 (Character Ambience)
 
-### 4.1 캐릭터 보이스 탭 (Voice Tab)
-- **UI/UX**: 
-  - `character/$id.tsx` 내 Placeholder 영역을 실제 탭으로 승격.
-  - 리스트 형태의 오디오 플레이어 (HTML5 Custom Audio Control).
-  - 현재 재생 중인 클립에 대한 애니메이션 인디케이터.
-- **Data Flow**:
-  - 서버 측 `loader`에서 `db.query.characterMedia` 중 `type === "VOICE"` 인 레코드셋을 가져와서 Props 주입.
+### 4.1 캐릭터 보이스 탭 (Voice Tab) ✅ 구현 완료 (2026-02-22)
 
-### 4.2 캐릭터 갤러리 탭 (Gallery Tab)
-- **UI/UX**: 
-  - `character/$id.tsx` 내 주석(`{/* Gallery Placeholders */}`)을 해제하고 그리드 레이아웃(Masonry 권장) 구축.
-  - 썸네일 클릭 시 확대(Lightbox) 모달 출력 기능 지원.
+> **커밋**: `(Commit pending) feat(character): 캐릭터 보이스 및 갤러리 탭 구현`
+
+- **UI/UX**:
+  - `character/$id.tsx` 내부 `VoicePlayer` 사용자 정의 컴포넌트 추가 탑재.
+  - 리스트 형태의 오디오 커스텀 플레이어 제공, 재생 시 아이콘 애니메이션 및 진행률(progress bar) 드래그/탐색 지원.
+  - About 탭 內 하드코딩되었던 Mock Voice Preview 카드를 실제 데이터 기반의 `VoicePlayer` 로 교체 성공.
 - **Data Flow**:
-  - 서버 측 `loader`에서 `db.query.characterMedia` 중 `type === "IMAGE"`(커버 외 스팟 이미지) 인셋을 로딩.
+  - 기존 로더에서 불러온 `character.media` 목록 중 `type === "VOICE"` 속성을 가진 요소들을 클라이언트 필터링하여 매핑.
+
+### 4.2 캐릭터 갤러리 탭 (Gallery Tab) ✅ 구현 완료 (2026-02-22)
+
+> **커밋**: `(Commit pending) feat(character): 캐릭터 보이스 및 갤러리 탭 구현`
+
+- **UI/UX**:
+  - CSS Columns (`columns-2 break-inside-avoid`) 속성을 활용한 무경량 Masonry 그리드 레이아웃 구축.
+  - 이미지 썸네일 클릭 시 전체 화면 모달(Lightbox) 팝업 제공, `z-index` 및 줌인 인터랙션 포함.
+- **Data Flow**:
+  - 기존 로더에서 불러온 `character.media` 목록 중 `type === "IMAGE"` 속성을 가진 요소들을 클라이언트 필터링하여 매핑.
 
 ---
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams, useLoaderData } from "react-router";
 import { cn } from "~/lib/utils";
 import { db } from "~/lib/db.server";
@@ -59,12 +59,97 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   };
 }
 
+// Custom Voice Player Component
+function VoicePlayer({ item, isPlaying, onPlay, onPause, label }: { item: any; isPlaying: boolean; onPlay: () => void; onPause: () => void; label?: string; }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    if (isPlaying) {
+      audioRef.current?.play().catch(console.error);
+    } else {
+      audioRef.current?.pause();
+    }
+  }, [isPlaying]);
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current && audioRef.current.duration) {
+      setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleEnded = () => {
+    setProgress(0);
+    onPause();
+  };
+
+  const formatTime = (secs: number) => {
+    if (!secs || isNaN(secs)) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="p-4 rounded-xl bg-gradient-to-r from-surface-dark to-background-dark border border-white/5 relative overflow-hidden group mb-4">
+      <audio
+        ref={audioRef}
+        src={item.url}
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={handleEnded}
+        onLoadedMetadata={handleTimeUpdate}
+        className="hidden"
+      />
+      <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition">
+        <span className={cn("material-symbols-outlined text-white text-6xl", isPlaying ? "animate-pulse text-primary" : "")}>graphic_eq</span>
+      </div>
+      <h4 className="text-sm font-semibold text-white mb-1">{label || "Voice Message"}</h4>
+      <p className="text-xs text-gray-400 mb-3">{audioRef.current?.currentTime ? formatTime(audioRef.current.currentTime) : "0:00"} {duration ? `/ ${formatTime(duration)}` : ""}</p>
+      <div className="flex items-center gap-3 relative z-10">
+        <button
+          onClick={isPlaying ? onPause : onPlay}
+          className="w-10 h-10 shrink-0 rounded-full bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20 hover:scale-105 transition active:scale-95"
+        >
+          <span className="material-symbols-outlined text-[24px]">
+            {isPlaying ? "pause" : "play_arrow"}
+          </span>
+        </button>
+        <div
+          className="h-1.5 flex-1 bg-gray-700/50 rounded-full overflow-hidden cursor-pointer active:scale-y-150 transition-transform"
+          onClick={(e) => {
+            if (audioRef.current && audioRef.current.duration) {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const pos = (e.clientX - rect.left) / rect.width;
+              audioRef.current.currentTime = pos * audioRef.current.duration;
+              setProgress(pos * 100);
+            }
+          }}
+        >
+          <div className="h-full bg-primary rounded-full transition-all duration-75 relative" style={{ width: `${progress}%` }}>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white rounded-full"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CharacterProfileScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { character, myContribution, affinityValue, fandomLevelValue } = useLoaderData<typeof loader>();
   const [activeTab, setActiveTab] = useState<Tab>("about");
   const [isFavorite, setIsFavorite] = useState(true);
+
+  // Phase 3 states
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const voiceMedia = character.media?.filter((m: any) => m.type === "VOICE") || [];
+  const galleryMedia = character.media?.filter((m: any) => m.type === "IMAGE") || [];
+  const firstVoice = voiceMedia.length > 0 ? voiceMedia[0] : null;
 
   // 프로필 화면에 필요한 추가 정보 가공
   const displayChar = {
@@ -121,17 +206,44 @@ export default function CharacterProfileScreen() {
     }
   };
 
+  // 탭 변경 시 오디오 정지
+  const handleTabChange = (tab: Tab) => {
+    setActiveTab(tab);
+    setPlayingAudioId(null);
+  };
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100 font-display selection:bg-primary selection:text-white antialiased overflow-x-hidden min-h-screen max-w-md mx-auto relative pb-24">
+      {/* Lightbox Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+          onClick={() => setSelectedImage(null)}
+        >
+          <img
+            src={selectedImage}
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transition-transform duration-300 scale-100"
+            alt="Fullscreen preview"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setSelectedImage(null)}
+            className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors drop-shadow-md backdrop-blur-md"
+          >
+            <span className="material-symbols-outlined text-[28px]">close</span>
+          </button>
+        </div>
+      )}
+
       {/* Top Navigation (Absolute Overlay) */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent max-w-md mx-auto">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent max-w-md mx-auto pointer-events-none">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white transition hover:bg-black/40 active:scale-95"
+          className="pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white transition hover:bg-black/40 active:scale-95"
         >
           <span className="material-symbols-outlined">arrow_back</span>
         </button>
-        <div className="flex gap-3">
+        <div className="pointer-events-auto flex gap-3">
           <button className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white transition hover:bg-black/40 active:scale-95">
             <span className="material-symbols-outlined">share</span>
           </button>
@@ -140,7 +252,7 @@ export default function CharacterProfileScreen() {
             className="flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-primary transition hover:bg-black/40 active:scale-95"
           >
             <span
-              className="material-symbols-outlined"
+              className="material-symbols-outlined drop-shadow-md"
               style={{ fontVariationSettings: isFavorite ? "'FILL' 1" : "'FILL' 0" }}
             >
               favorite
@@ -221,15 +333,15 @@ export default function CharacterProfileScreen() {
         <div className="border-b border-gray-200 dark:border-white/10 mb-6">
           <div className="flex gap-6">
             <button
-              onClick={() => setActiveTab("about")}
+              onClick={() => handleTabChange("about")}
               className={cn("pb-3 text-sm transition", activeTab === "about" ? "font-bold text-primary border-b-2 border-primary" : "font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200")}
             >About</button>
             <button
-              onClick={() => setActiveTab("voice")}
+              onClick={() => handleTabChange("voice")}
               className={cn("pb-3 text-sm transition", activeTab === "voice" ? "font-bold text-primary border-b-2 border-primary" : "font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200")}
             >Voice</button>
             <button
-              onClick={() => setActiveTab("gallery")}
+              onClick={() => handleTabChange("gallery")}
               className={cn("pb-3 text-sm transition", activeTab === "gallery" ? "font-bold text-primary border-b-2 border-primary" : "font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200")}
             >Gallery</button>
           </div>
@@ -247,20 +359,21 @@ export default function CharacterProfileScreen() {
             </div>
 
             {/* Voice Sample Preview */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-surface-dark to-background-dark border border-white/5 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition">
-                <span className="material-symbols-outlined text-white text-6xl">graphic_eq</span>
-              </div>
-              <h4 className="text-sm font-semibold text-white mb-1">Morning Greeting</h4>
-              <p className="text-xs text-gray-400 mb-3">0:12 • Listen to {displayChar.name}'s voice</p>
-              <div className="flex items-center gap-3">
-                <button className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white shadow-lg hover:scale-105 transition">
-                  <span className="material-symbols-outlined text-[20px] ml-0.5">play_arrow</span>
-                </button>
-                <div className="h-1 flex-1 bg-gray-700 rounded-full overflow-hidden">
-                  <div className="h-full w-1/3 bg-primary rounded-full"></div>
+            <div className="mb-6">
+              {firstVoice ? (
+                <VoicePlayer
+                  item={firstVoice}
+                  label={`${displayChar.name}'s Greeting`}
+                  isPlaying={playingAudioId === firstVoice.id}
+                  onPlay={() => setPlayingAudioId(firstVoice.id)}
+                  onPause={() => setPlayingAudioId(null)}
+                />
+              ) : (
+                <div className="p-4 rounded-xl bg-surface-dark border border-white/5 text-center py-6">
+                  <span className="material-symbols-outlined text-gray-600 text-3xl mb-2">mic_off</span>
+                  <p className="text-sm text-gray-500">등록된 보이스 샘플이 없습니다.</p>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Interests Grid */}
@@ -284,9 +397,64 @@ export default function CharacterProfileScreen() {
           </div>
         )}
 
-        {/* Tab Content: Voice/Gallery Placeholders */}
-        {activeTab === "voice" && <div className="text-gray-400 text-sm italic py-10">Voice samples coming soon...</div>}
-        {activeTab === "gallery" && <div className="text-gray-400 text-sm italic py-10">Gallery coming soon...</div>}
+        {/* Tab Content: Voice */}
+        {activeTab === "voice" && (
+          <div className="space-y-4 pb-12 animate-in fade-in duration-300">
+            {voiceMedia.length > 0 ? (
+              voiceMedia.map((media: any, i: number) => (
+                <VoicePlayer
+                  key={media.id}
+                  item={media}
+                  label={`Voice Clip 0${i + 1}`}
+                  isPlaying={playingAudioId === media.id}
+                  onPlay={() => setPlayingAudioId(media.id)}
+                  onPause={() => setPlayingAudioId(null)}
+                />
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <span className="material-symbols-outlined text-gray-600 text-5xl mb-3">mic_off</span>
+                <h3 className="text-white font-semibold mb-1">보이스가 준비 중입니다</h3>
+                <p className="text-sm text-gray-500">조금만 더 기다려주세요!</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab Content: Gallery */}
+        {activeTab === "gallery" && (
+          <div className="animate-in fade-in duration-300 pb-12">
+            {galleryMedia.length > 0 ? (
+              <div className="columns-2 gap-3 space-y-3">
+                {galleryMedia.map((m: any, i: number) => (
+                  <div
+                    key={m.id}
+                    className="break-inside-avoid rounded-xl overflow-hidden cursor-pointer relative group border border-white/10 shadow-sm bg-surface-dark"
+                    onClick={() => setSelectedImage(m.url)}
+                  >
+                    <img
+                      src={m.url}
+                      alt={`Gallery ${i}`}
+                      className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
+                      <div className="translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <span className="material-symbols-outlined text-white drop-shadow-md text-3xl">zoom_in</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <span className="material-symbols-outlined text-gray-600 text-5xl mb-3">photo_library</span>
+                <h3 className="text-white font-semibold mb-1">갤러리가 준비 중입니다</h3>
+                <p className="text-sm text-gray-500">곧 멋진 사진들이 업로드될 예정입니다.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Sticky Footer CTA */}
@@ -307,4 +475,3 @@ export default function CharacterProfileScreen() {
     </div>
   );
 }
-
