@@ -240,7 +240,7 @@ export default function ProfileScreen() {
                 }}
               />
               {/* Edit Badge */}
-              <button className="absolute bottom-0 right-0 p-2 bg-surface-highlight border-4 border-background-dark rounded-full text-white hover:bg-primary transition-colors shadow-lg">
+              <button onClick={() => navigate("/profile/edit")} className="absolute bottom-0 right-0 p-2 bg-surface-highlight border-4 border-background-dark rounded-full text-white hover:bg-primary transition-colors shadow-lg">
                 <span className="material-symbols-outlined text-[16px] block">edit</span>
               </button>
             </div>
