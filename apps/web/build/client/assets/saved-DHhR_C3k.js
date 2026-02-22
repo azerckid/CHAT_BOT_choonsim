@@ -1,1 +1,0 @@
-import{w as o}from"./chunk-WWGJGFF6-C0NtPc5H.js";import{j as t}from"./jsx-runtime-u17CrQMm.js";import{C as r}from"./ComingSoon-BNB2XrAK.js";import"./_commonjsHelpers-DaWZu8wl.js";const p=o(function(){return t.jsx(r,{title:"저장된 순간들",subtitle:"좋아요한 대화와 사진을 모아볼 수 있는 기능이 곧 추가됩니다.",icon:"favorite",iconBgColor:"bg-pink-500/20"})});export{p as default};
