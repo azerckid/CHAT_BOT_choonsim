@@ -35,6 +35,10 @@ export default [
   route("profile/saved", "routes/profile/saved.tsx"),
   route("profile", "routes/profile/index.tsx"),
 
+  // 상점 & 알림
+  route("shop", "routes/shop/index.tsx"),
+  route("notifications", "routes/notifications/index.tsx"),
+
   // 설정
   route("settings", "routes/settings.tsx"),
 

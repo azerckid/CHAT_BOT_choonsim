@@ -652,6 +652,23 @@ export const exchangeLog = sqliteTable("ExchangeLog", {
 }));
 
 // ---------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------
+
+export const notification = sqliteTable("Notification", {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    type: text("type").notNull(), // "SYSTEM" | "CHAT" | "PAYMENT" | "PROMO"
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    isRead: integer("isRead", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+}, (table) => [
+    index("Notification_userId_isRead_idx").on(table.userId, table.isRead),
+    index("Notification_userId_createdAt_idx").on(table.userId, table.createdAt),
+]);
+
+// ---------------------------------------------------------
 // Relations Definitions
 // ---------------------------------------------------------
 
@@ -680,6 +697,7 @@ export const userRelations = relations(user, ({ many }) => ({
     exchangeLogs: many(exchangeLog),
     userContexts: many(userContext),
     userMemoryItems: many(userMemoryItem),
+    notifications: many(notification),
 }));
 
 export const userContextRelations = relations(userContext, ({ one, many }) => ({
@@ -976,6 +994,13 @@ export const x402InvoiceRelations = relations(x402Invoice, ({ one }) => ({
 export const relayerLogRelations = relations(relayerLog, ({ one }) => ({
     user: one(user, {
         fields: [relayerLog.userId],
+        references: [user.id],
+    }),
+}));
+
+export const notificationRelations = relations(notification, ({ one }) => ({
+    user: one(user, {
+        fields: [notification.userId],
         references: [user.id],
     }),
 }));

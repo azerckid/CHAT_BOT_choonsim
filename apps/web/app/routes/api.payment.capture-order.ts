@@ -142,6 +142,16 @@ export async function action({ request }: ActionFunctionArgs) {
                     createdAt: new Date(),
                 });
             }
+
+            // PAYMENT 알림 생성
+            await tx.insert(schema.notification).values({
+                id: crypto.randomUUID(),
+                userId,
+                type: "PAYMENT",
+                title: "결제가 완료되었습니다",
+                body: `${creditPackage.name} 구매가 완료되었습니다. +${chocoAmount} CHOCO`,
+                createdAt: new Date(),
+            });
         });
 
         return data({ success: true, newCredits: totalCredits, chocoAmount });

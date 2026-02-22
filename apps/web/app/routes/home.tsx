@@ -8,7 +8,7 @@ import { WalletStatusBanner } from "~/components/wallet/WalletStatusBanner";
 import { DateTime } from "luxon";
 import { cn } from "~/lib/utils";
 import * as schema from "~/db/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, count, and } from "drizzle-orm";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -23,7 +23,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // 인증된 사용자의 경우 지갑 상태 체크
   let recentConversations: any[] = [];
   let user: { nearAccountId: string | null; walletStatus: string | null } | null = null;
-  
+  let unreadNotificationCount = 0;
+
   if (session) {
     const userResult = await db.query.user.findFirst({
       where: eq(schema.user.id, session.user.id),
@@ -54,6 +55,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
       orderBy: [desc(schema.conversation.updatedAt)],
       limit: 5,
     });
+
+    const unreadResult = await db
+      .select({ count: count() })
+      .from(schema.notification)
+      .where(
+        and(
+          eq(schema.notification.userId, session.user.id),
+          eq(schema.notification.isRead, false)
+        )
+      );
+    unreadNotificationCount = unreadResult[0]?.count ?? 0;
   }
 
   // 모든 캐릭터 가져오기
@@ -94,11 +106,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
     notices,
     isAuthenticated: !!session,
     walletStatus: user?.walletStatus ?? null,
+    unreadNotificationCount,
   });
 }
 
 export default function HomeScreen() {
-  const { user, todaysPick, recentConversations, trendingIdols, notices, isAuthenticated, walletStatus } = useLoaderData<typeof loader>() as any;
+  const { user, todaysPick, recentConversations, trendingIdols, notices, isAuthenticated, walletStatus, unreadNotificationCount } = useLoaderData<typeof loader>() as any;
   const navigate = useNavigate();
 
   const handleStartChat = async (characterId: string) => {
@@ -153,9 +166,14 @@ export default function HomeScreen() {
           >
             <span className="material-symbols-outlined text-[24px]">search</span>
           </button>
-          <button className="relative text-white hover:text-primary transition-colors mr-1">
+          <button
+            onClick={() => navigate("/notifications")}
+            className="relative text-white hover:text-primary transition-colors mr-1"
+          >
             <span className="material-symbols-outlined text-[24px]">notifications</span>
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary ring-2 ring-background-dark"></span>
+            {unreadNotificationCount > 0 && (
+              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary ring-2 ring-background-dark"></span>
+            )}
           </button>
           <button
             onClick={() => navigate(isAuthenticated ? "/profile" : "/login")}
@@ -240,7 +258,10 @@ export default function HomeScreen() {
             </div>
             <span className="text-xs font-medium text-gray-300">Gallery</span>
           </button>
-          <button className="flex flex-col items-center gap-2 group">
+          <button
+            onClick={() => navigate("/shop")}
+            className="flex flex-col items-center gap-2 group"
+          >
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-surface-dark border border-white/10 group-active:scale-95 transition-all text-[#2196F3]">
               <span className="material-symbols-outlined text-[28px]">storefront</span>
             </div>
