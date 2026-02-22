@@ -1,7 +1,7 @@
 # 다음 할 일 통합 정리 (Next Tasks Consolidated)
 
 > Created: 2026-02-22
-> Last Updated: 2026-02-22 (Phase 1~3 + /search 버튼 제거 반영)
+> Last Updated: 2026-02-22 (계정 탈퇴 로직 구현 완료 반영)
 
 본 문서는 UI 정리 대상(01_UI_CLEANUP_LIST.md)과 백로그(00_BACKLOG.md)를 통합하여, 우선 처리할 다음 할 일을 정리한 실행 목록입니다.
 
@@ -16,14 +16,18 @@
 | **조치** | (B) 검색 버튼 제거 - `/chats` 상단 `/search` 링크 제거 |
 | **결과** | 404 위험 제거, 검색 구현 시 버튼 재추가 예정 |
 
-### 1.2 계정 탈퇴 로직 (`/settings`)
+### 1.2 계정 탈퇴 로직 (`/settings`) ✅ 완료 (2026-02-22)
 
 | 항목 | 내용 |
 |------|------|
-| **현상** | `/settings` 하단에 `// TODO: 계정 탈퇴 로직 구현 (Phase 2)` 주석만 존재 |
-| **필요 작업** | DB 연관 데이터 전체 삭제 + Authentication 해제를 위한 백엔드 로직 구현 |
-| **조치** | 탈퇴 API/액션 추가, 회원 데이터(세션/계정/유저/대화 등) 일괄 정리 및 연동 |
+| **조치** | `POST /api/account/delete` API 구현, `deleteUserData()`로 FK 순서대로 전체 연관 데이터 삭제 |
+| **결과** | settings 탈퇴 버튼 클릭 시 DB 삭제 후 signOut, `/login` 이동 |
+| **구현 파일** | `routes/api/account/delete.ts`, `lib/account-delete.server.ts` |
 | **참조** | [01_UI_CLEANUP_LIST.md](./01_UI_CLEANUP_LIST.md) Section 4 |
+
+> **알려진 제한사항 (후속 보완 가능)**
+> - `giftLog`: 탈퇴 유저가 **수신**한 선물 기록(`toUserId`) 미삭제 — 현재는 발신(`fromUserId`)만 삭제. 완전 삭제 정책 시 추가 필요.
+> - `pushSubscription`: 웹 푸시 구독 테이블이 schema에 존재할 경우 삭제 목록 추가 필요.
 
 ### 1.3 기타 UI 정리 항목 ✅ 전체 완료 (2026-02-22)
 
@@ -81,7 +85,7 @@
 | 순위 | 항목 | 근거 |
 |------|------|------|
 | ~~1~~ | ~~채팅 검색 `/search`~~ | ✅ 버튼 제거 완료 |
-| 1 | 계정 탈퇴 로직 | 법적/정책 요구사항 대응 |
+| ~~1~~ | ~~계정 탈퇴 로직~~ | ✅ API 및 UI 연동 완료 |
 | 2 | DB 리셋 및 클린 슬레이트 | 이후 기능 개발 전 기반 정리 |
 | 3 | 나만의 춘심 / Voice Chat / NEAR 결제 | 중장기 코어 기능 |
 | ~~5~~ | ~~UI 찌꺼기 (ComingSoon/Placeholder)~~ | ✅ Phase 1~3에서 전체 완료 |

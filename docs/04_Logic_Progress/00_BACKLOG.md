@@ -1,6 +1,6 @@
 # 프로젝트 백로그 (Project Backlog)
 > Created: 2026-02-08 17:59
-> Last Updated: 2026-02-11
+> Last Updated: 2026-02-22
 
 본 문서는 프로젝트의 현재 진행 상황과 향후 계획을 칸반 형태로 관리하는 실행 로직 문서입니다.
 
@@ -28,11 +28,11 @@ _(현재 진행 중인 작업 없음)_
 ### 3. UI 정리 (준비 중/불필요 메뉴 처리)
 - **목표**: ComingSoon 화면 및 placeholder 탭 정리, 미등록 라우트/미구현 기능 보완.
 - **관련 문서**: [01_UI_CLEANUP_LIST.md](./01_UI_CLEANUP_LIST.md)
-- **예정 내용**:
-    - 프로필 수정(`/profile/edit`), 저장된 순간들(`/profile/saved`) 구현 또는 일시 제거
-    - 캐릭터 상세 Voice/Gallery 탭 placeholder 구현 또는 탭 숨김
-    - `/search` 라우트 등록 또는 링크 제거
-    - 계정 탈퇴 로직 구현 또는 UI 비활성화
+- **진행 상황**:
+    - 프로필 수정(`/profile/edit`), 저장된 순간들(`/profile/saved`) 구현 완료
+    - 캐릭터 상세 Voice/Gallery 탭 구현 완료
+    - `/search` 라우트 링크 제거 완료
+    - 계정 탈퇴 로직 구현 완료 (2026-02-22)
 
 ### 4. 유료 아이템 및 경제 시스템 설계
 - **목표**: 서비스 지속성을 위한 5대 유료 아이템 카테고리 구체화 및 NEAR 기반 결제 UX 설계.
