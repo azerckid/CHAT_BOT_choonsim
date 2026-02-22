@@ -126,14 +126,6 @@ export default function ChatListScreen() {
         </div>
         <div className="flex gap-2">
           <Link
-            to="/search"
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-          >
-            <span className="material-symbols-outlined text-2xl text-gray-600 dark:text-text-muted">
-              search
-            </span>
-          </Link>
-          <Link
             to="/settings"
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           >
@@ -237,7 +229,7 @@ export default function ChatListScreen() {
 
       <BottomNavigation />
 
-      <div className="pointer-events-none fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-background-light dark:from-background-dark to-transparent z-10" />
+      <div className="pointer-events-none fixed bottom-0 left-0 w-full h-32 bg-linear-to-t from-background-light dark:from-background-dark to-transparent z-10" />
     </div>
   );
 }

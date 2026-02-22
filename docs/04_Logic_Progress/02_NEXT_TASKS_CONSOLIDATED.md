@@ -1,0 +1,97 @@
+# 다음 할 일 통합 정리 (Next Tasks Consolidated)
+
+> Created: 2026-02-22
+> Last Updated: 2026-02-22 (Phase 1~3 + /search 버튼 제거 반영)
+
+본 문서는 UI 정리 대상(01_UI_CLEANUP_LIST.md)과 백로그(00_BACKLOG.md)를 통합하여, 우선 처리할 다음 할 일을 정리한 실행 목록입니다.
+
+---
+
+## Part 1. UI/라우트 찌꺼기 정리
+
+### 1.1 채팅 검색 라우트 (`/search`) ✅ 완료 (2026-02-22)
+
+| 항목 | 내용 |
+|------|------|
+| **조치** | (B) 검색 버튼 제거 - `/chats` 상단 `/search` 링크 제거 |
+| **결과** | 404 위험 제거, 검색 구현 시 버튼 재추가 예정 |
+
+### 1.2 계정 탈퇴 로직 (`/settings`)
+
+| 항목 | 내용 |
+|------|------|
+| **현상** | `/settings` 하단에 `// TODO: 계정 탈퇴 로직 구현 (Phase 2)` 주석만 존재 |
+| **필요 작업** | DB 연관 데이터 전체 삭제 + Authentication 해제를 위한 백엔드 로직 구현 |
+| **조치** | 탈퇴 API/액션 추가, 회원 데이터(세션/계정/유저/대화 등) 일괄 정리 및 연동 |
+| **참조** | [01_UI_CLEANUP_LIST.md](./01_UI_CLEANUP_LIST.md) Section 4 |
+
+### 1.3 기타 UI 정리 항목 ✅ 전체 완료 (2026-02-22)
+
+> **커밋**: `31ec998`, `41e22bb`, `61dc93b` (Phase 1 + Phase 3)
+
+| 구분 | 경로/위치 | 상태 |
+|------|-----------|------|
+| ~~ComingSoon~~ | `/profile/edit` | ✅ 프로필 수정 페이지 구현 완료 |
+| ~~ComingSoon~~ | `/profile/saved` | ✅ 저장된 순간들(좋아요 내역) 페이지 구현 완료 |
+| ~~Placeholder 탭~~ | `/character/:id` Voice | ✅ VoicePlayer 컴포넌트 + 실제 데이터 연동 완료 |
+| ~~Placeholder 탭~~ | `/character/:id` Gallery | ✅ Masonry 그리드 + Lightbox 모달 구현 완료 |
+
+---
+
+## Part 2. 코어 비즈니스 로직 및 신규 기능
+
+### 2.1 나만의 춘심 (Identity 커스텀 에디터)
+
+| 항목 | 내용 |
+|------|------|
+| **목표** | 유료 아이템 구매 시 Identity / Soul / Heartbeat 및 캐릭터 이름을 유저가 직접 편집 가능 |
+| **예정 내용** | 상점 "나만의 춘심" 아이템 구매 → 편집 기능 해금, 관련 데이터 스키마 및 API 설계 |
+| **참조** | [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #1 |
+
+### 2.2 목소리로 대화하는 기능 (Live Voice Chat)
+
+| 항목 | 내용 |
+|------|------|
+| **목표** | 텍스트 채팅을 넘어 마이크를 통한 AI와 실시간 음성 인터랙션 |
+| **예정 내용** | Voice-to-Text, AI 응답 스트리밍, 실시간 음성 입출력 파이프라인 구현 |
+| **참조** | [04_VOICE_INTERACTION_STRATEGY.md](../01_Concept_Design/04_VOICE_INTERACTION_STRATEGY.md), [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #2 |
+
+### 2.3 NEAR Protocol 기반 결제 생태계
+
+| 항목 | 내용 |
+|------|------|
+| **현황** | PayPal 기반 달러/CHOCO 환전 구조만 존재 |
+| **필요** | Action-to-Transaction(지갑 연동 등) 기반 Web3/온체인 결제 설계 |
+| **예정 내용** | NEAR 마이크로 결제 프로토콜 설계, 5대 유료 아이템 카테고리별 스키마, 기억 각인/나만의 춘심 에디터 연동 |
+| **참조** | [19_MONETIZATION_STRATEGY.md](../01_Concept_Design/19_MONETIZATION_STRATEGY.md), [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #4 |
+
+### 2.4 DB 리셋 및 클린 슬레이트
+
+| 항목 | 내용 |
+|------|------|
+| **목표** | 프로덕션 이전 전체 DB Dump & Reset, 신규 스키마 기준 시드 데이터 재생성 |
+| **배경** | Phase 누적으로 스키마가 비대해져 정리가 필요 |
+| **예정 내용** | (1) 전체 DB 백업, (2) 로컬 환경 확인 후 파괴적 리셋, (3) 신규 스키마 시드 생성 및 E2E 검증 |
+| **참조** | [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #5 |
+
+---
+
+## 우선순위 제안
+
+| 순위 | 항목 | 근거 |
+|------|------|------|
+| ~~1~~ | ~~채팅 검색 `/search`~~ | ✅ 버튼 제거 완료 |
+| 1 | 계정 탈퇴 로직 | 법적/정책 요구사항 대응 |
+| 2 | DB 리셋 및 클린 슬레이트 | 이후 기능 개발 전 기반 정리 |
+| 3 | 나만의 춘심 / Voice Chat / NEAR 결제 | 중장기 코어 기능 |
+| ~~5~~ | ~~UI 찌꺼기 (ComingSoon/Placeholder)~~ | ✅ Phase 1~3에서 전체 완료 |
+
+---
+
+## Related Documents
+
+- **Logic_Progress**: [00_BACKLOG.md](./00_BACKLOG.md) - 프로젝트 백로그
+- **Logic_Progress**: [01_UI_CLEANUP_LIST.md](./01_UI_CLEANUP_LIST.md) - UI 정리 대상 목록
+- **Concept_Design**: [04_VOICE_INTERACTION_STRATEGY.md](../01_Concept_Design/04_VOICE_INTERACTION_STRATEGY.md) - 목소리 대화 전략
+- **Concept_Design**: [19_MONETIZATION_STRATEGY.md](../01_Concept_Design/19_MONETIZATION_STRATEGY.md) - 수익화 전략
+- **Technical_Specs**: [22_MISSING_UI_FEATURES_SPEC.md](../03_Technical_Specs/22_MISSING_UI_FEATURES_SPEC.md) - 누락 UI 기능 명세
