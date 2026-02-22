@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link, useLoaderData } from "react-router";
+import { useTranslation } from "react-i18next";
+import { useLocalizedCharacter } from "~/lib/useLocalizedCharacter";
 import { ChatListItem } from "~/components/chat/ChatListItem";
 import { OnlineIdolList } from "~/components/chat/OnlineIdolList";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
@@ -13,6 +15,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import * as schema from "~/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -62,8 +65,65 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return Response.json({ conversations, allCharacters });
 }
 
+function ChatListItemWithLocale({ chat, lastMsg, character, avatarUrl }: { chat: any; lastMsg: any; character: any; avatarUrl: string }) {
+  const { t } = useTranslation();
+  const { name } = useLocalizedCharacter(character?.id ?? "", character?.name ?? "AI", character?.role ?? "");
+
+  return (
+    <ChatListItem
+      id={chat.id}
+      name={name}
+      lastMessage={lastMsg?.content || t("chat.startConversationHint")}
+      timestamp={lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+      avatarUrl={avatarUrl}
+      isRead={lastMsg ? lastMsg.read : true}
+      isOnline={character?.isOnline || false}
+      characterId={character?.id}
+    />
+  );
+}
+
+function NewChatCharacterItem({ char, onStartChat, onPrepareError }: { char: any; onStartChat: (id: string) => void; onPrepareError: () => void }) {
+  const { name, role } = useLocalizedCharacter(char.id, char.name, char.role);
+  const { t } = useTranslation();
+
+  return (
+    <button
+      onClick={() => {
+        if (!char.isOnline) {
+          onPrepareError();
+          return;
+        }
+        onStartChat(char.id);
+      }}
+      className={cn(
+        "flex items-center gap-4 p-2 rounded-xl transition-colors text-left",
+        char.isOnline ? "hover:bg-slate-100 dark:hover:bg-white/5" : "opacity-60 cursor-not-allowed"
+      )}
+    >
+      <div className="relative flex-none">
+        <img
+          src={(char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
+          alt={name}
+          className="w-12 h-12 rounded-full object-cover"
+        />
+        {char.isOnline && (
+          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background-light dark:border-background-dark" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-bold text-slate-900 dark:text-white truncate">{name}</h4>
+        <p className="text-xs text-slate-500 line-clamp-1">
+          {char.isOnline ? role : t("chat.prepareInProgress")}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 export default function ChatListScreen() {
   const { conversations, allCharacters } = useLoaderData<typeof loader>() as { conversations: any[], allCharacters: any[] };
+  const { t } = useTranslation();
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const navigate = useNavigate();
@@ -82,15 +142,18 @@ export default function ChatListScreen() {
         body: JSON.stringify({ characterId }),
       });
 
-      if (!response.ok) throw new Error("Failed to create chat");
-
       const data = await response.json();
+      if (!response.ok) {
+        toast.error(data.error || t("chat.cannotStartChat"));
+        setLoadingState("idle");
+        return;
+      }
+      setIsNewChatOpen(false);
       navigate(`/chat/${data.conversationId}`);
     } catch (error) {
       console.error("Chat creation error:", error);
-      setLoadingState("error"); // In a real app, show toast
-      // For now reset after short delay or show robust error
-      setTimeout(() => setLoadingState("idle"), 2000);
+      toast.error(t("chat.chatStartError"));
+      setLoadingState("idle");
     }
   };
 
@@ -159,8 +222,8 @@ export default function ChatListScreen() {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <span className="material-symbols-outlined text-primary text-3xl">chat_bubble</span>
             </div>
-            <h3 className="text-lg font-bold mb-1">새로운 대화를 시작해보세요!</h3>
-            <p className="text-sm text-slate-500">춘심이가 당신의 연락을 기다리고 있어요.</p>
+            <h3 className="text-lg font-bold mb-1">{t("chat.startNewConversation")}</h3>
+            <p className="text-sm text-slate-500">{t("chat.waitingForYou")}</p>
           </div>
         ) : (
           conversations.map((chat: any) => {
@@ -169,16 +232,12 @@ export default function ChatListScreen() {
             const avatarUrl = (character?.media?.find((m: any) => m.type === "AVATAR")?.url) || character?.media?.[0]?.url;
 
             return (
-              <ChatListItem
+              <ChatListItemWithLocale
                 key={chat.id}
-                id={chat.id}
-                name={character?.name || "AI"}
-                lastMessage={lastMsg?.content || "대화를 시작해보세요"}
-                timestamp={lastMsg ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                chat={chat}
+                lastMsg={lastMsg}
+                character={character}
                 avatarUrl={avatarUrl}
-                isRead={lastMsg ? lastMsg.read : true}
-                isOnline={character?.isOnline || false}
-                characterId={character?.id}
               />
             );
           })
@@ -195,33 +254,16 @@ export default function ChatListScreen() {
         />
         <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>새 대화 시작하기</DialogTitle>
+            <DialogTitle>{t("chat.startChatTitle")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {allCharacters.map((char: any) => (
-              <button
+              <NewChatCharacterItem
                 key={char.id}
-                onClick={() => {
-                  handleStartChat(char.id);
-                  setIsNewChatOpen(false);
-                }}
-                className="flex items-center gap-4 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-left"
-              >
-                <div className="relative flex-none">
-                  <img
-                    src={(char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
-                    alt={char.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  {char.isOnline && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background-light dark:border-background-dark" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-slate-900 dark:text-white truncate">{char.name}</h4>
-                  <p className="text-xs text-slate-500 line-clamp-1">{char.role}</p>
-                </div>
-              </button>
+                char={char}
+                onStartChat={handleStartChat}
+                onPrepareError={() => toast.error(t("chat.prepareInProgressCharacter"))}
+              />
             ))}
           </div>
         </DialogContent>

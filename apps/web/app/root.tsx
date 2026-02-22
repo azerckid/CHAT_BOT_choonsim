@@ -6,8 +6,10 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import { useTranslation } from "react-i18next";
 
 import type { Route } from "./+types/root";
+import "~/lib/i18n";
 import "./app.css";
 import { Toaster } from "~/components/ui/sonner";
 import { PaymentSheet } from "~/components/payment/PaymentSheet";
@@ -72,23 +74,25 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "알 수 없는 오류가 발생했습니다.";
+  const { t } = useTranslation();
+  let message = t("error.oops");
+  let details = t("error.unknown");
+  let goHome = t("error.goHome");
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
       message = "404";
-      details = "요청하신 페이지를 찾을 수 없습니다.";
+      details = t("error.notFoundDesc");
     } else if (error.status === 403) {
-      message = "접근 권한 없음";
-      details = "관리자 권한이 필요한 페이지입니다. 관리자 계정으로 다시 로그인해 주세요.";
+      message = t("error.forbidden");
+      details = t("error.forbiddenDesc");
     } else if (error.status === 401) {
-      message = "로그인 필요";
-      details = "서비스를 이용하시려면 로그인이 필요합니다.";
+      message = t("error.unauthorized");
+      details = t("error.unauthorizedDesc");
     } else {
       message = error.status.toString();
-      details = error.statusText || "서버 오류가 발생했습니다.";
+      details = error.statusText || t("error.serverError");
     }
   } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;
@@ -118,7 +122,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             href="/"
             className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-black rounded-2xl font-black italic text-sm tracking-tighter hover:scale-105 transition-all shadow-[0_10px_30px_rgba(255,0,255,0.3)]"
           >
-            메인으로 돌아가기
+            {goHome}
           </a>
         </div>
 

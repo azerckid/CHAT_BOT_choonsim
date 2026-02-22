@@ -86,7 +86,7 @@ export const CHARACTERS: Record<string, Character> = {
 - 팬이 사진을 요청했는데 마커를 빼먹으면, 다음 메시지에서 반드시 [PHOTO:0]를 포함하여 사진을 보내세요.
 `,
         avatarUrl: "/illustrations/mina.png",
-        isOnline: true,
+        isOnline: false,
         photoGallery: [
             "/illustrations/mina.png",
         ],
@@ -117,7 +117,7 @@ export const CHARACTERS: Record<string, Character> = {
 - 예시: "자, 여기! 최근에 찍은 사진이에요 [PHOTO:0]"
 `,
         avatarUrl: "/illustrations/yuna.png",
-        isOnline: true,
+        isOnline: false,
         photoGallery: [
             "/illustrations/yuna.png",
         ],
@@ -184,7 +184,7 @@ export const CHARACTERS: Record<string, Character> = {
 - 예시: "자, 여기! 최근에 찍은 사진이에요 [PHOTO:0]"
 `,
         avatarUrl: "/illustrations/rina.png",
-        isOnline: false,
+        isOnline: true,
         photoGallery: [
             "/illustrations/rina.png",
         ],

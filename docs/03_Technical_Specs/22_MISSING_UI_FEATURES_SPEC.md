@@ -118,7 +118,7 @@
   - CSS Columns (`columns-2 break-inside-avoid`) 속성을 활용한 무경량 Masonry 그리드 레이아웃 구축.
   - 이미지 썸네일 클릭 시 전체 화면 모달(Lightbox) 팝업 제공, `z-index` 및 줌인 인터랙션 포함.
 - **Data Flow**:
-  - 기존 로더에서 불러온 `character.media` 목록 중 `type === "IMAGE"` 속성을 가진 요소들을 클라이언트 필터링하여 매핑.
+  - 기존 로더에서 불러온 `character.media` 목록 중 `type === "NORMAL"` 속성을 가진 요소들을 클라이언트 필터링하여 매핑.
 
 ---
 

@@ -1,4 +1,7 @@
 import { useNavigate, useLoaderData, redirect } from "react-router";
+import { useTranslation } from "react-i18next";
+import { useLocalizedCharacter } from "~/lib/useLocalizedCharacter";
+import { toast } from "sonner";
 import { auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import type { LoaderFunctionArgs } from "react-router";
@@ -85,16 +88,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
   });
 
-  // Today's Pick: Fetch from dynamic system settings (fallback to 'rina' if or first if not set)
-  const todaysPickSetting = await db.query.systemSettings.findFirst({
-    where: eq(schema.systemSettings.key, "TODAYS_PICK_ID")
-  });
-  const todaysPick = allCharacters.find(c => c.id === todaysPickSetting?.value) ||
-    allCharacters.find(c => c.id === "rina") ||
-    allCharacters[0];
+  // 서비스 중인 캐릭터만 (춘심, rina 등 isOnline=true)
+  const serviceCharacters = allCharacters.filter((c: { isOnline: boolean }) => c.isOnline);
 
-  // Trending Idols: DB에 있는 캐릭터들 (최대 4개)
-  const trendingIdols = allCharacters.slice(0, 4);
+  // Today's Pick: 날짜(ordinal) 기반 매일 교체 (chunsim ↔ rina)
+  const now = DateTime.now().setZone("Asia/Seoul");
+  const chunsimPick = serviceCharacters.find((c: { id: string }) => c.id === "chunsim");
+  const rinaPick = serviceCharacters.find((c: { id: string }) => c.id === "rina");
+  const todaysPick = (now.ordinal % 2 === 1 ? chunsimPick || rinaPick : rinaPick || chunsimPick) || serviceCharacters[0];
+
+  // Trending Idols: 춘심 1번, Rina 2번, 나머지 순서 유지 (미서비스는 회색 처리)
+  const chunsim = allCharacters.find((c: { id: string }) => c.id === "chunsim");
+  const rina = allCharacters.find((c: { id: string }) => c.id === "rina");
+  const rest = allCharacters.filter((c: { id: string }) => c.id !== "chunsim" && c.id !== "rina");
+  const trendingIdols = [chunsim, rina, ...rest].filter(Boolean).slice(0, 6);
 
   // 공지사항 및 이벤트 가져오기
   const notices = await db.query.notice.findMany({
@@ -118,9 +125,104 @@ export async function loader({ request }: LoaderFunctionArgs) {
   });
 }
 
+function ContinueChatCard({ conversation, formatTimeAgo }: { conversation: any; formatTimeAgo: (d: Date) => string }) {
+  const navigate = useNavigate();
+  const character = conversation.character;
+  const { name } = useLocalizedCharacter(character?.id ?? "", character?.name ?? "AI", character?.role ?? "");
+  const lastMessage = conversation.messages?.[0];
+
+  return (
+    <button
+      onClick={() => navigate(`/chat/${conversation.id}`)}
+      className="w-full flex items-center gap-4 rounded-xl bg-surface-dark p-4 border border-white/5 active:bg-white/5 transition-colors text-left"
+    >
+      <div className="relative">
+        <img
+          alt={`Avatar of ${name}`}
+          className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/50"
+          src={
+            character.media
+              ?.filter((m: any) => m.type === "AVATAR")
+              ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+            || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+          }
+        />
+        {character.isOnline && (
+          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-surface-dark"></span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-baseline mb-1">
+          <h3 className="text-white font-bold truncate">{name}</h3>
+          {lastMessage && (
+            <span className="text-xs text-gray-500">
+              {formatTimeAgo(lastMessage.createdAt)}
+            </span>
+          )}
+        </div>
+        {lastMessage && (
+          <p className="text-gray-400 text-sm truncate">
+            {lastMessage.content}
+          </p>
+        )}
+      </div>
+      <span className="material-symbols-outlined text-gray-500 text-sm">chevron_right</span>
+    </button>
+  );
+}
+
+function TrendingIdolCard({ character, index }: { character: any; index: number }) {
+  const navigate = useNavigate();
+  const { name, role } = useLocalizedCharacter(character.id, character.name, character.role);
+  const { t } = useTranslation();
+
+  return (
+    <button
+      onClick={() => navigate(`/character/${character.id}`)}
+      className="snap-center shrink-0 w-[140px] flex flex-col gap-2 group cursor-pointer"
+    >
+      <div className="relative h-[180px] w-full rounded-xl overflow-hidden">
+        <img
+          alt={name}
+          className={cn(
+            "h-full w-full object-cover transition-all duration-500 group-hover:scale-110",
+            !character.isOnline && "grayscale opacity-70"
+          )}
+          src={
+            character.media
+              ?.filter((m: any) => m.type === "COVER")
+              ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+            || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+          }
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent opacity-60"></div>
+        <div className="absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#FFD700] text-black text-xs font-bold">
+          {index + 1}
+        </div>
+        <div className="absolute bottom-2 left-2 right-2">
+          <div className="flex items-center gap-1 text-xs text-white/80 mb-0.5">
+            <span className="material-symbols-outlined text-[12px] text-primary">favorite</span>
+            <span>{Math.floor(Math.random() * 5000 + 5000)}</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h3 className={cn("font-bold text-base leading-tight", character.isOnline ? "text-white" : "text-gray-500")}>
+          {name}
+        </h3>
+        <p className="text-gray-500 text-xs">
+          {character.isOnline ? role : t("home.comingSoon")}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 export default function HomeScreen() {
   const { user, todaysPick, recentConversations, trendingIdols, notices, isAuthenticated, walletStatus, unreadNotificationCount } = useLoaderData<typeof loader>() as any;
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const todaysPickLocalized = todaysPick ? useLocalizedCharacter(todaysPick.id, todaysPick.name, todaysPick.role) : null;
 
   const handleStartChat = async (characterId: string) => {
     if (!isAuthenticated) {
@@ -135,12 +237,15 @@ export default function HomeScreen() {
         body: JSON.stringify({ characterId }),
       });
 
-      if (!response.ok) throw new Error("Failed to create chat");
-
       const data = await response.json();
+      if (!response.ok) {
+        toast.error(data.error || t("home.cannotStartChat"));
+        return;
+      }
       navigate(`/chat/${data.conversationId}`);
     } catch (error) {
       console.error("Chat creation error:", error);
+      toast.error(t("chat.chatStartError"));
     }
   };
 
@@ -216,7 +321,7 @@ export default function HomeScreen() {
               ✨ Today's Pick
             </span>
             <h1 className="text-4xl font-black leading-tight tracking-tight text-white mb-1">
-              {todaysPick.name}
+              {todaysPickLocalized?.name ?? todaysPick?.name}
             </h1>
             <p className="text-base text-gray-200 font-medium mb-6 line-clamp-2">
               "{todaysPick.bio}"
@@ -226,7 +331,7 @@ export default function HomeScreen() {
                 onClick={() => handleStartChat(todaysPick.id)}
                 className="flex-1 cursor-pointer items-center justify-center rounded-xl h-12 bg-primary text-white text-base font-bold shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all"
               >
-                Chat Now
+                {t("home.chatNow")}
               </button>
               <button className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-white backdrop-blur-md hover:bg-white/20 transition-all">
                 <span className="material-symbols-outlined">favorite</span>
@@ -282,57 +387,17 @@ export default function HomeScreen() {
       {recentConversations.length > 0 && (
         <div className="px-4 py-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white text-lg font-bold">Continue Chatting</h2>
+            <h2 className="text-white text-lg font-bold">{t("home.continueChatting")}</h2>
             <button
               onClick={() => navigate("/chats")}
               className="text-primary text-sm font-semibold"
             >
-              View All
+              {t("common.viewAll")}
             </button>
           </div>
-          {recentConversations.slice(0, 1).map((conversation: any) => {
-            const character = getCharacterFromConversation(conversation);
-            const lastMessage = conversation.Message?.[0];
-            return (
-              <button
-                key={conversation.id}
-                onClick={() => navigate(`/chat/${conversation.id}`)}
-                className="w-full flex items-center gap-4 rounded-xl bg-surface-dark p-4 border border-white/5 active:bg-white/5 transition-colors text-left"
-              >
-                <div className="relative">
-                  <img
-                    alt={`Avatar of ${character.name}`}
-                    className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/50"
-                    src={
-                      character.media
-                        ?.filter((m: any) => m.type === "AVATAR")
-                        ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
-                      || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
-                    }
-                  />
-                  {character.isOnline && (
-                    <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-green-500 ring-2 ring-surface-dark"></span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-baseline mb-1">
-                    <h3 className="text-white font-bold truncate">{character.name}</h3>
-                    {lastMessage && (
-                      <span className="text-xs text-gray-500">
-                        {formatTimeAgo(lastMessage.createdAt)}
-                      </span>
-                    )}
-                  </div>
-                  {lastMessage && (
-                    <p className="text-gray-400 text-sm truncate">
-                      {lastMessage.content}
-                    </p>
-                  )}
-                </div>
-                <span className="material-symbols-outlined text-gray-500 text-sm">chevron_right</span>
-              </button>
-            );
-          })}
+          {recentConversations.slice(0, 1).map((conversation: any) => (
+            <ContinueChatCard key={conversation.id} conversation={conversation} formatTimeAgo={formatTimeAgo} />
+          ))}
         </div>
       )}
 
@@ -344,38 +409,7 @@ export default function HomeScreen() {
         </div>
         <div className="flex overflow-x-auto px-4 gap-4 pb-4 scrollbar-hide snap-x">
           {(trendingIdols as any[]).map((character: any, index: number) => (
-            <button
-              key={character.id}
-              onClick={() => navigate(`/character/${character.id}`)}
-              className="snap-center shrink-0 w-[140px] flex flex-col gap-2 group cursor-pointer"
-            >
-              <div className="relative h-[180px] w-full rounded-xl overflow-hidden">
-                <img
-                  alt={character.name}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  src={
-                    character.media
-                      ?.filter((m: any) => m.type === "COVER")
-                      ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
-                    || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
-                  }
-                />
-                <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent opacity-60"></div>
-                <div className="absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#FFD700] text-black text-xs font-bold">
-                  {index + 1}
-                </div>
-                <div className="absolute bottom-2 left-2 right-2">
-                  <div className="flex items-center gap-1 text-xs text-white/80 mb-0.5">
-                    <span className="material-symbols-outlined text-[12px] text-primary">favorite</span>
-                    <span>{Math.floor(Math.random() * 5000 + 5000)}</span>
-                  </div>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-white font-bold text-base leading-tight">{character.name}</h3>
-                <p className="text-gray-500 text-xs">{character.role}</p>
-              </div>
-            </button>
+            <TrendingIdolCard key={character.id} character={character} index={index} />
           ))}
         </div>
       </div>

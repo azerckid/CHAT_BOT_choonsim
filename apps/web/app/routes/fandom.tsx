@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useLocalizedCharacter } from "~/lib/useLocalizedCharacter";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
@@ -173,15 +175,65 @@ export async function action({ request }: ActionFunctionArgs) {
   return Response.json({ error: "Invalid intent" }, { status: 400 });
 }
 
+function FandomCharacterButton({ char, characterId }: { char: any; characterId: string }) {
+  const navigate = useNavigate();
+  const { name } = useLocalizedCharacter(char.id, char.name, char.role);
+
+  const isActive = char.id === characterId;
+  const isInService = char.isOnline;
+
+  return (
+    <div
+      key={char.id}
+      onClick={() => navigate(`/fandom?characterId=${char.id}`)}
+      className="flex flex-col items-center gap-2 group cursor-pointer"
+    >
+      <div className={cn(
+        "p-[3px] rounded-full transition-all",
+        isActive && isInService ? "bg-linear-to-tr from-primary to-purple-400" : "bg-transparent"
+      )}>
+        <div className={cn(
+          "size-16 rounded-full border-4 overflow-hidden",
+          isActive && isInService
+            ? "border-background-light dark:border-background-dark bg-surface-dark"
+            : "border-transparent bg-surface-dark/50",
+          !isInService ? "opacity-70" : isActive ? "" : "opacity-70 group-hover:opacity-100"
+        )}>
+          <img
+            className={cn(
+              "w-full h-full object-cover",
+              !isInService && "grayscale"
+            )}
+            src={(char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
+            alt={name}
+          />
+        </div>
+      </div>
+      <span className={cn(
+        "text-xs",
+        isActive && isInService ? "font-bold text-primary" : !isInService ? "text-gray-500 dark:text-white/40" : "font-medium"
+      )}>
+        {name}
+      </span>
+    </div>
+  );
+}
+
 export default function FandomScreen() {
   const { allCharacters, selectedCharacter, characterStat, missions, notices, leaderboard, feedPosts, characterId } = useLoaderData<typeof loader>() as any;
   const navigate = useNavigate();
   const fetcher = useFetcher();
+  const { t } = useTranslation();
+  const { name: selectedName, role: selectedRole } = useLocalizedCharacter(selectedCharacter.id, selectedCharacter.name, selectedCharacter.role);
   const [feedFilter, setFeedFilter] = useState("All");
   const [isPosting, setIsPosting] = useState(false);
   const [postContent, setPostContent] = useState("");
 
-  const characters = allCharacters;
+  // 춘심 1번, Rina 2번, 나머지 순서 (미서비스는 비활성 스타일)
+  const chunsim = allCharacters.find((c: { id: string }) => c.id === "chunsim");
+  const rina = allCharacters.find((c: { id: string }) => c.id === "rina");
+  const rest = allCharacters.filter((c: { id: string }) => c.id !== "chunsim" && c.id !== "rina");
+  const characters = [chunsim, rina, ...rest].filter(Boolean);
 
   useEffect(() => {
     if (fetcher.data?.success) {
@@ -212,7 +264,7 @@ export default function FandomScreen() {
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center">Fandom Lounge</h2>
+          <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center">{t("fandom.title")}</h2>
           <button className="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
             <div className="relative">
               <span className="material-symbols-outlined text-slate-800 dark:text-white">notifications</span>
@@ -226,40 +278,9 @@ export default function FandomScreen() {
         {/* Character Selector */}
         <div className="w-full overflow-x-auto scrollbar-hide px-4">
           <div className="flex gap-4 min-w-max">
-            {characters.map((char: any) => {
-              const isActive = char.id === characterId;
-              return (
-                <div
-                  key={char.id}
-                  onClick={() => navigate(`/fandom?characterId=${char.id}`)}
-                  className="flex flex-col items-center gap-2 group cursor-pointer"
-                >
-                  <div className={cn(
-                    "p-[3px] rounded-full transition-all",
-                    isActive ? "bg-gradient-to-tr from-primary to-purple-400" : "bg-transparent"
-                  )}>
-                    <div className={cn(
-                      "size-16 rounded-full border-4 overflow-hidden",
-                      isActive
-                        ? "border-background-light dark:border-background-dark bg-surface-dark"
-                        : "border-transparent bg-surface-dark/50 opacity-70 group-hover:opacity-100"
-                    )}>
-                      <img
-                        className="w-full h-full object-cover"
-                        src={(char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
-                        alt={char.name}
-                      />
-                    </div>
-                  </div>
-                  <span className={cn(
-                    "text-xs",
-                    isActive ? "font-bold text-primary" : "font-medium"
-                  )}>
-                    {char.name}
-                  </span>
-                </div>
-              );
-            })}
+            {characters.map((char: any) => (
+              <FandomCharacterButton key={char.id} char={char} characterId={characterId} />
+            ))}
           </div>
         </div>
 
@@ -272,7 +293,7 @@ export default function FandomScreen() {
                 backgroundImage: `url('${(selectedCharacter.media?.find((m: any) => m.type === "COVER")?.url) || selectedCharacter.media?.[0]?.url}')`
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent opacity-90" />
+            <div className="absolute inset-0 bg-linear-to-t from-background-dark via-transparent to-transparent opacity-90" />
             <div className="relative p-6 flex flex-col gap-4">
               <div className="flex justify-between items-start">
                 <div>
@@ -280,8 +301,8 @@ export default function FandomScreen() {
                     <span className="material-symbols-outlined text-[14px]">star</span>
                     Selected Star
                   </span>
-                  <h2 className="text-2xl font-bold text-white leading-tight">{selectedCharacter.name}'s Official Space</h2>
-                  <p className="text-white/60 text-sm">{selectedCharacter.role} • AI Generation 3</p>
+                  <h2 className="text-2xl font-bold text-white leading-tight">{selectedName}'s Official Space</h2>
+                  <p className="text-white/60 text-sm">{selectedCharacter.isOnline ? `${selectedRole} • AI Generation 3` : t("home.comingSoon")}</p>
                 </div>
                 <div className="flex flex-col items-center">
                   <div className="size-12 rounded-full border-2 border-primary p-1 bg-surface-dark overflow-hidden">
@@ -311,7 +332,7 @@ export default function FandomScreen() {
                 className="mt-2 w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-sm shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 <span className="material-symbols-outlined">forum</span>
-                Enter Lounge
+                {t("characterProfile.enterLounge")}
               </button>
             </div>
           </div>
@@ -337,7 +358,7 @@ export default function FandomScreen() {
                 onClick={() => navigate(`/notices/${item.id}`)}
                 className="min-w-[260px] rounded-xl overflow-hidden bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 shadow-sm group cursor-pointer"
               >
-                <div className="aspect-[16/9] w-full bg-slate-200 relative">
+                <div className="aspect-video w-full bg-slate-200 relative">
                   {item.imageUrl ? (
                     <img
                       className="w-full h-full object-cover"
@@ -345,7 +366,7 @@ export default function FandomScreen() {
                       alt={item.title}
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/30 to-purple-600/30" />
+                    <div className="w-full h-full bg-linear-to-br from-primary/30 to-purple-600/30" />
                   )}
                   <div className={cn(
                     "absolute top-2 left-2 px-2 py-0.5 rounded backdrop-blur-sm text-[10px] font-bold text-white uppercase tracking-wider",
@@ -574,7 +595,7 @@ export default function FandomScreen() {
 
       {/* Post Modal */}
       {isPosting && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div className="fixed inset-0 z-100 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-background-dark w-full max-w-md rounded-t-[40px] sm:rounded-[40px] border border-white/10 p-8 pt-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-xl font-black text-white">Share with Fandom</h3>

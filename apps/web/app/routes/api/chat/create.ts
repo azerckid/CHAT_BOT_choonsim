@@ -32,10 +32,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
         // 존재하는 캐릭터인지 확인
         const character = await db.query.character.findFirst({
-            where: eq(schema.character.id, characterId)
+            where: eq(schema.character.id, characterId),
+            columns: { id: true, name: true, isOnline: true }
         });
         if (!character) {
             return Response.json({ error: "Character not found" }, { status: 404 });
+        }
+        if (!character.isOnline) {
+            return Response.json({ error: "아직 서비스 준비 중인 캐릭터입니다." }, { status: 403 });
         }
 
         // 이미 존재하는 대화방이 있는지 확인

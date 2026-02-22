@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useParams, useLoaderData } from "react-router";
+import { useTranslation } from "react-i18next";
+import { useLocalizedCharacter } from "~/lib/useLocalizedCharacter";
 import { cn } from "~/lib/utils";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
@@ -93,7 +95,7 @@ function VoicePlayer({ item, isPlaying, onPlay, onPause, label }: { item: any; i
   };
 
   return (
-    <div className="p-4 rounded-xl bg-gradient-to-r from-surface-dark to-background-dark border border-white/5 relative overflow-hidden group mb-4">
+    <div className="p-4 rounded-xl bg-linear-to-r from-surface-dark to-background-dark border border-white/5 relative overflow-hidden group mb-4">
       <audio
         ref={audioRef}
         src={item.url}
@@ -139,7 +141,9 @@ function VoicePlayer({ item, isPlaying, onPlay, onPause, label }: { item: any; i
 export default function CharacterProfileScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { character, myContribution, affinityValue, fandomLevelValue } = useLoaderData<typeof loader>();
+  const { name: displayName, role: displayRole } = useLocalizedCharacter(character.id, character.name, character.role);
   const [activeTab, setActiveTab] = useState<Tab>("about");
   const [isFavorite, setIsFavorite] = useState(true);
 
@@ -148,14 +152,14 @@ export default function CharacterProfileScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const voiceMedia = character.media?.filter((m: any) => m.type === "VOICE") || [];
-  const galleryMedia = character.media?.filter((m: any) => m.type === "IMAGE") || [];
+  const galleryMedia = character.media?.filter((m: any) => m.type === "NORMAL") || [];
   const firstVoice = voiceMedia.length > 0 ? voiceMedia[0] : null;
 
   // 프로필 화면에 필요한 추가 정보 가공
   const displayChar = {
     id: character.id,
-    name: character.name,
-    role: character.role,
+    name: displayName,
+    role: displayRole,
     relationship: fandomLevelValue > 10 ? "Close Friend" : "Fan",
     affinity: `${affinityValue}%`,
     fandomLevel: `Lv. ${fandomLevelValue}`,
@@ -217,7 +221,7 @@ export default function CharacterProfileScreen() {
       {/* Lightbox Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+          className="fixed inset-0 z-100 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
           onClick={() => setSelectedImage(null)}
         >
           <img
@@ -236,7 +240,7 @@ export default function CharacterProfileScreen() {
       )}
 
       {/* Top Navigation (Absolute Overlay) */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent max-w-md mx-auto pointer-events-none">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-linear-to-b from-black/60 to-transparent max-w-md mx-auto pointer-events-none">
         <button
           onClick={() => navigate(-1)}
           className="pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-black/20 backdrop-blur-md border border-white/10 text-white transition hover:bg-black/40 active:scale-95"
@@ -267,7 +271,7 @@ export default function CharacterProfileScreen() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url('${displayChar.heroImage}')` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-background-dark via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-background-dark via-transparent to-transparent" />
         </div>
       </div>
 
@@ -310,7 +314,7 @@ export default function CharacterProfileScreen() {
             <span className="text-xl font-bold text-gray-900 dark:text-white">{displayChar.fandomLevel}</span>
             <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">Fandom</span>
           </div>
-          <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition bg-gradient-to-br from-primary/5 to-transparent">
+          <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-100 dark:border-white/5 cursor-pointer hover:border-primary/50 transition bg-linear-to-br from-primary/5 to-transparent">
             <span className="text-xl font-bold text-primary">{myContribution.toLocaleString()}</span>
             <span className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">My Hearts</span>
           </div>
@@ -371,7 +375,7 @@ export default function CharacterProfileScreen() {
               ) : (
                 <div className="p-4 rounded-xl bg-surface-dark border border-white/5 text-center py-6">
                   <span className="material-symbols-outlined text-gray-600 text-3xl mb-2">mic_off</span>
-                  <p className="text-sm text-gray-500">등록된 보이스 샘플이 없습니다.</p>
+                  <p className="text-sm text-gray-500">{t("characterProfile.noVoiceSample")}</p>
                 </div>
               )}
             </div>
@@ -414,8 +418,8 @@ export default function CharacterProfileScreen() {
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <span className="material-symbols-outlined text-gray-600 text-5xl mb-3">mic_off</span>
-                <h3 className="text-white font-semibold mb-1">보이스가 준비 중입니다</h3>
-                <p className="text-sm text-gray-500">조금만 더 기다려주세요!</p>
+                <h3 className="text-white font-semibold mb-1">{t("characterProfile.voicePreparing")}</h3>
+                <p className="text-sm text-gray-500">{t("characterProfile.voicePreparingDesc")}</p>
               </div>
             )}
           </div>
@@ -449,8 +453,8 @@ export default function CharacterProfileScreen() {
             ) : (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <span className="material-symbols-outlined text-gray-600 text-5xl mb-3">photo_library</span>
-                <h3 className="text-white font-semibold mb-1">갤러리가 준비 중입니다</h3>
-                <p className="text-sm text-gray-500">곧 멋진 사진들이 업로드될 예정입니다.</p>
+                <h3 className="text-white font-semibold mb-1">{t("characterProfile.galleryPreparing")}</h3>
+                <p className="text-sm text-gray-500">{t("characterProfile.galleryPreparingDesc")}</p>
               </div>
             )}
           </div>

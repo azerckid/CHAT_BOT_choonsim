@@ -1,6 +1,6 @@
 # 프로젝트 백로그 (Project Backlog)
 > Created: 2026-02-08 17:59
-> Last Updated: 2026-02-22
+> Last Updated: 2026-02-22 (i18n, Today's Pick 매일 교체, Gallery 수정 반영)
 
 본 문서는 프로젝트의 현재 진행 상황과 향후 계획을 칸반 형태로 관리하는 실행 로직 문서입니다.
 
@@ -78,6 +78,36 @@ _(현재 진행 중인 작업 없음)_
 
 ### 4. 사용자 컨텍스트 레이어 시스템 구축
 - [x] Phase 1~10 시스템 아키텍처 및 API 구현 완료.
+
+### 5. UI/운영 정리 및 캐릭터 서비스 상태 (2026-02-22)
+- **지갑 생성 후 404**: wallet-setup 단순화, home 로더에서 지갑 생성 트리거
+- **Admin 404**: `/admin` 접근 시 `/admin/dashboard` 리다이렉트 (`routes/admin/index.tsx`)
+- **Admin 지정**: `scripts/set-admin.mjs` - 이메일로 role ADMIN 설정 (`npm run` via tsx)
+- **캐릭터 서비스 상태**: 춘심·Rina만 서비스 중(isOnline=true), 나머지 준비 중
+    - `lib/characters.ts` isOnline 동기화
+    - `scripts/set-character-service.mjs` - DB 업데이트 (`npm run characters:set-service`)
+    - `api/chat/create` 미서비스 캐릭터 403 차단
+    - 홈 Trending Idols: 전체 표시, 미서비스 회색(grayscale), 춘심 1번·Rina 2번 정렬
+    - 채팅 목록 새 대화: 미서비스 "준비 중" 표시 및 클릭 시 토스트
+- **Fandom Lounge**: 춘심·Rina만 활성, 나머지 비활성(회색), 춘심 1번·Rina 2번 순서
+
+### 6. i18n 영어 기본 및 Gallery 수정 (2026-02-22)
+- **i18n (영어 기본)**:
+    - i18next, react-i18next 도입, `app/lib/i18n.ts`, `useLocalizedCharacter` 훅
+    - 영어 기본(fallback), 향후 한국어·일본어 추가 예정
+    - 캐릭터명: 춘심 → Choonsim 등 영문 표기
+    - 적용 범위: root ErrorBoundary, home, chat, character profile, fandom
+- **Gallery 필터 수정**:
+    - `character/$id.tsx` 갤러리: `type === "IMAGE"` → `type === "NORMAL"`
+    - Admin Standard Gallery 업로드 사진이 캐릭터 프로필 Gallery 탭에 표시
+    - `22_MISSING_UI_FEATURES_SPEC.md` 문서 동기화
+
+### 7. Today's Pick 매일 교체 로직 (2026-02-22)
+- **목표**: 활성 캐릭터 2명(Choonsim, Rina)이 매일 교체되어 노출
+- **구현**:
+    - `home.tsx` loader: Luxon `DateTime.now().setZone("Asia/Seoul").ordinal` 사용
+    - 홀수일 → Choonsim, 짝수일 → Rina (ordinal % 2 기반)
+    - `systemSettings.TODAYS_PICK_ID` 미사용 (날짜 기반으로 대체)
 
 ---
 
