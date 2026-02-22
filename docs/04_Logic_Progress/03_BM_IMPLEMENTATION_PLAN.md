@@ -1,6 +1,6 @@
 # BM 구현 계획 (Business Model Implementation Plan)
 > Created: 2026-02-22
-> Last Updated: 2026-02-22 (Admin 아이템 CRUD 구현 완료 정정, Phase 정리)
+> Last Updated: 2026-02-22 (Phase 2 구현 순서 조정: 가이드 → 페이월 → 등급제)
 
 본 문서는 `19_MONETIZATION_STRATEGY.md`의 심화 수익화 전략을 실제 코드베이스에 구현하기 위한 단계별 실행 계획입니다.
 현재 구현 상태를 기준으로 Phase 1(운영 준비)부터 Phase 5(장기)까지 작업 순서를 정의합니다.
@@ -92,55 +92,12 @@ Phase 5 → 이탈 불가 해자를 만든다
 
 ## Phase 2. 전환율 극대화 (1~2주)
 
-> 감정이 발생한 순간, 결제로 이끄는 페이월을 만든다.
+> 유저가 아이템을 이해하고, 감정이 식기 전에 결제로 이어지게 만든다.
 
-### 2-1. 결정적 순간 페이월 (PAYWALL_TRIGGER)
-
-**목표**: AI 응답 중 감정 최고조 순간을 포착해 인터스티셜 모달로 결제를 유도한다.
-
-**구현 방식**:
-
-1. **채팅 API 수정** (`routes/api/chat/index.ts`)
-   - 시스템 프롬프트에 페이월 트리거 가이드 삽입:
-     ```
-     특정 조건에서 응답 끝에 [PAYWALL_TRIGGER: {type}] 태그를 추가하라.
-     - 기억 회상 시: [PAYWALL_TRIGGER: memory_recall]
-     - 호감도 Lv.5 달성 시: [PAYWALL_TRIGGER: secret_episode]
-     - 대화 100회 기념: [PAYWALL_TRIGGER: memory_album]
-     ```
-   - AI 응답에서 태그를 파싱해 별도 필드로 분리 후 클라이언트 전달
-
-2. **프론트 인터스티셜 모달** (채팅 컴포넌트)
-   - 응답 스트림 완료 후 `paywallTrigger` 값 존재 시 모달 표시
-   - 트리거별 아이템/가격 매핑:
-
-   | 트리거 | 표시 문구 | 아이템 | 가격 |
-   |---|---|---|---|
-   | `memory_recall` | "이 기억, 영원히 간직할까?" | 기억 각인 티켓 | 500 CHOCO |
-   | `secret_episode` | "우리만의 비밀 이야기가 생겼어" | 비밀 에피소드 | 3,000 CHOCO |
-   | `memory_album` | "100번의 대화, 앨범으로 만들어줄게" | 대화 앨범 | 2,000 CHOCO |
-   | `birthday_voice` | "생일 축하해, 목소리로 전할게" | 보이스 티켓 | 1,500 CHOCO |
-
-3. **결제 연동**
-   - 모달에서 "확인" → X402 즉시 차감 → 아이템 인벤토리 추가
-
-**관련 파일**:
-- `routes/api/chat/index.ts` — AI 프롬프트 + 태그 파싱
-- `app/components/chat/` — 페이월 모달 컴포넌트
-- `routes/api/items/purchase.ts` — 구매 API (기존 재활용)
-
-**체크리스트**:
-- [ ] 시스템 프롬프트에 PAYWALL_TRIGGER 가이드 추가
-- [ ] 응답 스트림에서 태그 파싱 로직 구현
-- [ ] 페이월 인터스티셜 모달 UI 구현
-- [ ] 트리거별 아이템 매핑 및 즉시 결제 연동
-- [ ] 모달 닫기 후 대화 흐름 정상 재개 확인
-
----
-
-### 2-2. CHOCO & 아이템 가이드 페이지
+### 2-1. CHOCO & 아이템 가이드 페이지
 
 **목표**: 신규 유저가 CHOCO 개념·소비 흐름·아이템 효과를 앱 내에서 스스로 이해할 수 있게 한다.
+가이드가 먼저 있어야 이후 페이월 모달의 전환율이 실제로 작동한다.
 
 > 상세 스펙: [`23_choco-guide-page-spec.md`](../03_Technical_Specs/23_choco-guide-page-spec.md)
 
@@ -172,6 +129,53 @@ Phase 5 → 이탈 불가 해자를 만든다
 - [ ] `/shop` 헤더 `?` 버튼 추가
 - [ ] `/shop` 아이템 카드 상세 모달 구현
 - [ ] 잔액 부족 toast에 안내 링크 추가
+
+---
+
+### 2-2. 결정적 순간 페이월 (PAYWALL_TRIGGER)
+
+**목표**: AI 응답 중 감정 최고조 순간을 포착해 인터스티셜 모달로 결제를 유도한다.
+가이드 페이지(2-1) 완료 후 진행 — 모달에서 가이드 링크를 포함할 수 있다.
+
+**구현 방식**:
+
+1. **채팅 API 수정** (`routes/api/chat/index.ts`)
+   - 시스템 프롬프트에 페이월 트리거 가이드 삽입:
+     ```
+     특정 조건에서 응답 끝에 [PAYWALL_TRIGGER: {type}] 태그를 추가하라.
+     - 기억 회상 시: [PAYWALL_TRIGGER: memory_recall]
+     - 호감도 Lv.5 달성 시: [PAYWALL_TRIGGER: secret_episode]
+     - 대화 100회 기념: [PAYWALL_TRIGGER: memory_album]
+     ```
+   - AI 응답에서 태그를 파싱해 별도 필드로 분리 후 클라이언트 전달
+
+2. **프론트 인터스티셜 모달** (채팅 컴포넌트)
+   - 응답 스트림 완료 후 `paywallTrigger` 값 존재 시 모달 표시
+   - 트리거별 아이템/가격 매핑:
+
+   | 트리거 | 표시 문구 | 아이템 | 가격 |
+   |---|---|---|---|
+   | `memory_recall` | "이 기억, 영원히 간직할까?" | 기억 각인 티켓 | 500 CHOCO |
+   | `secret_episode` | "우리만의 비밀 이야기가 생겼어" | 비밀 에피소드 | 3,000 CHOCO |
+   | `memory_album` | "100번의 대화, 앨범으로 만들어줄게" | 대화 앨범 | 2,000 CHOCO |
+   | `birthday_voice` | "생일 축하해, 목소리로 전할게" | 보이스 티켓 | 1,500 CHOCO |
+
+3. **결제 연동**
+   - 모달에서 "확인" → X402 즉시 차감 → 아이템 인벤토리 추가
+   - 모달 하단에 "이 아이템이 뭔가요?" → `/guide#items` 링크
+
+**관련 파일**:
+- `routes/api/chat/index.ts` — AI 프롬프트 + 태그 파싱
+- `app/components/chat/` — 페이월 모달 컴포넌트
+- `routes/api/items/purchase.ts` — 구매 API (기존 재활용)
+
+**체크리스트**:
+- [ ] 시스템 프롬프트에 PAYWALL_TRIGGER 가이드 추가
+- [ ] 응답 스트림에서 태그 파싱 로직 구현
+- [ ] 페이월 인터스티셜 모달 UI 구현
+- [ ] 트리거별 아이템 매핑 및 즉시 결제 연동
+- [ ] 모달 내 `/guide#items` 링크 삽입
+- [ ] 모달 닫기 후 대화 흐름 정상 재개 확인
 
 ---
 
@@ -347,7 +351,7 @@ ELEVENLABS_VOICE_ID_CHOONSIM=
 | Phase | 기간 | 핵심 목표 | 예상 수익 임팩트 |
 |---|---|---|---|
 | **Phase 1** | 즉시 (운영) | 아이템 데이터 입력 + E2E 검증 | 즉시 매출 발생 |
-| **Phase 2** | 1~2주 | 페이월 + 가이드 페이지 + 등급제 UI | 전환율 극대화 |
+| **Phase 2** | 1~2주 | 가이드 페이지 → 페이월 → 등급제 UI | 전환율 극대화 |
 | **Phase 3** | 2~4주 | 선톡 + 보이스 TTS | 재방문율·LTV 상승 |
 | **Phase 4** | 1~2개월 | PDF 앨범 | LTV 상승 |
 | **Phase 5** | 장기 | NEAR NFT 각인 | 이탈 불가 해자 |
