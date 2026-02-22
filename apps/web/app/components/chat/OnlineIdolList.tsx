@@ -1,4 +1,5 @@
 import { cn } from "~/lib/utils";
+import { useLocalizedCharacterName } from "~/lib/useLocalizedCharacter";
 
 interface OnlineIdol {
   id: string;
@@ -12,6 +13,47 @@ interface OnlineIdolListProps {
   onIdolClick?: (id: string) => void;
   onAddClick?: () => void;
   className?: string;
+}
+
+function OnlineIdolItem({ idol, onIdolClick }: { idol: OnlineIdol; onIdolClick?: (id: string) => void }) {
+  const name = useLocalizedCharacterName(idol.id, idol.name);
+
+  return (
+    <div
+      onClick={() => onIdolClick?.(idol.id)}
+      className="flex flex-col items-center gap-2 shrink-0 snap-start cursor-pointer group"
+    >
+      <div
+        className={cn(
+          "relative p-[3px] rounded-full transition-all duration-300",
+          idol.isOnline
+            ? "bg-linear-to-tr from-primary to-purple-400 group-hover:scale-105"
+            : "border-2 border-gray-200 dark:border-white/10 group-hover:border-primary/50"
+        )}
+      >
+        <div className="w-[66px] h-[66px] rounded-full bg-background-light dark:bg-background-dark p-[2px]">
+          <div
+            className={cn(
+              "w-full h-full rounded-full bg-cover bg-center",
+              !idol.isOnline && "grayscale opacity-70"
+            )}
+            style={{ backgroundImage: `url("${idol.avatarUrl}")` }}
+          />
+        </div>
+        {idol.isOnline && (
+          <div className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-background-dark rounded-full" />
+        )}
+      </div>
+      <span
+        className={cn(
+          "text-xs font-medium text-center w-16 truncate",
+          !idol.isOnline && "text-gray-500 dark:text-text-muted"
+        )}
+      >
+        {name}
+      </span>
+    </div>
+  );
 }
 
 export function OnlineIdolList({
@@ -40,41 +82,7 @@ export function OnlineIdolList({
           </span>
         </div>
         {idols.map((idol) => (
-          <div
-            key={idol.id}
-            onClick={() => onIdolClick?.(idol.id)}
-            className="flex flex-col items-center gap-2 shrink-0 snap-start cursor-pointer group"
-          >
-            <div
-              className={cn(
-                "relative p-[3px] rounded-full transition-all duration-300",
-                idol.isOnline
-                  ? "bg-gradient-to-tr from-primary to-purple-400 group-hover:scale-105"
-                  : "border-2 border-gray-200 dark:border-white/10 group-hover:border-primary/50"
-              )}
-            >
-              <div className="w-[66px] h-[66px] rounded-full bg-background-light dark:bg-background-dark p-[2px]">
-                <div
-                  className={cn(
-                    "w-full h-full rounded-full bg-cover bg-center",
-                    !idol.isOnline && "grayscale-[30%]"
-                  )}
-                  style={{ backgroundImage: `url("${idol.avatarUrl}")` }}
-                />
-              </div>
-              {idol.isOnline && (
-                <div className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-background-dark rounded-full" />
-              )}
-            </div>
-            <span
-              className={cn(
-                "text-xs font-medium text-center w-16 truncate",
-                !idol.isOnline && "text-gray-500 dark:text-text-muted"
-              )}
-            >
-              {idol.name}
-            </span>
-          </div>
+          <OnlineIdolItem key={idol.id} idol={idol} onIdolClick={onIdolClick} />
         ))}
       </div>
     </section>

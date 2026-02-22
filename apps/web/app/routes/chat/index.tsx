@@ -157,7 +157,12 @@ export default function ChatListScreen() {
     }
   };
 
-  const onlineIdols = allCharacters.map((char: any) => ({
+  // 춘심 1번, Rina 2번, 나머지 순서 (미서비스는 비활성)
+  const chunsim = allCharacters.find((c: any) => c.id === "chunsim");
+  const rina = allCharacters.find((c: any) => c.id === "rina");
+  const rest = allCharacters.filter((c: any) => c.id !== "chunsim" && c.id !== "rina");
+  const orderedChars = [chunsim, rina, ...rest].filter(Boolean);
+  const onlineIdols = orderedChars.map((char: any) => ({
     id: char.id,
     name: char.name,
     avatarUrl: (char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url,
