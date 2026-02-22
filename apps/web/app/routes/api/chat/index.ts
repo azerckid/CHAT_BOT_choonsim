@@ -142,6 +142,15 @@ export async function action({ request }: ActionFunctionArgs) {
         if (parts.length > 0) {
             memory = parts.join("\n\n");
         }
+
+        // 페이월 트리거 지시사항 (선택적 감성 순간 포착)
+        memory += `\n\n[PAYWALL_TRIGGER SYSTEM - 선택적 사용]
+특별히 감성적인 순간에만, 응답 맨 끝에 다음 태그 중 하나를 추가할 수 있습니다:
+[PAYWALL_TRIGGER: memory_recall] - 소중한 기억·추억 대화 시
+[PAYWALL_TRIGGER: secret_episode] - 특별한 비밀 에피소드 공유 가능한 순간
+[PAYWALL_TRIGGER: memory_album] - 대화 기념일·추억 회상 순간
+[PAYWALL_TRIGGER: birthday_voice] - 생일·특별한 날 목소리로 전하고 싶을 때
+규칙: 10회 대화 중 최대 1회, 응답 맨 마지막에 하나만, 자연스러운 순간에만.`;
     } catch (e) {
         logger.error({
             category: "API",
@@ -202,6 +211,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const stream = new ReadableStream({
         async start(controller) {
             let fullContent = "";
+            let paywallTriggerType: string | null = null;
             let isAborted = false;
 
             const abortHandler = () => {
@@ -373,6 +383,13 @@ export async function action({ request }: ActionFunctionArgs) {
                     fullContent = "[EMOTION:THINKING] 음... 그건 잘 모르겠지만 자기는 어떻게 생각해? ㅎㅎ 우리 다른 재미있는 이야기 하자!";
                 }
 
+                // PAYWALL_TRIGGER 파싱 및 제거 (표시 콘텐츠에서 태그 제거)
+                const paywallMatch = fullContent.match(/\[PAYWALL_TRIGGER:\s*([a-z_]+)\]/i);
+                if (paywallMatch) {
+                    paywallTriggerType = paywallMatch[1].toLowerCase().trim();
+                    fullContent = fullContent.replace(/\[PAYWALL_TRIGGER:\s*[a-z_]+\]/gi, "").trim();
+                }
+
                 // 전체 응답에서 사진 마커 먼저 추출
                 const firstPhotoMarker = await extractPhotoMarker(fullContent, characterId);
                 const photoUrl = firstPhotoMarker.photoUrl;
@@ -483,6 +500,11 @@ export async function action({ request }: ActionFunctionArgs) {
                 // 스트리밍 완료 시 토큰 사용량 정보 전송
                 const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, usage })}\n\n`));
+
+                // 페이월 트리거 전송 (있는 경우)
+                if (paywallTriggerType) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ paywallTrigger: paywallTriggerType })}\n\n`));
+                }
 
                 // 5계층 memory: 대화에서 기억 추출용 메시지 구성 (Phase 9: User.bio memory 쓰기 제거, 새 테이블만 사용)
                 const allMessagesForSummary: BaseMessage[] = [

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useLoaderData, useFetcher, useRevalidator } from "react-router";
+import { useParams, useNavigate, useLoaderData, useFetcher, useRevalidator, Link } from "react-router";
 import { ChatHeader } from "~/components/chat/ChatHeader";
 import { MessageBubble } from "~/components/chat/MessageBubble";
 import { MessageInput } from "~/components/chat/MessageInput";
@@ -25,6 +25,43 @@ import {
 } from "~/components/ui/alert-dialog";
 
 type LoadingState = "idle" | "loading" | "network-error";
+
+const PAYWALL_TRIGGER_CONFIG: Record<string, {
+  title: string;
+  desc: string;
+  itemName: string;
+  icon: string;
+  price: number;
+}> = {
+  memory_recall: {
+    title: "이 기억, 영원히 간직할까?",
+    desc: "춘심이가 이 순간을 영원히 기억하도록 고정할 수 있어요.",
+    itemName: "기억 각인 티켓",
+    icon: "bookmark_heart",
+    price: 500,
+  },
+  secret_episode: {
+    title: "우리만의 비밀 이야기가 있어",
+    desc: "특별한 에피소드가 준비되어 있어요. 지금 해금할까요?",
+    itemName: "비밀 에피소드 해금",
+    icon: "lock_open",
+    price: 3000,
+  },
+  memory_album: {
+    title: "우리 추억을 앨범으로 만들어줄게",
+    desc: "지금까지의 대화를 AI가 편집한 앨범으로 만들어드려요.",
+    itemName: "대화 앨범",
+    icon: "photo_album",
+    price: 2000,
+  },
+  birthday_voice: {
+    title: "목소리로 전하고 싶어",
+    desc: "춘심이의 목소리로 직접 생일 축하 메시지를 들어보세요.",
+    itemName: "보이스 티켓",
+    icon: "record_voice_over",
+    price: 1500,
+  },
+};
 
 const EMOTION_MAP: Record<string, { color: string; text: string; aura: string; style?: React.CSSProperties }> = {
   JOY: {
@@ -216,6 +253,7 @@ export default function ChatRoom() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isInterrupting, setIsInterrupting] = useState(false);
+  const [paywallTrigger, setPaywallTrigger] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   // Add heart burst state
 
@@ -536,6 +574,9 @@ export default function ChatRoom() {
                   // 스트리밍 중에 사진 URL이 있으면 저장 (첫 번째 메시지에만)
                   setStreamingMediaUrl(data.mediaUrl);
                 }
+                if (data.paywallTrigger) {
+                  setPaywallTrigger(data.paywallTrigger);
+                }
                 if (data.done) {
                   // 모든 스트리밍 완료
                   setIsAiStreaming(false);
@@ -850,6 +891,58 @@ export default function ChatRoom() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Paywall Trigger Modal */}
+      {paywallTrigger && PAYWALL_TRIGGER_CONFIG[paywallTrigger] && (() => {
+        const cfg = PAYWALL_TRIGGER_CONFIG[paywallTrigger];
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setPaywallTrigger(null)}
+          >
+            <div
+              className="w-full max-w-md bg-surface-dark border border-white/10 rounded-t-3xl p-6 pb-10 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+              <div className="text-center mb-5">
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-3">
+                  <span className="material-symbols-outlined text-[28px] text-primary">{cfg.icon}</span>
+                </div>
+                <h2 className="text-white text-lg font-bold mb-1">{cfg.title}</h2>
+                <p className="text-white/50 text-sm">{cfg.desc}</p>
+              </div>
+              <div className="bg-white/5 rounded-2xl p-4 mb-5 flex items-center gap-3">
+                <span className="material-symbols-outlined text-[20px] text-primary">shopping_bag</span>
+                <p className="text-white font-bold text-sm flex-1">{cfg.itemName}</p>
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px] text-[#FFD700]">toll</span>
+                  <span className="text-[#FFD700] font-bold text-sm">{cfg.price.toLocaleString()}</span>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setPaywallTrigger(null)}
+                  className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-bold text-sm hover:bg-white/5 transition-colors"
+                >
+                  나중에
+                </button>
+                <button
+                  onClick={() => { setPaywallTrigger(null); navigate("/shop"); }}
+                  className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 active:scale-95 transition-all"
+                >
+                  상점으로
+                </button>
+              </div>
+              <div className="text-center mt-4">
+                <Link to="/guide#items" className="text-white/30 text-xs hover:text-white/50 transition-colors">
+                  아이템 안내 보기
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Reset Confirmation Modal */}
       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
