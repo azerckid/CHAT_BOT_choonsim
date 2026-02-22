@@ -81,7 +81,7 @@
 1. `../05_Test/NEAR_UX_GAP_ANALYSIS_VERIFICATION.md`
 2. `../05_Test/NEAR_UX_IMPROVEMENTS_VERIFICATION.md`
 3. `../05_Test/NEAR_UX_IMPLEMENTATION_VERIFICATION.md`
-4. `../05_Test/07_NEAR_UX_GAP_ANALYSIS.md` (분석 보고서)
+4. `../05_Test/00_ARCHIVE/07_NEAR_UX_GAP_ANALYSIS.md` (분석 보고서)
 
 **통합 제안**:
 - ⚠️ **부분 통합 권장**: 검증 보고서 3개를 하나로 통합

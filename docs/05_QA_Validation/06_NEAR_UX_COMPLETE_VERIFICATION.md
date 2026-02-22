@@ -295,7 +295,7 @@
 - 원본 Gap Analysis 검증 보고서: `docs/archive/completed/2026/consolidated/NEAR_UX_GAP_ANALYSIS_VERIFICATION.md` (아카이브됨)
 - 원본 개선 권장 사항 검증 보고서: `docs/archive/completed/2026/consolidated/NEAR_UX_IMPROVEMENTS_VERIFICATION.md` (아카이브됨)
 - 원본 구현 검증 보고서: `docs/archive/completed/2026/consolidated/NEAR_UX_IMPLEMENTATION_VERIFICATION.md` (아카이브됨)
-- 원본 Gap Analysis 문서: `./07_NEAR_UX_GAP_ANALYSIS.md` (분석 보고서, 별도 유지)
+- 원본 Gap Analysis 문서: `./00_ARCHIVE/07_NEAR_UX_GAP_ANALYSIS.md` (분석 보고서, 별도 유지)
 
 ---
 

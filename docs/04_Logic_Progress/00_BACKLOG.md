@@ -85,5 +85,5 @@ _(현재 진행 중인 작업 없음)_
 ## Related Documents
 - **Concept_Design**: [Roadmap](../01_Concept_Design/02_ROADMAP.md) - 중장기 프로젝트 목표
 - **Concept_Design**: [Document Management Plan](../01_Concept_Design/09_DOCUMENT_MANAGEMENT_PLAN.md) - 문서 관리 표준
-- **QA_Validation**: [Verification Reports](../05_QA_Validation/08_PHASE_1_TO_5_COMPLETE_VERIFICATION.md) - 이전 단계 완료 검증서
-- **QA_Validation**: [Cross-Reference Verification](../05_QA_Validation/24_CROSS_REFERENCE_VERIFICATION.md) - 문서 상호 참조 검증 보고서
+- **QA_Validation**: [Verification Reports](../05_QA_Validation/00_ARCHIVE/08_PHASE_1_TO_5_COMPLETE_VERIFICATION.md) - 이전 단계 완료 검증서
+- **QA_Validation**: [Cross-Reference Verification](../05_QA_Validation/00_ARCHIVE/24_CROSS_REFERENCE_VERIFICATION.md) - 문서 상호 참조 검증 보고서

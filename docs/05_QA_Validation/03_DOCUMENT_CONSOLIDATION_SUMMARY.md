@@ -13,7 +13,7 @@
 
 #### 1. CHOCO Re-denomination (2개 → 1개) ✅
 
-**통합 문서**: `./01_CHOCO_RE_DENOMINATION_COMPLETE_VERIFICATION.md`
+**통합 문서**: `./00_ARCHIVE/01_CHOCO_RE_DENOMINATION_COMPLETE_VERIFICATION.md`
 
 **원본 문서** (아카이브됨):
 - `docs/archive/completed/2026/consolidated/CHOCO_RE_DENOMINATION_VERIFICATION.md`
@@ -28,7 +28,7 @@
 
 #### 2. NEAR Chat Balance UI (3개 → 1개) ✅
 
-**통합 문서**: `./05_NEAR_CHAT_BALANCE_UI_COMPLETE_VERIFICATION.md`
+**통합 문서**: `./00_ARCHIVE/05_NEAR_CHAT_BALANCE_UI_COMPLETE_VERIFICATION.md`
 
 **원본 문서** (아카이브됨):
 - `docs/archive/completed/2026/consolidated/NEAR_CHAT_BALANCE_UI_VERIFICATION.md`
@@ -45,7 +45,7 @@
 
 #### 3. Phase 검증 보고서 (5개 → 1개) ✅
 
-**통합 문서**: `./08_PHASE_1_TO_5_COMPLETE_VERIFICATION.md`
+**통합 문서**: `./00_ARCHIVE/08_PHASE_1_TO_5_COMPLETE_VERIFICATION.md`
 
 **원본 문서** (아카이브됨):
 - `docs/archive/completed/2026/consolidated/PHASE_1_2_VERIFICATION.md`
@@ -65,7 +65,7 @@
 
 #### 4. NEAR UX 검증 (3개 → 1개) ✅
 
-**통합 문서**: `./06_NEAR_UX_COMPLETE_VERIFICATION.md`
+**통합 문서**: `./00_ARCHIVE/06_NEAR_UX_COMPLETE_VERIFICATION.md`
 
 **원본 문서** (아카이브됨):
 - `docs/archive/completed/2026/consolidated/NEAR_UX_GAP_ANALYSIS_VERIFICATION.md`

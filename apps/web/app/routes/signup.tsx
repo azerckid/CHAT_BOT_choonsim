@@ -24,8 +24,8 @@ export default function SignUpScreen() {
       }
 
       setIsLoading(false);
-      // 성공 시 홈으로 강제 이동 (세션 쿠키 확실히 적용 + 자동 로그인)
-      window.location.href = "/home";
+      // 성공 시 홈으로 이동 - React Router 클라이언트 사이드 전환 (세션 쿠키는 이미 브라우저에 저장됨)
+      navigate("/home");
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");

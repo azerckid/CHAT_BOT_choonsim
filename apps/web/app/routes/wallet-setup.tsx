@@ -36,7 +36,8 @@ export async function action({ request }: Route.ActionArgs) {
 
         if (accountId) {
             console.log(`[Wallet Setup] Queued for ${session.user.email}, account: ${accountId}`);
-            return { success: true, accountId, status: "PENDING" };
+            // DB 커밋 완료 후 서버 사이드 리다이렉트 → home loader가 nearAccountId를 확실히 읽음
+            return redirect("/home");
         } else {
             return { error: "지갑 생성에 실패했습니다. (No Account ID returned)" };
         }
@@ -58,15 +59,9 @@ export default function WalletSetupPage() {
         }
     }, [isStarted, fetcher]);
 
-    // 성공 시 즉시 홈으로 이동 (백그라운드에서 지갑 생성 진행)
-    useEffect(() => {
-        if (fetcher.data?.success) {
-            window.location.href = "/home";
-        }
-    }, [fetcher.data]);
-
     const error = fetcher.data?.error;
-    const isLoading = fetcher.state !== "idle" || (fetcher.data?.success && !error);
+    // action이 redirect("/home")를 반환하면 React Router가 자동으로 처리
+    const isLoading = fetcher.state !== "idle";
 
     return (
         <div className="min-h-screen bg-[#0a0a0c] flex flex-col items-center justify-center p-6 text-center">

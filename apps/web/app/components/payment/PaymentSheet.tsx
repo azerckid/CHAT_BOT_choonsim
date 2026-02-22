@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { X, CheckCircle2, ShieldCheck, ArrowRight, Wallet } from "lucide-react";
 import { transferChocoToken, transferChocoTokenGasless, requestWalletConnection, isWalletConnected, getChocoBalance, getCurrentAccountId } from "~/lib/near/wallet-client";
 import { CHAIN_LABELS } from "~/lib/constants/chain-labels";
@@ -30,6 +31,7 @@ export function PaymentSheet({
     const [accountId, setAccountId] = useState<string | null>(null);
     const [balance, setBalance] = useState<string>("0");
     const [error, setError] = useState<string | null>(null);
+    const navigate = useNavigate();
     const [useRelayer, setUseRelayer] = useState(true);
 
     // 지갑 연결 상태 확인
@@ -202,7 +204,7 @@ export function PaymentSheet({
                                     <p className="font-bold mb-1">문제가 발생했나요?</p>
                                     <p className="text-xs mb-3 opacity-80">{error}</p>
                                     <button
-                                        onClick={() => window.location.href = "/profile/subscription"}
+                                        onClick={() => navigate("/profile/subscription")}
                                         className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-bold transition-colors"
                                     >
                                         다른 결제 수단으로 충전하기 (PayPal/Toss)
@@ -228,7 +230,7 @@ export function PaymentSheet({
                                     {!isProcessing && (
                                         <button
                                             className="secondary-action-button"
-                                            onClick={() => window.location.href = "/profile/subscription"}
+                                            onClick={() => navigate("/profile/subscription")}
                                         >
                                             일반 결제(카드/페이)로 충전할래요
                                         </button>
