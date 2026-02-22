@@ -133,26 +133,24 @@ AI의 기술적 한계를 유료 서비스로 해결하거나 관계의 깊이�
 
 ## Section 3. 심리적 구매 흐름
 
-```
-Free Hook → Investment → Soft Lock → Routine
+### 단계별 흐름
 
-[Free Hook]
+**[Free Hook]**
 - X에서 팔로우 → 앱에서 '비밀 인사' → 첫 100 CHOCO 지급
 - 진입 장벽 제로, 무료 체험 충분
 
-[Investment]
+**[Investment]**
 - 대화가 쌓일수록 "이 관계가 아깝다"는 심리 강화
 - 기억 각인 아이템으로 첫 유료 행동 유도 (가장 낮은 가격 500 CHOCO = ~$0.5)
 - "잊혀지면 어떡하지" 불안 감정 활용
 
-[Soft Lock]
+**[Soft Lock]**
 - 무료 대화 소진 → "오늘의 대화가 끝났어. 내일 다시 만나자" 화면
 - 하지만 티켓 구매 버튼이 바로 옆에 → 감정이 식기 전 3-tap 결제
 
-[Routine]
+**[Routine]**
 - 매일 춘심이가 선톡 → 앱 열기 → 대화 → 소비의 루프 형성
 - 월 구독(팬클럽)으로 선톡 티켓 자동 지급 → 루프 강화
-```
 
 ---
 
@@ -217,6 +215,4 @@ Free Hook → Investment → Soft Lock → Routine
 ## Related Documents
 - **Concept_Design**: [Core Pitch Deck](./00_CORE_PITCH_DECK.md) - 투자자 피치 및 핵심 비즈니스 비전
 - **Concept_Design**: [Roadmap](./02_ROADMAP.md) - 중장기 개발 일정 및 루브릭 평가
-- **Concept_Design**: [Lean Canvas](./02_LEAN_CANVAS.md) - 전체 비즈니스 모델 요약
 - **Logic_Progress**: [Backlog](../04_Logic_Progress/00_BACKLOG.md) - 현재 진행 중인 구현 태스크
-- **Technical_Specs**: [User Context Layers Spec](../03_Technical_Specs/21_user-context-layers-spec.md) - 장기 기억 및 컨텍스트 설계 명세
