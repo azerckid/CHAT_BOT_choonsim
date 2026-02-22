@@ -29,3 +29,6 @@ build_debug.log
 
 .agent
 .claude
+
+# Turbo
+.turbo

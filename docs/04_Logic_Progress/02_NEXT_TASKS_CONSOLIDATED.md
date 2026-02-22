@@ -1,7 +1,7 @@
 # 다음 할 일 통합 정리 (Next Tasks Consolidated)
 
 > Created: 2026-02-22
-> Last Updated: 2026-02-22 (계정 탈퇴 로직 구현 완료 반영)
+> Last Updated: 2026-02-22 (캐릭터 서비스 상태, Admin 404, 지갑 404 반영)
 
 본 문서는 UI 정리 대상(01_UI_CLEANUP_LIST.md)과 백로그(00_BACKLOG.md)를 통합하여, 우선 처리할 다음 할 일을 정리한 실행 목록입니다.
 
@@ -69,7 +69,15 @@
 | **예정 내용** | NEAR 마이크로 결제 프로토콜 설계, 5대 유료 아이템 카테고리별 스키마, 기억 각인/나만의 춘심 에디터 연동 |
 | **참조** | [19_MONETIZATION_STRATEGY.md](../01_Concept_Design/19_MONETIZATION_STRATEGY.md), [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #4 |
 
-### 2.4 DB 리셋 및 클린 슬레이트 ✅ 완료 (2026-02-22)
+### 2.4 캐릭터 서비스 상태 및 UI 정리 ✅ 완료 (2026-02-22)
+
+| 항목 | 내용 |
+|------|------|
+| **캐릭터** | 춘심·Rina만 서비스 중, Mina/Yuna/Sora/Hana 준비 중 |
+| **구현** | `isOnline` 플래그, api/chat/create 403 차단, 홈 Trending 회색 처리 |
+| **스크립트** | `npm run characters:set-service` |
+
+### 2.5 DB 리셋 및 클린 슬레이트 ✅ 완료 (2026-02-22)
 
 | 항목 | 내용 |
 |------|------|
