@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLoaderData, useFetcher, redirect } from "react-router";
+import { useNavigate, useLoaderData, useFetcher, redirect, Link } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import type { LoaderFunctionArgs } from "react-router";
@@ -66,11 +66,13 @@ export default function ShopPage() {
         setConfirmOpen(false);
         setSelectedItem(null);
       } else if (result.error) {
-        const msg =
-          result.error === "Insufficient CHOCO balance"
-            ? "CHOCO 잔액이 부족합니다."
-            : result.error;
-        toast.error(msg);
+        if (result.error === "Insufficient CHOCO balance") {
+          toast.error("CHOCO 잔액이 부족합니다.", {
+            action: { label: "안내 보기", onClick: () => window.location.href = "/guide#earn" },
+          });
+        } else {
+          toast.error(result.error);
+        }
       }
     }
   }, [fetcher.state, fetcher.data]);
@@ -105,11 +107,20 @@ export default function ShopPage() {
           <span className="material-symbols-outlined text-[24px]">arrow_back</span>
         </button>
         <h1 className="text-white text-lg font-bold flex-1">아이템 상점</h1>
-        <div className="flex items-center gap-1.5 bg-surface-dark rounded-full px-3 py-1.5 border border-white/10">
-          <span className="material-symbols-outlined text-[16px] text-[#FFD700]">toll</span>
-          <span className="text-sm font-bold text-[#FFD700]">
-            {localBalance.toLocaleString()} CHOCO
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-surface-dark rounded-full px-3 py-1.5 border border-white/10">
+            <span className="material-symbols-outlined text-[16px] text-[#FFD700]">toll</span>
+            <span className="text-sm font-bold text-[#FFD700]">
+              {localBalance.toLocaleString()} CHOCO
+            </span>
+          </div>
+          <Link
+            to="/guide#items"
+            className="flex items-center justify-center size-8 rounded-full bg-white/5 border border-white/10 hover:border-primary/40 transition-colors"
+            title="아이템 안내"
+          >
+            <span className="material-symbols-outlined text-[16px] text-white/40">help</span>
+          </Link>
         </div>
       </div>
 
