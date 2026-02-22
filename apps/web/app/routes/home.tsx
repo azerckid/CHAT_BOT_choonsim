@@ -9,6 +9,7 @@ import { DateTime } from "luxon";
 import { cn } from "~/lib/utils";
 import * as schema from "~/db/schema";
 import { eq, desc, asc, count, and } from "drizzle-orm";
+import { ensureNearWalletAsync } from "~/lib/near/wallet.server";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -32,9 +33,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
     user = userResult || null;
 
-    // 지갑이 없으면 설정 페이지로 강제 이동
+    // 지갑이 없으면 백그라운드로 생성 트리거 후 홈 진입 허용
+    // ensureNearWalletAsync: DB에 키 저장 후 즉시 반환 (온체인 작업은 백그라운드 큐)
     if (!user?.nearAccountId) {
-      return redirect("/wallet-setup");
+      const accountId = await ensureNearWalletAsync(session.user.id).catch(err => {
+        console.error("[Home] Wallet creation trigger failed:", err);
+        return null;
+      });
+      if (accountId) {
+        user = { nearAccountId: accountId, walletStatus: "PENDING" };
+      }
     }
 
     recentConversations = await db.query.conversation.findMany({
