@@ -30,6 +30,7 @@ const PAYWALL_TRIGGER_CONFIG: Record<string, {
   title: string;
   desc: string;
   itemName: string;
+  itemId: string;
   icon: string;
   price: number;
 }> = {
@@ -37,6 +38,7 @@ const PAYWALL_TRIGGER_CONFIG: Record<string, {
     title: "이 기억, 영원히 간직할까?",
     desc: "춘심이가 이 순간을 영원히 기억하도록 고정할 수 있어요.",
     itemName: "기억 각인 티켓",
+    itemId: "memory_ticket",
     icon: "bookmark_heart",
     price: 500,
   },
@@ -44,6 +46,7 @@ const PAYWALL_TRIGGER_CONFIG: Record<string, {
     title: "우리만의 비밀 이야기가 있어",
     desc: "특별한 에피소드가 준비되어 있어요. 지금 해금할까요?",
     itemName: "비밀 에피소드 해금",
+    itemId: "secret_episode",
     icon: "lock_open",
     price: 3000,
   },
@@ -51,6 +54,7 @@ const PAYWALL_TRIGGER_CONFIG: Record<string, {
     title: "우리 추억을 앨범으로 만들어줄게",
     desc: "지금까지의 대화를 AI가 편집한 앨범으로 만들어드려요.",
     itemName: "대화 앨범",
+    itemId: "memory_album",
     icon: "photo_album",
     price: 2000,
   },
@@ -58,6 +62,7 @@ const PAYWALL_TRIGGER_CONFIG: Record<string, {
     title: "목소리로 전하고 싶어",
     desc: "춘심이의 목소리로 직접 생일 축하 메시지를 들어보세요.",
     itemName: "보이스 티켓",
+    itemId: "voice_ticket",
     icon: "record_voice_over",
     price: 1500,
   },
@@ -254,6 +259,7 @@ export default function ChatRoom() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isInterrupting, setIsInterrupting] = useState(false);
   const [paywallTrigger, setPaywallTrigger] = useState<string | null>(null);
+  const [isPaywallPurchasing, setIsPaywallPurchasing] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   // Add heart burst state
 
@@ -542,6 +548,22 @@ export default function ChatRoom() {
             if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
+                if (data.error && data.code === 402) {
+                  toast.error("CHOCO 잔액이 부족합니다.", {
+                    action: { label: "안내 보기", onClick: () => window.location.href = "/guide#earn" },
+                  });
+                  setIsAiStreaming(false);
+                  setIsOptimisticTyping(false);
+                  if (optimisticIntervalRef.current) {
+                    clearInterval(optimisticIntervalRef.current);
+                    optimisticIntervalRef.current = null;
+                  }
+                  if (lastOptimisticDeductionRef.current > 0) {
+                    setCurrentUserChocoBalance((p) => p + lastOptimisticDeductionRef.current);
+                    setLastOptimisticDeduction(0);
+                  }
+                  return;
+                }
                 if (data.emotion) {
                   setCurrentEmotion(data.emotion);
                 }
@@ -920,18 +942,62 @@ export default function ChatRoom() {
                   <span className="text-[#FFD700] font-bold text-sm">{cfg.price.toLocaleString()}</span>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setPaywallTrigger(null)}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-bold text-sm hover:bg-white/5 transition-colors"
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setPaywallTrigger(null)}
+                    disabled={isPaywallPurchasing}
+                    className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-bold text-sm hover:bg-white/5 transition-colors disabled:opacity-60"
+                  >
+                    나중에
+                  </button>
+                  <button
+                    onClick={async () => {
+                    const itemId = cfg.itemId;
+                    const price = cfg.price;
+                    const canAfford = currentUserChocoBalance >= price;
+                    if (!canAfford) {
+                      toast.error("CHOCO 잔액이 부족합니다.", {
+                        action: { label: "안내 보기", onClick: () => window.location.href = "/guide#earn" },
+                      });
+                      return;
+                    }
+                    setIsPaywallPurchasing(true);
+                    try {
+                      const res = await fetch("/api/items/purchase", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ itemId, quantity: 1 }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        toast.success(`${cfg.itemName} 구매 완료!`);
+                        setCurrentUserChocoBalance((p: number) => Math.max(0, p - price));
+                        setPaywallTrigger(null);
+                        revalidator.revalidate();
+                      } else {
+                        toast.error(data.error || "구매에 실패했습니다.", data.error === "Insufficient CHOCO balance" ? {
+                          action: { label: "안내 보기", onClick: () => window.location.href = "/guide#earn" },
+                        } : undefined);
+                      }
+                    } catch (e) {
+                      toast.error("구매 중 오류가 발생했습니다.");
+                    } finally {
+                      setIsPaywallPurchasing(false);
+                    }
+                  }}
+                  disabled={isPaywallPurchasing}
+                  className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  나중에
+                  {isPaywallPurchasing ? "구매 중..." : "즉시 구매"}
                 </button>
+                </div>
                 <button
                   onClick={() => { setPaywallTrigger(null); navigate("/shop"); }}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 active:scale-95 transition-all"
+                  disabled={isPaywallPurchasing}
+                  className="w-full py-2.5 rounded-xl border border-white/5 text-white/40 font-medium text-xs hover:bg-white/5 transition-colors disabled:opacity-60"
                 >
-                  상점으로
+                  상점에서 다른 아이템 보기
                 </button>
               </div>
               <div className="text-center mt-4">

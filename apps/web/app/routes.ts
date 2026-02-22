@@ -38,6 +38,7 @@ export default [
   // 상점 & 알림
   route("shop", "routes/shop/index.tsx"),
   route("notifications", "routes/notifications/index.tsx"),
+  route("guide", "routes/guide.tsx"),
 
   // 설정
   route("settings", "routes/settings.tsx"),

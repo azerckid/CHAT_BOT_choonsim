@@ -42,6 +42,11 @@ const ICON_MAP: Record<string, string> = {
   BOOST: "bolt",
   COSMETIC: "palette",
   TICKET: "confirmation_number",
+  MEMORY: "bookmark_heart",
+  VOICE: "record_voice_over",
+  EPISODE: "lock_open",
+  PRESEND: "send",
+  HEART: "favorite",
 };
 
 export default function ShopPage() {
@@ -53,6 +58,7 @@ export default function ShopPage() {
   const fetcher = useFetcher();
 
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [localBalance, setLocalBalance] = useState(parseFloat(chocoBalance) || 0);
 
@@ -77,8 +83,14 @@ export default function ShopPage() {
     }
   }, [fetcher.state, fetcher.data]);
 
+  const handleDetailClick = (item: Item) => {
+    setSelectedItem(item);
+    setDetailOpen(true);
+  };
+
   const handleBuy = (item: Item) => {
     setSelectedItem(item);
+    setDetailOpen(false);
     setConfirmOpen(true);
   };
 
@@ -143,9 +155,11 @@ export default function ShopPage() {
               const price = item.priceChoco ?? 0;
               const canAfford = localBalance >= price;
               return (
-                <div
+                <button
                   key={item.id}
-                  className="bg-surface-dark border border-white/8 rounded-2xl p-4 flex flex-col gap-3"
+                  type="button"
+                  onClick={() => handleDetailClick(item)}
+                  className="w-full text-left bg-surface-dark border border-white/8 rounded-2xl p-4 flex flex-col gap-3 hover:border-white/15 transition-colors"
                 >
                   {/* Icon */}
                   <div className="h-16 w-16 rounded-xl bg-white/5 flex items-center justify-center mx-auto">
@@ -169,24 +183,69 @@ export default function ShopPage() {
                       {price.toLocaleString()}
                     </span>
                   </div>
-                  {/* Buy Button */}
-                  <button
-                    onClick={() => handleBuy(item)}
-                    disabled={!canAfford}
-                    className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
-                      canAfford
-                        ? "bg-primary text-white hover:bg-primary/90 active:scale-95"
-                        : "bg-white/5 text-white/30 cursor-not-allowed"
-                    }`}
-                  >
-                    {canAfford ? "구매하기" : "잔액 부족"}
-                  </button>
-                </div>
+                  {/* Status hint */}
+                  <div className={`w-full py-2.5 rounded-xl text-sm font-bold text-center ${
+                    canAfford
+                      ? "bg-primary/20 text-primary"
+                      : "bg-white/5 text-white/30"
+                  }`}>
+                    {canAfford ? "상세 보기" : "잔액 부족"}
+                  </div>
+                </button>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* Detail Bottom Sheet */}
+      {detailOpen && selectedItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => { setDetailOpen(false); setSelectedItem(null); }}
+        >
+          <div
+            className="w-full max-w-md bg-surface-dark border border-white/10 rounded-t-3xl p-6 pb-10 shadow-2xl max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+            <div className="flex items-start gap-4 mb-4">
+              <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[36px] text-primary">
+                  {selectedItem.iconUrl || ICON_MAP[selectedItem.type] || "shopping_bag"}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-white text-lg font-bold">{selectedItem.name}</h2>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="material-symbols-outlined text-[14px] text-[#FFD700]">toll</span>
+                  <span className="text-[#FFD700] font-bold">{(selectedItem.priceChoco ?? 0).toLocaleString()} CHOCO</span>
+                </div>
+              </div>
+            </div>
+            <div className="mb-6">
+              <p className="text-white/60 text-sm leading-relaxed">
+                {selectedItem.description || "이 아이템을 사용하면 특별한 경험을 할 수 있어요. 상점에서 구매 후 대화 중에 활용해 보세요."}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setDetailOpen(false); setSelectedItem(null); }}
+                className="flex-1 py-3.5 rounded-xl border border-white/10 text-white/70 font-bold hover:bg-white/5 transition-colors"
+              >
+                닫기
+              </button>
+              <button
+                onClick={() => handleBuy(selectedItem)}
+                disabled={localBalance < (selectedItem.priceChoco ?? 0)}
+                className="flex-1 py-3.5 rounded-xl bg-primary text-white font-bold hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                구매하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm Modal */}
       {confirmOpen && selectedItem && (

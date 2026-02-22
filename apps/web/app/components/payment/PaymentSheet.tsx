@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { X, CheckCircle2, ShieldCheck, ArrowRight, Wallet } from "lucide-react";
 import { transferChocoToken, transferChocoTokenGasless, requestWalletConnection, isWalletConnected, getChocoBalance, getCurrentAccountId } from "~/lib/near/wallet-client";
 import { CHAIN_LABELS } from "~/lib/constants/chain-labels";
@@ -215,6 +215,15 @@ export function PaymentSheet({
                             <div className="security-badge">
                                 <ShieldCheck size={16} className="text-success" />
                                 <span>온체인 보안 기술로 보호되는 안전한 거래입니다.</span>
+                            </div>
+
+                            <div className="text-center mt-3">
+                                <Link
+                                    to="/guide"
+                                    className="text-xs text-white/40 hover:text-white/60 transition-colors"
+                                >
+                                    CHOCO가 뭔가요?
+                                </Link>
                             </div>
 
                             {!walletConnected ? (

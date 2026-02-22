@@ -26,13 +26,21 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     const { itemId, quantity } = result.data;
-    const item = Object.values(ITEMS).find(i => i.id === itemId);
+
+    // Check if the item exists in the database
+    const item = await db.query.item.findFirst({
+        where: eq(schema.item.id, itemId),
+    });
 
     if (!item) {
         return Response.json({ error: "Item not found" }, { status: 404 });
     }
 
-    const totalCost = ((item as any).priceChoco || (item as any).priceCredits || 0) * quantity; // priceChoco 우선, 없으면 priceCredits (호환성)
+    if (!item.isActive) {
+        return Response.json({ error: "Item is not currently available for purchase" }, { status: 400 });
+    }
+
+    const totalCost = (item.priceChoco || 0) * quantity;
     const totalCostBigNumber = new BigNumber(totalCost);
     const totalCostRaw = totalCostBigNumber.multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
