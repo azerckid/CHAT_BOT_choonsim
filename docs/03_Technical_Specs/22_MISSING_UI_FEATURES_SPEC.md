@@ -34,15 +34,20 @@
 - **DB Schema**:
   - `user.bio`, `user.avatarUrl`, `user.name` 모두 기존 스키마에 존재 → 마이그레이션 불필요.
 
-### 2.2 저장된 순간들 (`/profile/saved`)
+### 2.2 저장된 순간들 (`/profile/saved`) ✅ 구현 완료 (2026-02-22)
+
+> **커밋**: `(Commit pending) feat(profile): 저장된 순간들(좋아요 내역) 페이지 구현`
+
 - **UI/UX**: 
-  - 유저의 하트(북마크) 상호작용이 일어난 특정 메시지나 이미지 에셋들을 타임라인 또는 갤러리 뷰로 모아보는 페이지.
-  - 무한 스크롤 또는 오프셋 페이지네이션이 필수 (트래픽 경감).
-- **API Spec**: 
-  - `GET /api/user/saved-moments?limit=20&cursor=xxx`
-  - Response: `Array<{ messageOriginalId, content, mediaType, timestamp }>`
+  - 유저의 하트(북마크) 상호작용이 일어난 특정 메시지나 이미지 에셋들을 타임라인 뷰로 최신순 정렬 모아보기.
+  - 다크 테마 기반의 모바일 친화적 List View UI (각 항목 우측에 핑크색 하트 아이콘 표시).
+  - 빈 상태(`Empty State`) UI 지원 ("저장된 순간이 없어요").
+- **구현 방식** (API 분리 대신 Route Loader 패턴 적용): 
+  - `profile/saved.tsx` 내부 `loader()` 함수에서 Drizzle ORM `db.select()`의 체이닝 `InnerJoin` 문법을 사용.
+  - `messageLike` 기준 `message` 및 `conversation` 테이블, 그리고 `character`(이름 텍스트 매핑) 테이블 조인.
+  - 1차 조회 후 결과셋의 독자적인 `characterId` 목록으로 `characterMedia(type="COVER")`를 2차 질의, In-memory Mapped 후 클라이언트로 Response 전송 (아바타 URL 매핑).
 - **DB Schema**:
-  - 기존 `message` 테이블의 `isLiked` boolean 필드 활용. 최단 쿼리 로직을 위해 `characterId` 조인 활용.
+  - 기존 `messageLike` 테이블 활용 (`messageId`, `userId` 기반). 스키마 변경 불필요.
 
 ---
 
