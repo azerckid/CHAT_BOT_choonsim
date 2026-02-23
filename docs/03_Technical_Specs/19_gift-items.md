@@ -1,6 +1,6 @@
 # CHATTING_ITEM_PLAN: 가상 아이템 및 선물 시스템 (Hearts & Beyond)
 > Created: 2026-02-08
-> Last Updated: 2026-02-23
+> Last Updated: 2026-02-23 (Phase 6 완료 반영)
 
 본 문서는 사용자가 캐릭터(아이돌/페르소나)에게 "하트" 등의 아이템을 선물하여 애정을 표현하고, 이를 통해 서비스의 상호작용과 수익 모델을 강화하기 위한 **채팅 아이템 시스템**의 구현 계획을 정의합니다.
 
@@ -9,7 +9,7 @@
 - **Database**: Turso (libSQL) with Drizzle ORM
 - **Authentication**: Better Auth (session-based)
 - **AI Integration**: Google Gemini API with LangGraph
-- **Current Status**: **Phase 1~5 완료 / Phase 6(멀티 아이템 선물 UI) 미구현**
+- **Current Status**: **Phase 1~6 전체 완료 (QA 검증 포함)**
 
 ---
 
