@@ -149,7 +149,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw redirect("/home");
   }
 
-  const [messages, conversation] = await Promise.all([
+  const [messages, conversation, heartItem] = await Promise.all([
     db.query.message.findMany({
       where: eq(schema.message.conversationId, id),
       orderBy: [asc(schema.message.createdAt)],
@@ -165,6 +165,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           }
         }
       }
+    }),
+    db.query.item.findFirst({
+      where: eq(schema.item.id, "heart"),
     }),
   ]);
 
@@ -191,7 +194,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
   const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-  return Response.json({ messages: messagesWithLikes, user, conversation, characterStat, paypalClientId, tossClientKey });
+  return Response.json({ messages: messagesWithLikes, user, conversation, characterStat, paypalClientId, tossClientKey, heartItem });
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -232,7 +235,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function ChatRoom() {
-  const { messages: initialMessages, user, conversation, characterStat, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any, characterStat: any, paypalClientId: string, tossClientKey: string };
+  const { messages: initialMessages, user, conversation, characterStat, paypalClientId, tossClientKey, heartItem } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any, characterStat: any, paypalClientId: string, tossClientKey: string, heartItem: any };
   const fetcher = useFetcher();
   const revalidator = useRevalidator();
   const navigate = useNavigate();
@@ -874,6 +877,7 @@ export default function ChatRoom() {
         onOpenStore={() => setIsItemStoreOpen(true)}
         userChocoBalance={currentUserChocoBalance}
         ownedHearts={currentUserHearts}
+        heartItem={heartItem}
         disabled={isOptimisticTyping || isInterrupting}
       />
 
@@ -953,44 +957,44 @@ export default function ChatRoom() {
                   </button>
                   <button
                     onClick={async () => {
-                    const itemId = cfg.itemId;
-                    const price = cfg.price;
-                    const canAfford = currentUserChocoBalance >= price;
-                    if (!canAfford) {
-                      toast.error("CHOCO 잔액이 부족합니다.", {
-                        action: { label: "안내 보기", onClick: () => window.location.href = "/guide#earn" },
-                      });
-                      return;
-                    }
-                    setIsPaywallPurchasing(true);
-                    try {
-                      const res = await fetch("/api/items/purchase", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ itemId, quantity: 1 }),
-                      });
-                      const data = await res.json();
-                      if (data.success) {
-                        toast.success(`${cfg.itemName} 구매 완료!`);
-                        setCurrentUserChocoBalance((p: number) => Math.max(0, p - price));
-                        setPaywallTrigger(null);
-                        revalidator.revalidate();
-                      } else {
-                        toast.error(data.error || "구매에 실패했습니다.", data.error === "Insufficient CHOCO balance" ? {
+                      const itemId = cfg.itemId;
+                      const price = cfg.price;
+                      const canAfford = currentUserChocoBalance >= price;
+                      if (!canAfford) {
+                        toast.error("CHOCO 잔액이 부족합니다.", {
                           action: { label: "안내 보기", onClick: () => window.location.href = "/guide#earn" },
-                        } : undefined);
+                        });
+                        return;
                       }
-                    } catch (e) {
-                      toast.error("구매 중 오류가 발생했습니다.");
-                    } finally {
-                      setIsPaywallPurchasing(false);
-                    }
-                  }}
-                  disabled={isPaywallPurchasing}
-                  className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isPaywallPurchasing ? "구매 중..." : "즉시 구매"}
-                </button>
+                      setIsPaywallPurchasing(true);
+                      try {
+                        const res = await fetch("/api/items/purchase", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ itemId, quantity: 1 }),
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                          toast.success(`${cfg.itemName} 구매 완료!`);
+                          setCurrentUserChocoBalance((p: number) => Math.max(0, p - price));
+                          setPaywallTrigger(null);
+                          revalidator.revalidate();
+                        } else {
+                          toast.error(data.error || "구매에 실패했습니다.", data.error === "Insufficient CHOCO balance" ? {
+                            action: { label: "안내 보기", onClick: () => window.location.href = "/guide#earn" },
+                          } : undefined);
+                        }
+                      } catch (e) {
+                        toast.error("구매 중 오류가 발생했습니다.");
+                      } finally {
+                        setIsPaywallPurchasing(false);
+                      }
+                    }}
+                    disabled={isPaywallPurchasing}
+                    className="flex-1 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isPaywallPurchasing ? "구매 중..." : "즉시 구매"}
+                  </button>
                 </div>
                 <button
                   onClick={() => { setPaywallTrigger(null); navigate("/shop"); }}

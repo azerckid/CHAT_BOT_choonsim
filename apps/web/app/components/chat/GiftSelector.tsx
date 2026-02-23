@@ -10,6 +10,7 @@ interface GiftSelectorProps {
     onGift: (itemId: string, amount: number) => Promise<void>;
     onOpenStore: () => void;
     ownedHearts?: number;
+    heartItem?: any;
 }
 
 export function GiftSelector({
@@ -17,14 +18,16 @@ export function GiftSelector({
     onClose,
     onGift,
     onOpenStore,
-    ownedHearts = 0
+    ownedHearts = 0,
+    heartItem
 }: GiftSelectorProps) {
     const [selectedAmount, setSelectedAmount] = useState(1);
     const [isSending, setIsSending] = useState(false);
 
     if (!isOpen) return null;
 
-    const item = ITEMS.HEART;
+    const item = heartItem || ITEMS.HEART;
+    const isImageUrl = item.iconUrl && item.iconUrl.includes('/');
     const hasEnough = ownedHearts >= selectedAmount;
 
     const handleAction = async () => {
@@ -69,10 +72,14 @@ export function GiftSelector({
                     {/* Item Preview with Glow */}
                     <div className="relative group">
                         <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full group-hover:bg-primary/30 transition-all" />
-                        <div className="relative w-24 h-24 rounded-[30px] bg-[#2d1622] border border-white/5 flex items-center justify-center p-5 shadow-inner">
-                            <span className="material-symbols-outlined text-primary text-5xl group-hover:scale-110 transition-transform duration-500" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                {item.iconUrl}
-                            </span>
+                        <div className="relative w-24 h-24 rounded-[30px] bg-[#2d1622] border border-white/5 flex items-center justify-center shadow-inner overflow-hidden">
+                            {isImageUrl ? (
+                                <img src={item.iconUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            ) : (
+                                <span className="material-symbols-outlined text-primary text-5xl group-hover:scale-110 transition-transform duration-500" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                    {item.iconUrl || "favorite"}
+                                </span>
+                            )}
                         </div>
                     </div>
 

@@ -8,6 +8,7 @@ interface MessageInputProps {
   onOpenStore?: () => void;
   userChocoBalance?: number; // 변경: Credits → CHOCO
   ownedHearts?: number;
+  heartItem?: any;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -19,6 +20,7 @@ export function MessageInput({
   onOpenStore,
   userChocoBalance = 0,
   ownedHearts = 0,
+  heartItem,
   placeholder = "메시지를 입력하세요...",
   disabled = false,
   className,
@@ -100,6 +102,7 @@ export function MessageInput({
           onGift={onGift}
           onOpenStore={onOpenStore || (() => { })}
           ownedHearts={ownedHearts}
+          heartItem={heartItem}
         />
       )}
 
