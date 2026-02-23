@@ -24,8 +24,8 @@ export default function SignUpScreen() {
       }
 
       setIsLoading(false);
-      // 성공 시 홈으로 이동 - React Router 클라이언트 사이드 전환 (세션 쿠키는 이미 브라우저에 저장됨)
-      navigate("/home");
+      // 성공 시 CHOCO 온보딩 슬라이드로 이동 후 홈 진입
+      navigate("/onboarding/choco");
     } catch (err) {
       setIsLoading(false);
       setError(err instanceof Error ? err.message : "Sign up failed. Please try again.");
@@ -50,7 +50,7 @@ export default function SignUpScreen() {
         <div className="flex-1 flex flex-col px-6 pt-2 pb-10">
           {/* Hero / Visual Hint */}
           <div className="relative w-full h-32 mb-6 rounded-2xl overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-r from-primary/20 via-primary/10 to-transparent" />
             <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/40 rounded-full blur-3xl" />
             <div className="absolute top-10 left-10 w-20 h-20 bg-purple-500/30 rounded-full blur-2xl" />
             <div className="relative h-full flex items-center px-6">
@@ -63,7 +63,7 @@ export default function SignUpScreen() {
               </div>
               <div className="ml-4 flex flex-col justify-center">
                 <span className="text-xs font-bold text-primary uppercase tracking-wider mb-1">Join the Fanbase</span>
-                <p className="text-sm text-slate-600 dark:text-[#c992ad]">Unlock exclusive chats & content.</p>
+                <p className="text-sm text-slate-600 dark:text-text-muted">Unlock exclusive chats & content.</p>
               </div>
             </div>
           </div>
@@ -71,7 +71,7 @@ export default function SignUpScreen() {
           {/* Text Header */}
           <div className="mb-6">
             <h2 className="text-slate-900 dark:text-white tracking-tight text-[28px] font-bold leading-tight mb-2">Create your account</h2>
-            <p className="text-slate-500 dark:text-[#c992ad] text-base font-normal leading-relaxed">
+            <p className="text-slate-500 dark:text-text-muted text-base font-normal leading-relaxed">
               Start your journey with your AI today. She's waiting to meet you.
             </p>
           </div>
