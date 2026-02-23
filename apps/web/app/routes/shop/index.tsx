@@ -151,7 +151,7 @@ export default function ShopPage() {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {items.map((item) => {
-              const icon = item.iconUrl || ICON_MAP[item.type] || "shopping_bag";
+              const icon = ICON_MAP[item.type] || "shopping_bag";
               const price = item.priceChoco ?? 0;
               const canAfford = localBalance >= price;
               return (
@@ -162,10 +162,14 @@ export default function ShopPage() {
                   className="w-full text-left bg-surface-dark border border-white/8 rounded-2xl p-4 flex flex-col gap-3 hover:border-white/15 transition-colors"
                 >
                   {/* Icon */}
-                  <div className="h-16 w-16 rounded-xl bg-white/5 flex items-center justify-center mx-auto">
-                    <span className="material-symbols-outlined text-[36px] text-primary">
-                      {icon}
-                    </span>
+                  <div className="h-16 w-16 rounded-xl bg-white/5 flex items-center justify-center mx-auto overflow-hidden">
+                    {item.iconUrl ? (
+                      <img src={item.iconUrl} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="material-symbols-outlined text-[36px] text-primary">
+                        {icon}
+                      </span>
+                    )}
                   </div>
                   {/* Info */}
                   <div className="text-center">
@@ -184,11 +188,10 @@ export default function ShopPage() {
                     </span>
                   </div>
                   {/* Status hint */}
-                  <div className={`w-full py-2.5 rounded-xl text-sm font-bold text-center ${
-                    canAfford
-                      ? "bg-primary/20 text-primary"
-                      : "bg-white/5 text-white/30"
-                  }`}>
+                  <div className={`w-full py-2.5 rounded-xl text-sm font-bold text-center ${canAfford
+                    ? "bg-primary/20 text-primary"
+                    : "bg-white/5 text-white/30"
+                    }`}>
                     {canAfford ? "상세 보기" : "잔액 부족"}
                   </div>
                 </button>
@@ -210,10 +213,14 @@ export default function ShopPage() {
           >
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
             <div className="flex items-start gap-4 mb-4">
-              <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[36px] text-primary">
-                  {selectedItem.iconUrl || ICON_MAP[selectedItem.type] || "shopping_bag"}
-                </span>
+              <div className="h-16 w-16 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
+                {selectedItem.iconUrl ? (
+                  <img src={selectedItem.iconUrl} alt={selectedItem.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-[36px] text-primary">
+                    {ICON_MAP[selectedItem.type] || "shopping_bag"}
+                  </span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-white text-lg font-bold">{selectedItem.name}</h2>
@@ -258,10 +265,14 @@ export default function ShopPage() {
             </p>
 
             <div className="bg-white/5 rounded-2xl p-4 mb-6 flex items-center gap-4">
-              <div className="h-14 w-14 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[28px] text-primary">
-                  {selectedItem.iconUrl || ICON_MAP[selectedItem.type] || "shopping_bag"}
-                </span>
+              <div className="h-14 w-14 rounded-xl bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
+                {selectedItem.iconUrl ? (
+                  <img src={selectedItem.iconUrl} alt={selectedItem.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="material-symbols-outlined text-[28px] text-primary">
+                    {ICON_MAP[selectedItem.type] || "shopping_bag"}
+                  </span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-bold">{selectedItem.name}</p>
