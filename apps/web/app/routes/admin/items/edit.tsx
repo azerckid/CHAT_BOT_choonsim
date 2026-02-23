@@ -8,6 +8,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 
 const itemSchema = z.object({
+    id: z.string().optional(),
     name: z.string().min(1),
     type: z.enum(["GIFT", "CONSUMABLE", "CURRENCY"]),
     priceCredits: z.coerce.number().min(0).optional(), // Deprecated: 호환성을 위해 유지
@@ -57,6 +58,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
     }
 
     const data = {
+        id: formData.get("id") as string,
         name: formData.get("name") as string,
         type: formData.get("type") as string,
         priceCredits: Number(formData.get("priceCredits")) || 0, // Deprecated
@@ -70,17 +72,18 @@ export async function action({ params, request }: ActionFunctionArgs) {
 
     try {
         const validated = itemSchema.parse(data);
+        const { id: validatedId, ...restValidated } = validated;
 
         if (isNew) {
             await db.insert(schema.item).values({
-                id: crypto.randomUUID(),
-                ...validated,
+                id: validatedId || crypto.randomUUID(),
+                ...restValidated,
                 updatedAt: new Date(),
             });
             return { success: true, message: "Item created successfully!" };
         } else {
             await db.update(schema.item).set({
-                ...validated,
+                ...restValidated,
                 updatedAt: new Date(),
             }).where(eq(schema.item.id, id));
             return { success: true, message: "Item updated successfully!" };
@@ -216,6 +219,18 @@ export default function EditItem() {
 
                             {/* Core Details */}
                             <div className="md:col-span-2 space-y-6">
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Item ID (Optional, for System Triggers)</label>
+                                    <input
+                                        name="id"
+                                        defaultValue={item?.id}
+                                        placeholder="e.g. heart, memory_ticket (Leave blank for auto UUID)"
+                                        className="w-full bg-black/40 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-primary/50 transition-all font-mono text-sm"
+                                        readOnly={!isNew}
+                                    />
+                                </div>
+
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-2">Item Name</label>
                                     <input
