@@ -1,6 +1,6 @@
 # BM 구현 계획 (Business Model Implementation Plan)
 > Created: 2026-02-22
-> Last Updated: 2026-02-22 (Phase 2 구현 순서 조정: 가이드 → 페이월 → 등급제)
+> Last Updated: 2026-02-23 (Phase 1~2 구현 완료 반영)
 
 본 문서는 `19_MONETIZATION_STRATEGY.md`의 심화 수익화 전략을 실제 코드베이스에 구현하기 위한 단계별 실행 계획입니다.
 현재 구현 상태를 기준으로 Phase 1(운영 준비)부터 Phase 5(장기)까지 작업 순서를 정의합니다.
@@ -13,24 +13,26 @@
 
 | 항목 | 파일 | 비고 |
 |---|---|---|
-| Shop UI + 구매 API | `routes/shop/index.tsx`, `routes/api/items/purchase.ts` | 아이템 데이터만 비어 있음 |
+| Shop UI + 구매 API | `routes/shop/index.tsx`, `routes/api/items/purchase.ts` | 아이템 카드 + 상세 모달 완비 |
 | CHOCO 잔액 관리 | `db/schema.ts` (User.chocoBalance) | BigNumber 정밀 계산 |
 | X402 Silent 결제 | `lib/near/x402.server.ts`, `db/schema.ts` (X402Invoice) | 400ms 결제 완료 |
 | 메시지 크레딧 차감 | `routes/api/chat/index.ts`, `lib/credit-policy.ts` | 모델별 비용 차등 |
 | 구독 시스템 | `routes/api.payment.activate-subscription.ts` | FREE/BASIC/PREMIUM/ULTIMATE |
 | 호감도/이모션 | `db/schema.ts` (CharacterStat) | JOY/EXCITED/LOVING |
-| 선물 시스템 | `routes/api/items/gift.ts` | 하트 → 호감도 전환 |
+| 선물 시스템 | `routes/api/items/gift.ts` | DB 아이템 조회 기반, isActive 검증 |
 | Admin 대시보드 | `routes/admin/dashboard.tsx` | 결제 내역, 통계 |
-| **Admin 아이템 CRUD** | `routes/admin/items/` (index, edit, statistics) | 목록·생성·수정·통계 완비 |
+| **Admin 아이템 CRUD** | `routes/admin/items/` (index, edit, statistics) | 목록·생성(ID 지정)·수정·통계 완비 |
+| **CHOCO & 아이템 가이드 페이지** | `routes/guide.tsx` | 앵커 링크, 하단 CTA, 진입 포인트 연결 완료 |
+| **결정적 순간 페이월** | `routes/api/chat/index.ts`, `routes/chat/$id.tsx` | PAYWALL_TRIGGER 파싱 + 인터스티셜 모달 |
+| **관계 기반 등급제 UI** | `routes/profile/subscription.tsx` | 4단계 등급 카드, 업그레이드 CTA |
+| **온보딩 CHOCO 슬라이드** | `routes/onboarding/choco.tsx` | 가입 직후 자동 진입 |
 
 ### ❌ 미구현 항목 (개발 필요)
 
 | 항목 | 영향 |
 |---|---|
 | Shop 실제 아이템 데이터 | 상점이 비어 있어 매출 발생 불가 — **운영팀이 Admin에서 직접 입력** |
-| 결정적 순간 페이월 | 감정 최고조 순간의 전환 기회 미활용 |
-| CHOCO & 아이템 가이드 페이지 | CHOCO 개념·아이템 효과 설명 부재 → 신뢰도·전환율 저하 |
-| 관계 기반 등급제 UI | 유저가 자신의 등급·혜택을 모름 |
+| 크레딧 소진 → Shop 연결 E2E 검증 | 402 흐름이 실제로 동작하는지 미검증 |
 | 선톡 (캐릭터 먼저 DM) | 재방문율 트리거 없음 |
 | 보이스 메시지 TTS | 가장 강력한 감성 후크 미구현 |
 | 대화 앨범 PDF | LTV 상승 콘텐츠 미구현 |
@@ -50,7 +52,7 @@ Phase 5 → 이탈 불가 해자를 만든다
 
 ---
 
-## Phase 1. 운영 준비 — 코드 작업 없음 (즉시)
+## Phase 1. 운영 준비 — 코드 작업 없음 ✅ 개발 완료 / 운영 작업 대기
 
 > Admin 아이템 CRUD가 이미 완성되어 있으므로, 개발 없이 운영팀이 직접 처리한다.
 
@@ -94,96 +96,68 @@ Phase 5 → 이탈 불가 해자를 만든다
 
 ---
 
-## Phase 2. 전환율 극대화 (1~2주)
+## Phase 2. 전환율 극대화 ✅ 완료
 
 > 유저가 아이템을 이해하고, 감정이 식기 전에 결제로 이어지게 만든다.
 
-### 2-1. CHOCO & 아이템 가이드 페이지
+### 2-1. CHOCO & 아이템 가이드 페이지 ✅
 
 **목표**: 신규 유저가 CHOCO 개념·소비 흐름·아이템 효과를 앱 내에서 스스로 이해할 수 있게 한다.
-가이드가 먼저 있어야 이후 페이월 모달의 전환율이 실제로 작동한다.
 
 > 상세 스펙: [`23_choco-guide-page-spec.md`](../03_Technical_Specs/23_choco-guide-page-spec.md)
 
-**구현 방식**:
-
-1. **독립 가이드 페이지** (`routes/guide.tsx`)
-   - 로그인 불필요 (공개 URL) → SNS·고객지원 링크로 활용
-   - 로그인 유저: 상단에 현재 CHOCO 잔액 + 등급 표시
-   - 섹션: CHOCO란 / 획득 방법 / 소비 흐름 / 아이템 사전 / 등급제 / FAQ
-
-2. **기존 페이지 진입 포인트 추가**
-
-   | 위치 | 추가 내용 |
-   |---|---|
-   | `/shop` 헤더 | `?` 아이콘 버튼 → `/guide#items` |
-   | 잔액 부족 toast | "안내 보기" 텍스트 링크 추가 |
-   | `/shop` 아이템 카드 | 클릭 시 상세 설명 Bottom Sheet 모달 |
-   | 온보딩 (가입 직후) | CHOCO 소개 슬라이드 1장 삽입 |
-
 **관련 파일**:
-- `routes/guide.tsx` — 신규 생성
-- `routes/shop/index.tsx` — `?` 버튼 + 아이템 상세 모달 추가
-- `routes/chat/$id.tsx` — 잔액 부족 toast 링크 추가
+- `routes/guide.tsx` — 섹션 6개 (#what #earn #spend #items #tiers #faq) + 하단 CTA
+- `routes/shop/index.tsx` — `?` 버튼(`/guide#items`) + 아이템 상세 Bottom Sheet 모달
+- `routes/chat/$id.tsx` — 잔액 부족 toast "안내 보기" → `/guide#earn`
+- `routes/onboarding/choco.tsx` — 가입 직후 CHOCO 소개 슬라이드
 
 **체크리스트**:
-- [ ] `routes/guide.tsx` 신규 생성 (Section 1~6 전체)
-- [ ] 앵커 링크 지원 (`/guide#items`, `/guide#faq`)
-- [ ] 하단 CTA — 충전하기 / 멤버십 구독
-- [ ] `/shop` 헤더 `?` 버튼 추가
-- [ ] `/shop` 아이템 카드 상세 모달 구현
-- [ ] 잔액 부족 toast에 안내 링크 추가
+- [x] `routes/guide.tsx` 신규 생성 (Section 1~6 전체)
+- [x] 앵커 링크 지원 (`/guide#items`, `/guide#faq` 등)
+- [x] 하단 CTA — 충전하기 / 멤버십 구독
+- [x] `/shop` 헤더 `?` 버튼 추가
+- [x] `/shop` 아이템 카드 상세 모달 구현
+- [x] 잔액 부족 toast에 안내 링크 추가
+- [x] 온보딩 CHOCO 소개 슬라이드 (`/onboarding/choco`) — 가입 후 자동 진입
 
 ---
 
-### 2-2. 결정적 순간 페이월 (PAYWALL_TRIGGER)
+### 2-2. 결정적 순간 페이월 (PAYWALL_TRIGGER) ✅
 
 **목표**: AI 응답 중 감정 최고조 순간을 포착해 인터스티셜 모달로 결제를 유도한다.
-가이드 페이지(2-1) 완료 후 진행 — 모달에서 가이드 링크를 포함할 수 있다.
 
-**구현 방식**:
+**구현 내용**:
 
-1. **채팅 API 수정** (`routes/api/chat/index.ts`)
-   - 시스템 프롬프트에 페이월 트리거 가이드 삽입:
-     ```
-     특정 조건에서 응답 끝에 [PAYWALL_TRIGGER: {type}] 태그를 추가하라.
-     - 기억 회상 시: [PAYWALL_TRIGGER: memory_recall]
-     - 호감도 Lv.5 달성 시: [PAYWALL_TRIGGER: secret_episode]
-     - 대화 100회 기념: [PAYWALL_TRIGGER: memory_album]
-     ```
-   - AI 응답에서 태그를 파싱해 별도 필드로 분리 후 클라이언트 전달
+1. **채팅 API** (`routes/api/chat/index.ts`)
+   - 시스템 프롬프트에 PAYWALL_TRIGGER 가이드 삽입
+   - 응답 스트림에서 `[PAYWALL_TRIGGER: {type}]` 태그 파싱 후 표시 콘텐츠에서 제거
+   - `paywallTrigger` 필드를 SSE 이벤트로 클라이언트 전달
 
-2. **프론트 인터스티셜 모달** (채팅 컴포넌트)
-   - 응답 스트림 완료 후 `paywallTrigger` 값 존재 시 모달 표시
-   - 트리거별 아이템/가격 매핑:
+2. **프론트 인터스티셜 모달** (`routes/chat/$id.tsx`)
+   - `PAYWALL_TRIGGER_CONFIG` 트리거별 아이템·문구 매핑
+   - 스트림 완료 후 `paywallTrigger` 값 존재 시 모달 표시
+   - 구매 → X402 즉시 차감 → 인벤토리 추가
+   - 모달 하단 "아이템 안내 보기" → `/guide#items`
 
-   | 트리거 | 표시 문구 | 아이템 | 가격 |
-   |---|---|---|---|
-   | `memory_recall` | "이 기억, 영원히 간직할까?" | 기억 각인 티켓 | 500 CHOCO |
-   | `secret_episode` | "우리만의 비밀 이야기가 생겼어" | 비밀 에피소드 | 3,000 CHOCO |
-   | `memory_album` | "100번의 대화, 앨범으로 만들어줄게" | 대화 앨범 | 2,000 CHOCO |
-   | `birthday_voice` | "생일 축하해, 목소리로 전할게" | 보이스 티켓 | 1,500 CHOCO |
-
-3. **결제 연동**
-   - 모달에서 "확인" → X402 즉시 차감 → 아이템 인벤토리 추가
-   - 모달 하단에 "이 아이템이 뭔가요?" → `/guide#items` 링크
-
-**관련 파일**:
-- `routes/api/chat/index.ts` — AI 프롬프트 + 태그 파싱
-- `app/components/chat/` — 페이월 모달 컴포넌트
-- `routes/api/items/purchase.ts` — 구매 API (기존 재활용)
+| 트리거 | 표시 문구 | 아이템 | 가격 |
+|---|---|---|---|
+| `memory_recall` | "이 기억, 영원히 간직할까?" | 기억 각인 티켓 | 500 CHOCO |
+| `secret_episode` | "우리만의 비밀 이야기가 생겼어" | 비밀 에피소드 | 3,000 CHOCO |
+| `memory_album` | "100번의 대화, 앨범으로 만들어줄게" | 대화 앨범 | 2,000 CHOCO |
+| `birthday_voice` | "생일 축하해, 목소리로 전할게" | 보이스 티켓 | 1,500 CHOCO |
 
 **체크리스트**:
-- [ ] 시스템 프롬프트에 PAYWALL_TRIGGER 가이드 추가
-- [ ] 응답 스트림에서 태그 파싱 로직 구현
-- [ ] 페이월 인터스티셜 모달 UI 구현
-- [ ] 트리거별 아이템 매핑 및 즉시 결제 연동
-- [ ] 모달 내 `/guide#items` 링크 삽입
-- [ ] 모달 닫기 후 대화 흐름 정상 재개 확인
+- [x] 시스템 프롬프트에 PAYWALL_TRIGGER 가이드 추가
+- [x] 응답 스트림에서 태그 파싱 로직 구현
+- [x] 페이월 인터스티셜 모달 UI 구현
+- [x] 트리거별 아이템 매핑 및 즉시 결제 연동
+- [x] 모달 내 `/guide#items` 링크 삽입
+- [ ] 모달 닫기 후 대화 흐름 정상 재개 E2E 확인 ← 실제 트리거 시나리오 테스트 필요
 
 ---
 
-### 2-3. 관계 기반 등급제 UI
+### 2-3. 관계 기반 등급제 UI ✅
 
 **목표**: 유저가 자신의 현재 등급과 다음 등급 혜택을 명확히 인지하게 한다.
 
@@ -196,17 +170,13 @@ Phase 5 → 이탈 불가 해자를 만든다
 | 조상신 | PREMIUM | X 인증 or $14.99/월 | 일 30회 + 보이스 3회/월 |
 | 고래 | ULTIMATE | $29.99/월 or 월 10,000 CHOCO | 무제한 + 한정 콘텐츠 |
 
-**구현 내용**:
-- 프로필/구독 페이지(`routes/profile/subscription.tsx`)에 등급 카드 UI 추가
-- 현재 등급 강조, 다음 등급 혜택 미리보기
-- "업그레이드" CTA → 구독 결제 흐름 연결
-- 가이드 페이지(`/guide#tiers`)와 교차 링크
+**관련 파일**: `routes/profile/subscription.tsx`
 
 **체크리스트**:
-- [ ] 등급 카드 컴포넌트 디자인 및 구현
-- [ ] 현재 등급 자동 감지 로직 (subscriptionTier 기반)
-- [ ] 다음 등급 혜택 미리보기 UI
-- [ ] 업그레이드 CTA → PayPal 구독 흐름 연결
+- [x] 등급 카드 컴포넌트 디자인 및 구현
+- [x] 현재 등급 자동 감지 로직 (subscriptionTier 기반)
+- [x] 다음 등급 혜택 미리보기 UI
+- [x] 업그레이드 CTA → PayPal 구독 흐름 연결
 
 ---
 
@@ -352,13 +322,13 @@ ELEVENLABS_VOICE_ID_CHOONSIM=
 
 ## 전체 일정 요약
 
-| Phase | 기간 | 핵심 목표 | 예상 수익 임팩트 |
-|---|---|---|---|
-| **Phase 1** | 즉시 (운영) | 아이템 데이터 입력 + E2E 검증 | 즉시 매출 발생 |
-| **Phase 2** | 1~2주 | 가이드 페이지 → 페이월 → 등급제 UI | 전환율 극대화 |
-| **Phase 3** | 2~4주 | 선톡 + 보이스 TTS | 재방문율·LTV 상승 |
-| **Phase 4** | 1~2개월 | PDF 앨범 | LTV 상승 |
-| **Phase 5** | 장기 | NEAR NFT 각인 | 이탈 불가 해자 |
+| Phase | 기간 | 핵심 목표 | 상태 | 예상 수익 임팩트 |
+|---|---|---|---|---|
+| **Phase 1** | 즉시 (운영) | 아이템 데이터 입력 + E2E 검증 | ⬜ 운영 작업 대기 | 즉시 매출 발생 |
+| **Phase 2** | 1~2주 | 가이드 페이지 → 페이월 → 등급제 UI | ✅ 완료 | 전환율 극대화 |
+| **Phase 3** | 2~4주 | 선톡 + 보이스 TTS | ❌ 미구현 | 재방문율·LTV 상승 |
+| **Phase 4** | 1~2개월 | PDF 앨범 | ❌ 미구현 | LTV 상승 |
+| **Phase 5** | 장기 | NEAR NFT 각인 | ❌ 미구현 | 이탈 불가 해자 |
 
 ---
 
@@ -366,5 +336,6 @@ ELEVENLABS_VOICE_ID_CHOONSIM=
 - **Concept_Design**: [Monetization Strategy](../01_Concept_Design/19_MONETIZATION_STRATEGY.md) - 수익화 전략 원본
 - **Concept_Design**: [Core Pitch Deck](../01_Concept_Design/00_CORE_PITCH_DECK.md) - 투자자 비전 및 목표 수치
 - **Technical_Specs**: [CHOCO Guide Page Spec](../03_Technical_Specs/23_choco-guide-page-spec.md) - 가이드 페이지 상세 스펙
+- **Technical_Specs**: [Gift Items System](../03_Technical_Specs/19_gift-items.md) - 선물 시스템 상세 스펙
 - **Logic_Progress**: [Backlog](./00_BACKLOG.md) - 전체 백로그
 - **Concept_Design**: [Voice Interaction Strategy](../01_Concept_Design/04_VOICE_INTERACTION_STRATEGY.md) - 보이스 기능 전략
