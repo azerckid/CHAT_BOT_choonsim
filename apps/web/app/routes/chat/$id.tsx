@@ -137,7 +137,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   // 유저 정보 선조회 (지갑 가드)
   const user = await db.query.user.findFirst({
     where: eq(schema.user.id, session.user.id),
-    with: { inventory: true }
+    with: {
+      inventory: {
+        with: {
+          item: true
+        }
+      }
+    }
   });
 
   if (!user?.nearAccountId) {
@@ -268,6 +274,7 @@ export default function ChatRoom() {
 
   // Hearts state
   const [currentUserHearts, setCurrentUserHearts] = useState(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
+  const userInventory = user?.inventory || [];
   const [currentUserChocoBalance, setCurrentUserChocoBalance] = useState(user?.chocoBalance ? parseFloat(user.chocoBalance) : 0);
 
   // 잔액 변동량 추적 (시각적 피드백용)
@@ -877,6 +884,7 @@ export default function ChatRoom() {
         onOpenStore={() => setIsItemStoreOpen(true)}
         userChocoBalance={currentUserChocoBalance}
         ownedHearts={currentUserHearts}
+        userInventory={userInventory}
         heartItem={heartItem}
         disabled={isOptimisticTyping || isInterrupting}
       />
