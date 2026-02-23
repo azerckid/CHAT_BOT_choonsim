@@ -1,6 +1,6 @@
 # BM 구현 계획 (Business Model Implementation Plan)
 > Created: 2026-02-22
-> Last Updated: 2026-02-23 (Phase 1~2 구현 완료 반영)
+> Last Updated: 2026-02-23 (Phase 6 멀티 아이템 선물 Swiper UI 완료 반영)
 
 본 문서는 `19_MONETIZATION_STRATEGY.md`의 심화 수익화 전략을 실제 코드베이스에 구현하기 위한 단계별 실행 계획입니다.
 현재 구현 상태를 기준으로 Phase 1(운영 준비)부터 Phase 5(장기)까지 작업 순서를 정의합니다.
@@ -26,6 +26,7 @@
 | **결정적 순간 페이월** | `routes/api/chat/index.ts`, `routes/chat/$id.tsx` | PAYWALL_TRIGGER 파싱 + 인터스티셜 모달 |
 | **관계 기반 등급제 UI** | `routes/profile/subscription.tsx` | 4단계 등급 카드, 업그레이드 CTA |
 | **온보딩 CHOCO 슬라이드** | `routes/onboarding/choco.tsx` | 가입 직후 자동 진입 |
+| **멀티 아이템 선물 Swiper UI** | `components/chat/GiftSelector.tsx` | 가로 스와이퍼, Upsell 버튼, QA 완료 |
 
 ### ❌ 미구현 항목 (개발 필요)
 
