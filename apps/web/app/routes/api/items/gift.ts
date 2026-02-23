@@ -1,10 +1,9 @@
 import type { ActionFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { ITEMS } from "~/lib/items";
 import { z } from "zod";
 import * as schema from "~/db/schema";
-import { eq, and, sql, desc, or } from "drizzle-orm";
+import { eq, and, sql, or } from "drizzle-orm";
 
 const giftSchema = z.object({
     characterId: z.string(),
@@ -26,10 +25,17 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     const { characterId, itemId, amount, message, conversationId } = result.data;
-    const item = Object.values(ITEMS).find(i => i.id === itemId);
+
+    const item = await db.query.item.findFirst({
+        where: eq(schema.item.id, itemId),
+    });
 
     if (!item) {
         return Response.json({ error: "Item not found" }, { status: 404 });
+    }
+
+    if (!item.isActive) {
+        return Response.json({ error: "Item is not currently available" }, { status: 400 });
     }
 
     try {
@@ -113,7 +119,7 @@ export async function action({ request }: ActionFunctionArgs) {
             const [systemMsg] = await tx.insert(schema.message).values({
                 id: crypto.randomUUID(),
                 role: "assistant",
-                content: `💝 **${session.user.name || "사용자"}**님이 하트 **${amount}**개를 선물했습니다!`,
+                content: `💝 **${session.user.name || "사용자"}**님이 ${item.name} **${amount}**개를 선물했습니다!`,
                 conversationId,
                 type: "TEXT",
                 createdAt: new Date(),
