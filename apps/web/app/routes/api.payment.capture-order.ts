@@ -54,10 +54,10 @@ export async function action({ request }: ActionFunctionArgs) {
             return data({ error: "Payment amount mismatch. Please contact support." }, { status: 400 });
         }
 
-        // 1. 사용자 정보 조회 (NEAR 계정 확인)
+        // 1. 사용자 정보 조회
         const user = await db.query.user.findFirst({
             where: eq(schema.user.id, userId),
-            columns: { id: true, nearAccountId: true, chocoBalance: true },
+            columns: { id: true, chocoBalance: true },
         });
 
         if (!user) {
@@ -65,35 +65,10 @@ export async function action({ request }: ActionFunctionArgs) {
         }
 
         // 2. USD → CHOCO 계산
-        const { calculateChocoFromUSD } = await import("~/lib/near/exchange-rate.server");
+        const { calculateChocoFromUSD } = await import("~/lib/ctc/exchange-rate.server");
         const chocoAmount = await calculateChocoFromUSD(creditPackage.price);
-        const chocoAmountRaw = new BigNumber(chocoAmount).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
-        // 3. NEAR 계정이 있으면 온체인 CHOCO 전송 (서비스 계정에서 사용자 계정으로)
-        let chocoTxHash: string | null = null;
-        if (user.nearAccountId) {
-            try {
-                const { sendChocoToken } = await import("~/lib/near/token.server");
-                logger.info({
-                    category: "PAYMENT",
-                    message: `Transferring ${chocoAmount} CHOCO tokens to ${user.nearAccountId} (PayPal payment)`,
-                    metadata: { userId, nearAccountId: user.nearAccountId, usdAmount: creditPackage.price, chocoAmount }
-                });
-
-                const sendResult = await sendChocoToken(user.nearAccountId, chocoAmountRaw);
-                chocoTxHash = (sendResult as any).transaction.hash;
-            } catch (error) {
-                logger.error({
-                    category: "PAYMENT",
-                    message: "Failed to transfer CHOCO tokens on-chain (PayPal payment)",
-                    stackTrace: (error as Error).stack,
-                    metadata: { userId, nearAccountId: user.nearAccountId }
-                });
-                // 온체인 전송 실패해도 DB는 업데이트 (나중에 복구 가능)
-            }
-        }
-
-        // 4. 트랜잭션으로 DB 업데이트
+        // 3. 트랜잭션으로 DB 업데이트
         const totalCredits = creditPackage.credits + creditPackage.bonus; // 호환성을 위해 유지
 
         await db.transaction(async (tx) => {
@@ -109,11 +84,9 @@ export async function action({ request }: ActionFunctionArgs) {
                 transactionId: result.id,
                 description: creditPackage.name,
                 creditsGranted: totalCredits, // 호환성을 위해 유지 (deprecated)
-                txHash: chocoTxHash || undefined,
                 metadata: JSON.stringify({
                     ...result,
                     chocoAmount,
-                    chocoTxHash,
                 }),
                 createdAt: new Date(),
                 updatedAt: new Date(),
@@ -128,20 +101,6 @@ export async function action({ request }: ActionFunctionArgs) {
                     updatedAt: new Date(),
                 })
                 .where(eq(schema.user.id, userId));
-
-            // TokenTransfer 기록 (온체인 전송 성공 시)
-            if (chocoTxHash) {
-                await tx.insert(schema.tokenTransfer).values({
-                    id: crypto.randomUUID(),
-                    userId,
-                    txHash: chocoTxHash,
-                    amount: chocoAmountRaw,
-                    tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
-                    status: "COMPLETED",
-                    purpose: "TOPUP",
-                    createdAt: new Date(),
-                });
-            }
 
             // PAYMENT 알림 생성
             await tx.insert(schema.notification).values({

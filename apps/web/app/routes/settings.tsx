@@ -38,8 +38,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       name: true,
       email: true,
       image: true,
-      nearAccountId: true,
-      chocoBalance: true, // CHOCO Balance from DB
+      chocoBalance: true,
     },
   });
 
@@ -247,15 +246,6 @@ export default function SettingsScreen() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  {user?.nearAccountId && (
-                    <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">지갑 주소</p>
-                      <p className="text-sm font-mono text-slate-900 dark:text-white break-all">
-                        {user.nearAccountId}
-                      </p>
-                    </div>
-                  )}
-
                   <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <div className="flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />

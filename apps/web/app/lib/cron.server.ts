@@ -143,33 +143,6 @@ export function initCronJobs() {
 
 
 
-    // 3. NEAR Deposit Monitor (Every Minute - MVP)
-    cron.schedule("* * * * *", async () => {
-        try {
-            const { runDepositMonitoring } = await import("./near/deposit-engine.server");
-            await runDepositMonitoring();
-        } catch (error) {
-            const err = error as Error;
-            logger.error({
-                category: "SYSTEM",
-                message: `NEAR Deposit Monitor Cron Error: ${err.message}`,
-                stackTrace: err.stack
-            });
-        }
-    });
-
-    // 4. Wallet Creation Queue (Every 30 seconds)
-    setInterval(async () => {
-        try {
-            const { processWalletCreationQueue } = await import("./near/wallet-queue.server");
-            await processWalletCreationQueue();
-        } catch (error) {
-            const err = error as Error;
-            logger.error({
-                category: "SYSTEM",
-                message: `Wallet Creation Queue Error: ${err.message}`,
-                stackTrace: err.stack
-            });
-        }
-    }, 30 * 1000);
+    // Phase 0-3: NEAR Deposit Monitor 및 Wallet Creation Queue 제거됨
+    // CTC 스윕 엔진은 Phase 0-4에서 별도 크론으로 추가 예정
 }

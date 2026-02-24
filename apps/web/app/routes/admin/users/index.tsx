@@ -91,10 +91,10 @@ export default function AdminUsers() {
                                             </td>
                                             <td className="px-8 py-5">
                                                 <div className="flex flex-col gap-1 max-w-[150px]">
-                                                    {user.nearAccountId ? (
+                                                    {user.evmAddress ? (
                                                         <>
-                                                            <span className="text-white text-[11px] font-mono break-all leading-tight opacity-80">{user.nearAccountId}</span>
-                                                            <span className="text-[9px] text-green-500/60 font-black uppercase tracking-tighter italic">Linked Account</span>
+                                                            <span className="text-white text-[11px] font-mono break-all leading-tight opacity-80">{user.evmAddress}</span>
+                                                            <span className="text-[9px] text-green-500/60 font-black uppercase tracking-tighter italic">EVM Wallet</span>
                                                         </>
                                                     ) : (
                                                         <>

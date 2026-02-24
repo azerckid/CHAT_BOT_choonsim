@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
-import { Coins, Heart, CreditCard, RefreshCw, ExternalLink } from "lucide-react";
+import { Coins, Heart, RefreshCw } from "lucide-react";
 
 interface WalletBalanceProps {
     userId?: string;
     initialChoco?: string;
     initialHearts?: number;
-    nearAccountId?: string;
 }
 
 export function WalletBalance({
     initialChoco = "0",
     initialHearts = 0,
-    nearAccountId
 }: WalletBalanceProps) {
     const [chocoBalance, setChocoBalance] = useState(initialChoco);
     const [hearts, setHearts] = useState(initialHearts);
@@ -21,7 +19,7 @@ export function WalletBalance({
     const syncBalance = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch("/api/token/balance");
+            const res = await fetch("/api/wallet/status");
             const data = await res.json();
             if (data.chocoBalance) {
                 setChocoBalance(data.chocoBalance);
@@ -33,7 +31,7 @@ export function WalletBalance({
         }
     };
 
-    const formattedChoco = (parseFloat(chocoBalance) / 1e18).toLocaleString(undefined, {
+    const formattedChoco = parseFloat(chocoBalance).toLocaleString(undefined, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2
     });
@@ -73,12 +71,6 @@ export function WalletBalance({
                 </button>
             </div>
 
-            {nearAccountId && (
-                <div className="wallet-address-chip glass">
-                    <span className="addr-text">{nearAccountId}</span>
-                    <ExternalLink size={12} className="opacity-50" />
-                </div>
-            )}
 
             <style dangerouslySetInnerHTML={{
                 __html: `

@@ -12,7 +12,7 @@ import { DateTime } from "luxon";
 import { cn } from "~/lib/utils";
 import * as schema from "~/db/schema";
 import { eq, desc, asc, count, and } from "drizzle-orm";
-import { ensureNearWalletAsync } from "~/lib/near/wallet.server";
+import { ensureEvmWalletAsync } from "~/lib/ctc/wallet.server";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -26,25 +26,29 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   // 인증된 사용자의 경우 지갑 상태 체크
   let recentConversations: any[] = [];
-  let user: { nearAccountId: string | null; walletStatus: string | null } | null = null;
+  let user: { evmAddress: string | null; walletStatus: string | null } | null = null;
   let unreadNotificationCount = 0;
 
   if (session) {
-    const userResult = await db.query.user.findFirst({
+    let userResult = await db.query.user.findFirst({
       where: eq(schema.user.id, session.user.id),
-      columns: { nearAccountId: true, walletStatus: true }
+      columns: { evmAddress: true, walletStatus: true }
     });
     user = userResult || null;
 
-    // 지갑이 없으면 백그라운드로 생성 트리거 후 홈 진입 허용
-    // ensureNearWalletAsync: DB에 키 저장 후 즉시 반환 (온체인 작업은 백그라운드 큐)
-    if (!user?.nearAccountId) {
-      const accountId = await ensureNearWalletAsync(session.user.id).catch(err => {
-        console.error("[Home] Wallet creation trigger failed:", err);
+    // 지갑이 없으면 CTC EVM 지갑 생성 (DB 저장 + 가입 보상 100 CHOCO)
+    const hasWallet = user?.evmAddress;
+    if (!hasWallet) {
+      const accountId = await ensureEvmWalletAsync(session.user.id).catch(err => {
+        console.error("[Home] EVM wallet creation failed:", err);
         return null;
       });
       if (accountId) {
-        user = { nearAccountId: accountId, walletStatus: "PENDING" };
+        userResult = await db.query.user.findFirst({
+          where: eq(schema.user.id, session.user.id),
+          columns: { evmAddress: true, walletStatus: true }
+        });
+        user = userResult || null;
       }
     }
 

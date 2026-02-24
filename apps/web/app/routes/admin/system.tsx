@@ -240,7 +240,7 @@ export default function AdminSystem() {
                         </div>
                         <div className="bg-[#1A1821] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
                             <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Service Gas Reserve</span>
-                            <span className="text-sm font-black italic text-white/80">{economy.serviceWallet.nearBalance} NEAR</span>
+                            <span className="text-sm font-black italic text-white/80">{economy.serviceWallet.nearBalance}</span>
                         </div>
                     </div>
                 </div>

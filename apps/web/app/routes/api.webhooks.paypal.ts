@@ -64,35 +64,11 @@ export async function action({ request }: ActionFunctionArgs) {
                 const plan = SUBSCRIPTION_PLANS[planKey];
                 const creditsToAdd = plan ? plan.creditsPerMonth : 0;
                 const chocoAmount = creditsToAdd.toString(); // 1 Credit = 1 CHOCO
-                const chocoAmountRaw = new BigNumber(chocoAmount).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
                 // 4. 다음 결제일 계산
                 const nextBillingDate = DateTime.now().plus({ months: 1 }).toJSDate();
 
-                // 5. NEAR 계정이 있으면 온체인 CHOCO 전송 (서비스 계정에서 사용자 계정으로)
-                let chocoTxHash: string | null = null;
-                if (user.nearAccountId && creditsToAdd > 0) {
-                    try {
-                        const { sendChocoToken } = await import("~/lib/near/token.server");
-                        logger.info({
-                            category: "PAYMENT",
-                            message: `Transferring ${chocoAmount} CHOCO tokens for subscription renewal (PayPal)`,
-                            metadata: { userId: user.id, tier: user.subscriptionTier, nearAccountId: user.nearAccountId, chocoAmount }
-                        });
-
-                        const sendResult = await sendChocoToken(user.nearAccountId, chocoAmountRaw);
-                        chocoTxHash = (sendResult as any).transaction.hash;
-                    } catch (error) {
-                        logger.error({
-                            category: "PAYMENT",
-                            message: "Failed to transfer CHOCO tokens on-chain (PayPal subscription renewal)",
-                            stackTrace: (error as Error).stack,
-                            metadata: { userId: user.id, tier: user.subscriptionTier }
-                        });
-                    }
-                }
-
-                // 6. 트랜잭션 실행
+                // 5. 트랜잭션 실행
                 await db.transaction(async (tx) => {
                     await tx.insert(schema.payment).values({
                         id: crypto.randomUUID(),
@@ -106,11 +82,9 @@ export async function action({ request }: ActionFunctionArgs) {
                         subscriptionId: subscriptionId,
                         description: `Subscription Renewal: ${user.subscriptionTier}`,
                         creditsGranted: creditsToAdd > 0 ? creditsToAdd : undefined, // 호환성을 위해 유지 (deprecated)
-                        txHash: chocoTxHash || undefined,
                         metadata: JSON.stringify({
                             ...resource,
                             chocoAmount,
-                            chocoTxHash,
                         }),
                         createdAt: new Date(),
                         updatedAt: new Date(),
@@ -133,19 +107,6 @@ export async function action({ request }: ActionFunctionArgs) {
                         })
                         .where(eq(schema.user.id, user.id));
 
-                    // TokenTransfer 기록 (온체인 전송 성공 시)
-                    if (chocoTxHash) {
-                        await tx.insert(schema.tokenTransfer).values({
-                            id: crypto.randomUUID(),
-                            userId: user.id,
-                            txHash: chocoTxHash,
-                            amount: chocoAmountRaw,
-                            tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
-                            status: "COMPLETED",
-                            purpose: "TOPUP",
-                            createdAt: new Date(),
-                        });
-                    }
                 });
 
                 console.log(`[Subscription Renewal] Success for user ${user.id}. Added ${chocoAmount} CHOCO.`);

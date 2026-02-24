@@ -71,7 +71,6 @@ export async function action({ params, request }: ActionFunctionArgs) {
             columns: {
                 subscriptionTier: true,
                 chocoBalance: true,
-                nearAccountId: true,
             },
         });
 
@@ -83,7 +82,6 @@ export async function action({ params, request }: ActionFunctionArgs) {
         const tierChanged = currentUser.subscriptionTier !== tier;
         const shouldGrantChoco = tierChanged && status === "active" && tier !== "FREE";
 
-        let chocoTxHash: string | null = null;
         let chocoAmount = "0";
 
         // 3. CHOCO 지급 로직 (티어 변경 및 active 상태일 때만)
@@ -91,35 +89,6 @@ export async function action({ params, request }: ActionFunctionArgs) {
             const plan = SUBSCRIPTION_PLANS[tier as keyof typeof SUBSCRIPTION_PLANS];
             if (plan && plan.creditsPerMonth > 0) {
                 chocoAmount = plan.creditsPerMonth.toString();
-                const chocoAmountRaw = new BigNumber(chocoAmount)
-                    .multipliedBy(new BigNumber(10).pow(18))
-                    .toFixed(0);
-
-                // 온체인 전송 (NEAR 계정이 있는 경우)
-                if (currentUser.nearAccountId) {
-                    try {
-                        const { sendChocoToken } = await import("~/lib/near/token.server");
-                        const sendResult = await sendChocoToken(
-                            currentUser.nearAccountId,
-                            chocoAmountRaw
-                        );
-                        chocoTxHash = (sendResult as any).transaction.hash;
-
-                        logger.info({
-                            category: "ADMIN",
-                            message: `Granted ${chocoAmount} CHOCO for membership (admin)`,
-                            metadata: { userId: id, tier, txHash: chocoTxHash },
-                        });
-                    } catch (error) {
-                        logger.error({
-                            category: "ADMIN",
-                            message: "Failed to transfer CHOCO on-chain (admin membership grant)",
-                            stackTrace: (error as Error).stack,
-                            metadata: { userId: id, tier },
-                        });
-                        // 온체인 전송 실패해도 DB는 업데이트
-                    }
-                }
             }
         }
 
@@ -163,34 +132,15 @@ export async function action({ params, request }: ActionFunctionArgs) {
                     type: "ADMIN_MEMBERSHIP_GRANT",
                     description: `Membership granted: ${tier}`,
                     creditsGranted: parseInt(chocoAmount), // 호환성을 위해 유지 (deprecated)
-                    txHash: chocoTxHash || undefined,
                     metadata: JSON.stringify({
                         tier,
                         chocoAmount,
-                        chocoTxHash,
                         grantedBy: "admin",
                     }),
                     createdAt: new Date(),
                     updatedAt: new Date(),
                 });
 
-                // TokenTransfer 기록 (온체인 전송 성공 시)
-                if (chocoTxHash && currentUser.nearAccountId) {
-                    const chocoAmountRaw = new BigNumber(chocoAmount)
-                        .multipliedBy(new BigNumber(10).pow(18))
-                        .toFixed(0);
-
-                    await tx.insert(schema.tokenTransfer).values({
-                        id: crypto.randomUUID(),
-                        userId: id,
-                        txHash: chocoTxHash,
-                        amount: chocoAmountRaw,
-                        tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
-                        status: "COMPLETED",
-                        purpose: "ADMIN_MEMBERSHIP_GRANT",
-                        createdAt: new Date(),
-                    });
-                }
             }
         });
 

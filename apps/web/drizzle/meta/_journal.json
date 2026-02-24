@@ -85,6 +85,13 @@
       "when": 1771747299982,
       "tag": "0011_volatile_gorgon",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1771937379109,
+      "tag": "0012_add_evm_wallet_columns",
+      "breakpoints": true
     }
   ]
 }

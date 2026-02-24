@@ -20,9 +20,6 @@ import { TokenTopUpModal } from "~/components/payment/TokenTopUpModal";
 import { WalletCard } from "~/components/wallet/WalletCard";
 import * as schema from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { getNearConnection } from "~/lib/near/client.server";
-import { utils } from "near-api-js";
-import { getNearPriceUSD } from "~/lib/near/exchange-rate.server";
 
 const TIERS = [
   {
@@ -87,7 +84,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
         subscriptionStatus: true,
         currentPeriodEnd: true,
         subscriptionId: true,
-        nearAccountId: true,
       },
     }),
     db.query.payment.findMany({
@@ -104,26 +100,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     limit: 20,
   });
 
-  // 3. Live NEAR Balance via RPC
-  let nearBalance = "0";
-  if (user?.nearAccountId) {
-    try {
-      const near = await getNearConnection();
-      const account = await near.account(user.nearAccountId);
-      const balance = await account.getAccountBalance();
-      nearBalance = utils.format.formatNearAmount(balance.available, 3);
-    } catch (e) {
-      console.error("Failed to fetch NEAR balance:", e);
-    }
-  }
-
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
   const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-  // 4. Get Current NEAR Price for UI Display
-  const nearPriceUSD = await getNearPriceUSD();
-
-  return Response.json({ user, payments, paypalClientId, tossClientKey, nearBalance, history, nearPriceUSD });
+  return Response.json({ user, payments, paypalClientId, tossClientKey, history });
 }
 
 type LoaderData = {
@@ -133,26 +113,20 @@ type LoaderData = {
     subscriptionStatus: string | null;
     currentPeriodEnd: Date | string | null;
     subscriptionId: string | null;
-    nearAccountId: string | null;
   } | null;
   payments: typeof schema.payment.$inferSelect[];
   paypalClientId?: string;
   tossClientKey?: string;
-  nearBalance: string;
   history: any[];
-  nearPriceUSD: number;
 };
 
 export default function SubscriptionManagementPage() {
-  const { user, payments, paypalClientId, tossClientKey, nearBalance, history, nearPriceUSD } = useLoaderData<typeof loader>() as unknown as LoaderData;
+  const { user, payments, paypalClientId, tossClientKey, history } = useLoaderData<typeof loader>() as unknown as LoaderData;
   const navigate = useNavigate();
   const fetcher = useFetcher<{ success: boolean; error?: string }>();
 
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
-  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
-  const [swapDialogOpen, setSwapDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
 
   const isActive = user?.subscriptionStatus === "ACTIVE";
   const isCancelled = user?.subscriptionStatus === "CANCELLED";
@@ -180,34 +154,6 @@ export default function SubscriptionManagementPage() {
     toast.error(fetcher.data.error);
   }
 
-  const handleScanDeposits = async () => {
-    setIsScanning(true);
-    try {
-      const res = await fetch("/api/wallet/check-deposit", { method: "POST" });
-      if (res.ok) {
-        toast.success("입금 확인 및 자동 환전이 완료되었습니다.");
-        navigate(".", { replace: true });
-        setSwapDialogOpen(false);
-      } else {
-        toast.error("확인 중 오류가 발생했습니다.");
-      }
-    } catch (e) {
-      toast.error("서버 연결 실패");
-    } finally {
-      setIsScanning(false);
-    }
-  };
-
-  const handleCopyAddress = async () => {
-    if (!user?.nearAccountId) return;
-    try {
-      await navigator.clipboard.writeText(user.nearAccountId);
-      toast.success("주소가 복사되었습니다.");
-    } catch (error) {
-      toast.error("복사에 실패했습니다.");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-foreground flex flex-col max-w-md mx-auto relative shadow-2xl overflow-hidden">
       {/* Header */}
@@ -226,19 +172,9 @@ export default function SubscriptionManagementPage() {
         {/* Wallet Card Section */}
         <WalletCard
           chocoBalance={user?.chocoBalance || "0"}
-          nearBalance={nearBalance}
-          nearAccountId={user?.nearAccountId || null}
-          depositDialogOpen={depositDialogOpen}
-          swapDialogOpen={swapDialogOpen}
-          historyDialogOpen={historyDialogOpen}
-          onDepositDialogChange={setDepositDialogOpen}
-          onSwapDialogChange={setSwapDialogOpen}
-          onHistoryDialogChange={setHistoryDialogOpen}
-          onScanDeposits={handleScanDeposits}
-          isScanning={isScanning}
           history={history}
-          onCopyAddress={handleCopyAddress}
-          nearPriceUSD={nearPriceUSD}
+          historyDialogOpen={historyDialogOpen}
+          onHistoryDialogChange={setHistoryDialogOpen}
         />
 
         {/* 1. Subscription Card */}

@@ -44,9 +44,6 @@ export default [
   // 설정
   route("settings", "routes/settings.tsx"),
 
-  // 테스트 페이지
-  route("test-wallet", "routes/test-wallet.tsx"),
-
   // 캐릭터
   route("character/:id", "routes/character/$id.tsx"),
 
@@ -62,9 +59,7 @@ export default [
   route("api/messages/:id/like", "routes/api/messages/$id.like.ts"),
   route("api/upload", "routes/api/upload.ts"),
   route("api/test-cron", "routes/api/test-cron.ts"),
-  route("api/test-wallet", "routes/api/test-wallet.ts"),
-  route("api/wallet/export-private-key", "routes/api/wallet/export-private-key.ts"),
-  route("api/wallet/check-deposit", "routes/api/wallet/check-deposit.ts"),
+  route("api/cron/ctc-sweep", "routes/api/cron/ctc-sweep.ts"),
   route("api/wallet/status", "routes/api/wallet/status.ts"),
   route("api/account/delete", "routes/api/account/delete.ts"),
   route("api/push-subscription", "routes/api/push-subscription.ts"),
@@ -84,9 +79,6 @@ export default [
   route("api/webhooks/coinbase", "routes/api/webhooks/coinbase.ts"),
   route("api/payment/solana/create-request", "routes/api/payment/solana/create-request.ts"),
   route("api/payment/solana/verify", "routes/api/payment/solana/verify.ts"),
-  route("api/payment/near/create-request", "routes/api/payment/near/create-request.ts"),
-  route("api/payment/near/verify", "routes/api/payment/near/verify.ts"),
-
   // Context API
   route("api/context", "routes/api/context/index.ts"), // DELETE all context (full, confirm required)
   route("api/context/all", "routes/api/context/all.ts"), // GET all character contexts (must be before :characterId)
@@ -121,8 +113,6 @@ export default [
   route("admin/content/missions/new", "routes/admin/missions/edit.tsx", { id: "admin-mission-new" }),
   route("admin/content/missions/:id", "routes/admin/missions/edit.tsx", { id: "admin-mission-edit" }),
   route("admin/system", "routes/admin/system.tsx"),
-  route("api/admin/monitoring/near", "routes/api/admin/monitoring/near.ts"),
-  route("api/admin/monitoring/test-deposit", "routes/api/admin/monitoring/test-deposit.ts"),
   route("admin/*", "routes/admin/$.tsx"),
 
 ] satisfies RouteConfig;

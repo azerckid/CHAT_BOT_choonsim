@@ -1,6 +1,6 @@
 # BM 구현 계획 (Business Model Implementation Plan)
 > Created: 2026-02-22
-> Last Updated: 2026-02-24 (Phase 0 → 4단계 재구성: 0-1 DB·지갑 통합, 0-2 온체인 제거 상세화, 0-3 파일·클라이언트 정리, 0-4 CTC 스윕 엔진 독립 분리)
+> Last Updated: 2026-02-11 (0-3 완료: lib/near 제거, lib/ctc 이전, near-api-js 제거, PaymentSheet/useX402 오프체인 전환)
 
 본 문서는 `19_MONETIZATION_STRATEGY.md`의 심화 수익화 전략을 실제 코드베이스에 구현하기 위한 단계별 실행 계획입니다.
 현재 구현 상태를 기준으로 Phase 0(마이그레이션)부터 Phase 5(장기)까지 작업 순서를 정의합니다.
@@ -15,7 +15,7 @@
 |---|---|---|
 | Shop UI + 구매 API | `routes/shop/index.tsx`, `routes/api/items/purchase.ts` | 아이템 카드 + 상세 모달 완비 |
 | CHOCO 잔액 관리 | `db/schema.ts` (User.chocoBalance) | BigNumber 정밀 계산 |
-| X402 Silent 결제 | `lib/near/x402.server.ts`, `db/schema.ts` (X402Invoice) | 400ms 결제 완료 |
+| X402 Silent 결제 | `lib/ctc/x402.server.ts`, `db/schema.ts` (X402Invoice) | 오프체인 포인트, 402 시 충전 유도 |
 | 메시지 크레딧 차감 | `routes/api/chat/index.ts`, `lib/credit-policy.ts` | 모델별 비용 차등 |
 | 구독 시스템 | `routes/api.payment.activate-subscription.ts` | FREE/BASIC/PREMIUM/ULTIMATE |
 | 호감도/이모션 | `db/schema.ts` (CharacterStat) | JOY/EXCITED/LOVING |
@@ -32,7 +32,7 @@
 
 | 항목 | 영향 |
 |---|---|
-| **Phase 0. 블록체인 마이그레이션** | 기존 NEAR 인프라를 CTC EVM 및 오프체인 포인트로 전환 (lib/near/ 경로 포함) |
+| **Phase 0. 블록체인 마이그레이션** | 0-1~0-3 완료. 0-4 CTC 스윕 엔진 구현 진행 예정. |
 | Shop 실제 아이템 데이터 | 상점이 비어 있어 매출 발생 불가 — **운영팀이 Admin에서 직접 입력** |
 | 크레딧 소진 → Shop 연결 E2E 검증 | 402 흐름이 실제로 동작하는지 미검증 |
 | 선톡 (캐릭터 먼저 DM) | 재방문율 트리거 없음 |
@@ -55,7 +55,7 @@ Phase 5 → 이탈 불가 해자를 만든다
 
 ---
 
-## Phase 0. 블록체인 인프라 전환 (NEAR → CTC EVM) 🔄 진행 대기
+## Phase 0. 블록체인 인프라 전환 (NEAR → CTC EVM) — 0-1~0-3 완료 / 0-4 진행
 
 > **오프체인 포인트(Off-chain Point)** 구조를 도입하여 트랜잭션 수수료를 0으로 만들고, 유저 편의성을 극대화한다.
 
@@ -97,13 +97,13 @@ Phase 5 → 이탈 불가 해자를 만든다
 
 #### 체크리스트
 
-- [ ] `db/schema.ts`: `nearAccountId` → `evmAddress`, `nearPrivateKey` → `evmPrivateKey` 필드 교체
-- [ ] `X402Invoice.txHash`, `TokenTransfer.txHash` nullable 허용
-- [ ] DB 마이그레이션 스크립트 작성 및 실행
-- [ ] `lib/ctc/wallet.server.ts` 신규 생성 (`createEvmWallet` 함수)
-- [ ] 회원 가입 API에서 `createEvmWallet()` 호출로 교체
-- [ ] `ensureNearWallet*` 함수 호출부 전체 제거
-- [ ] 가입 보상 100 CHOCO: `sendChocoToken` → `chocoBalance += 100` DB 업데이트로 교체
+- [x] `db/schema.ts`: `evmAddress`, `evmPrivateKey` 필드 추가 (near* 필드는 기존 유저 fallback용으로 병행 유지 → 0-3에서 제거)
+- [x] `X402Invoice.txHash`, `TokenTransfer.txHash` nullable 허용
+- [x] DB 반영 완료 (직접 SQL + drizzle-kit push `Changes applied`)
+- [x] `lib/ctc/wallet.server.ts` 신규 생성 (`createEvmWallet`, `ensureEvmWalletAsync`)
+- [x] `routes/home.tsx` loader에서 `ensureEvmWalletAsync()` 호출로 교체
+- [x] 가입 보상 100 CHOCO: `sendChocoToken` → `chocoBalance += 100` DB 업데이트로 교체 (`ensureEvmWalletAsync` 내부)
+- [ ] `ensureNearWallet*` 잔여 호출부 제거 (`lib/near/wallet-queue.server.ts` 등) → **0-3에서 처리**
 
 ---
 
@@ -139,15 +139,15 @@ await db.update(users)
 
 #### 체크리스트
 
-- [ ] `api/items/purchase.ts`: `returnChocoToService` 제거, DB 차감 트랜잭션 적용
-- [ ] `api/chat/index.ts`: `returnChocoToService` 제거, DB 차감 적용
-- [ ] `api.payment.capture-order.ts`: `sendChocoToken` 제거, DB 증가 적용
-- [ ] `api.payment.activate-subscription.ts`: `sendChocoToken` 제거, DB 증가 적용
-- [ ] `api.webhooks.paypal.ts`: `sendChocoToken` 제거, DB 증가 적용
-- [ ] `lib/toss.server.ts`: `sendChocoToken` 제거, DB 증가 적용
-- [ ] `routes/admin/users/detail.tsx`: `sendChocoToken` 제거, DB 증가 적용
-- [ ] `lib/near/deposit-engine.server.ts`: 파일 전체 비활성화 (0-4 대체 전까지)
-- [ ] `lib/near/token.server.ts`: 호출부가 0개가 됨을 확인 후 삭제
+- [x] `api/items/purchase.ts`: `returnChocoToService` 제거, DB 차감 트랜잭션 유지 (nanoid·totalCostRaw 제거)
+- [x] `api/chat/index.ts`: `returnChocoToService` 제거, DB 차감 단순화 (decrypt·nanoid 동적 import 제거)
+- [x] `api.payment.capture-order.ts`: `sendChocoToken` 제거, DB 증가 유지 (chocoAmountRaw 제거)
+- [x] `api.payment.activate-subscription.ts`: `sendChocoToken` 제거, DB 증가 유지
+- [x] `api.webhooks.paypal.ts`: `sendChocoToken` 제거, DB 증가 유지
+- [x] `lib/toss.server.ts`: `sendChocoToken` 제거 (processSuccessfulTossPayment, processSuccessfulTossSubscription 모두)
+- [x] `routes/admin/users/detail.tsx`: `sendChocoToken` 제거, chocoTxHash 변수 및 TokenTransfer 삽입 제거
+- [x] `lib/near/deposit-engine.server.ts`: `runDepositMonitoring` 상단에 early return 추가로 비활성화
+- [ ] `lib/near/token.server.ts`: 호출부 확인 결과 `wallet.server.ts`, `x402.server.ts` 등 잔여 참조 있음 → **0-3에서 처리**
 
 ---
 
@@ -186,18 +186,18 @@ await db.update(users)
 
 #### 체크리스트
 
-- [ ] `lib/near/token.server.ts` 삭제
-- [ ] `lib/near/wallet.server.ts` 삭제
-- [ ] `lib/near/wallet-client.ts` 삭제
-- [ ] `lib/near/x402.server.ts` → `lib/ctc/x402.server.ts` 이동 및 near-api-js 제거
-- [ ] `lib/near/deposit-engine.server.ts` 삭제
-- [ ] `api/webhooks/near/token-deposit` 엔드포인트 제거
-- [ ] `api/relayer/submit.ts` 제거
-- [ ] `lib/near/` 디렉토리 삭제, `lib/ctc/` 디렉토리 신규 생성
-- [ ] 전체 `import ... from 'lib/near/*'` → `lib/ctc/*` 일괄 수정
-- [ ] `package.json`에서 `near-api-js` 제거 및 `npm install`
-- [ ] `PaymentSheet.tsx` / `useX402.ts`: NEAR 지갑 로직 제거, 잔액 부족 모달 + 충전 유도로 교체
-- [ ] `routes/profile/subscription.tsx`, `routes/settings.tsx`: NEAR 잔액/주소 표시 제거
+- [x] `lib/near/token.server.ts` 삭제
+- [x] `lib/near/wallet.server.ts` 삭제
+- [x] `lib/near/wallet-client.ts` 삭제
+- [x] `lib/near/x402.server.ts` → `lib/ctc/x402.server.ts` 이동 및 near-api-js 제거
+- [x] `lib/near/deposit-engine.server.ts` 삭제
+- [x] `api/webhooks/near/token-deposit` 엔드포인트 제거
+- [x] `api/relayer/submit.ts` 제거
+- [x] `lib/near/` 디렉토리 삭제, `lib/ctc/` 디렉토리 신규 생성
+- [x] 전체 `import ... from 'lib/near/*'` → `lib/ctc/*` 일괄 수정
+- [x] `package.json`에서 `near-api-js` 제거 및 `npm install`
+- [x] `PaymentSheet.tsx` / `useX402.ts`: NEAR 지갑 로직 제거, 잔액 부족 모달 + 충전 유도로 교체
+- [x] `routes/profile/subscription.tsx`, `routes/settings.tsx`: NEAR 잔액/주소 표시 제거
 
 ---
 
@@ -238,19 +238,21 @@ await db.update(users)
 
 ```
 CTC_RPC_URL=                  # CTC 메인넷 RPC 엔드포인트
-CTC_TREASURY_ADDRESS=         # 서비스 Treasury 지갑 주소
-CTC_TREASURY_PRIVATE_KEY=     # Treasury 지갑 개인키 (암호화 저장)
-CTC_PRICE_API_URL=            # CTC/USD 시세 API
-CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿
+CTC_TREASURY_ADDRESS=         # 서비스 Treasury 지갑 주소 (스윕 수신 주소)
+CTC_PRICE_API_URL=            # CTC/USD 시세 API (선택, 미설정 시 CHOCO 0 적립)
+CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authorization: Bearer <CRON_SECRET> 또는 X-Cron-Secret 헤더)
 ```
+
+- 유저 지갑에서 Treasury로 스윕할 때는 유저의 `evmPrivateKey`로 서명하므로 `CTC_TREASURY_PRIVATE_KEY`는 스윕 발신용이 아님. (필요 시 별도 용도 문서화)
 
 #### 체크리스트
 
-- [ ] `lib/ctc/deposit-engine.server.ts` 구현 (잔액 조회·입금 감지·환율·Sweep)
-- [ ] `routes/api/cron/ctc-sweep.ts` 신규 생성 (CRON_SECRET 인증 포함)
-- [ ] `vercel.json`에 Cron Job 추가 (`/api/cron/ctc-sweep`, 10분 주기)
-- [ ] 환경변수 5개 `.env` 및 Vercel 대시보드에 추가
-- [ ] `TokenTransfer` 테이블에 CTC 입금 기록 저장 로직
+- [x] `lib/ctc/deposit-engine.server.ts` 구현 (잔액 조회·입금 감지·환율·유저 지갑→Treasury Sweep)
+- [x] `routes/api/cron/ctc-sweep.ts` 신규 생성 (CRON_SECRET 인증 포함)
+- [x] `vercel.json`에 Cron Job 추가 (`/api/cron/ctc-sweep`, 10분 주기)
+- [ ] 환경변수 `.env` 및 Vercel 대시보드에 추가 (CTC_RPC_URL, CTC_TREASURY_ADDRESS, CTC_PRICE_API_URL, CRON_SECRET)
+- [x] `User.ctcLastBalance` 스키마 추가 및 마이그레이션 `drizzle/0013_add_ctc_last_balance.sql` (실행: `npx tsx scripts/run-migration-0013.ts`)
+- [x] `TokenTransfer` 테이블에 CTC 입금 기록 저장 로직
 - [ ] 로컬 테스트: CTC 소액 입금 → CHOCO 적립 → Treasury Sweep 흐름 확인
 
 ---
@@ -539,7 +541,7 @@ ELEVENLABS_VOICE_ID_CHOONSIM=
 
 | Phase | 기간 | 핵심 목표 | 상태 | 예상 수익 임팩트 |
 |---|---|---|---|---|
-| **Phase 0** | 즉시 (인프라) | NEAR → CTC EVM 마이그레이션 (DB·지갑·결제·파일 경로) | 🔄 진행 대기 | 안정적 결제·가스비 0 구조 확보 |
+| **Phase 0** | 즉시 (인프라) | NEAR → CTC EVM 마이그레이션 (DB·지갑·결제·파일 경로) | 0-1~0-3 완료, 0-4 진행 | 안정적 결제·가스비 0 구조 확보 |
 | **Phase 1** | 즉시 (운영) | 아이템 데이터 입력 + E2E 검증 | ⬜ 운영 작업 대기 | 즉시 매출 발생 |
 | **Phase 2** | 1~2주 | 가이드 페이지 → 페이월 → 등급제 UI | ✅ 완료 | 전환율 극대화 |
 | **Phase 6** | — | 멀티 아이템 선물 Swiper UI | ✅ 완료 (QA 검증) | 선물 전환율 상승 |

@@ -146,7 +146,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
   });
 
-  if (!user?.nearAccountId) {
+  if (!user?.evmAddress) {
     throw redirect("/wallet-setup");
   }
 

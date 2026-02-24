@@ -1,9 +1,13 @@
 
 .DS_Store
+# Env: 실제 값이 들어간 파일은 제외, 템플릿만 커밋
 .env
-.env*
 .env.local
+.env.development
+.env.development.local
 .env.production
+.env.production.local
+!.env.example
 
 /.vscode/
 node_modules/

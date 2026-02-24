@@ -51,10 +51,10 @@ export async function action({ request }: ActionFunctionArgs) {
             return data({ error: "Subscription ID already in use" }, { status: 409 });
         }
 
-        // 1. 사용자 정보 조회 (NEAR 계정 확인)
+        // 1. 사용자 정보 조회
         const user = await db.query.user.findFirst({
             where: eq(schema.user.id, userId),
-            columns: { id: true, nearAccountId: true, chocoBalance: true },
+            columns: { id: true, chocoBalance: true },
         });
 
         if (!user) {
@@ -63,32 +63,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
         // 2. 멤버십 보상 CHOCO 계산 (1 Credit = 1 CHOCO)
         const chocoAmount = planEntry.creditsPerMonth.toString();
-        const chocoAmountRaw = new BigNumber(chocoAmount).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
 
-        // 3. NEAR 계정이 있으면 온체인 CHOCO 전송 (서비스 계정에서 사용자 계정으로)
-        let chocoTxHash: string | null = null;
-        if (user.nearAccountId && planEntry.creditsPerMonth > 0) {
-            try {
-                const { sendChocoToken } = await import("~/lib/near/token.server");
-                logger.info({
-                    category: "PAYMENT",
-                    message: `Transferring ${chocoAmount} CHOCO tokens for subscription activation (PayPal)`,
-                    metadata: { userId, tier: planEntry.tier, nearAccountId: user.nearAccountId, chocoAmount }
-                });
-
-                const sendResult = await sendChocoToken(user.nearAccountId, chocoAmountRaw);
-                chocoTxHash = (sendResult as any).transaction.hash;
-            } catch (error) {
-                logger.error({
-                    category: "PAYMENT",
-                    message: "Failed to transfer CHOCO tokens on-chain (PayPal subscription activation)",
-                    stackTrace: (error as Error).stack,
-                    metadata: { userId, tier: planEntry.tier }
-                });
-            }
-        }
-
-        // 4. 트랜잭션으로 DB 업데이트
+        // 3. 트랜잭션으로 DB 업데이트
         const nextMonth = DateTime.now().plus({ months: 1 }).toJSDate();
 
         await db.transaction(async (tx) => {
@@ -119,29 +95,14 @@ export async function action({ request }: ActionFunctionArgs) {
                 subscriptionId: subscriptionId,
                 description: `Subscription Activation: ${planEntry.name}`,
                 creditsGranted: planEntry.creditsPerMonth, // 호환성을 위해 유지 (deprecated)
-                txHash: chocoTxHash || undefined,
                 metadata: JSON.stringify({
                     tier: planEntry.tier,
                     chocoAmount,
-                    chocoTxHash,
                 }),
                 createdAt: new Date(),
                 updatedAt: new Date(),
             });
 
-            // TokenTransfer 기록 (온체인 전송 성공 시)
-            if (chocoTxHash) {
-                await tx.insert(schema.tokenTransfer).values({
-                    id: crypto.randomUUID(),
-                    userId,
-                    txHash: chocoTxHash,
-                    amount: chocoAmountRaw,
-                    tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
-                    status: "COMPLETED",
-                    purpose: "TOPUP",
-                    createdAt: new Date(),
-                });
-            }
         });
 
         return data({ success: true });

@@ -13,7 +13,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const user = await db.query.user.findFirst({
         where: eq(schema.user.id, session.user.id),
         columns: {
-            nearAccountId: true,
+            evmAddress: true,
             walletStatus: true,
             walletError: true,
             chocoBalance: true,
@@ -21,7 +21,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     return Response.json({
-        accountId: user?.nearAccountId ?? null,
+        accountId: user?.evmAddress ?? null,
         status: user?.walletStatus ?? null,
         error: user?.walletError ?? null,
         isReady: user?.walletStatus === "READY",

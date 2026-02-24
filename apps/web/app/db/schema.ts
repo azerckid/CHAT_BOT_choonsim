@@ -34,6 +34,9 @@ export const user = sqliteTable("User", {
     nearAccountId: text("nearAccountId").unique(),
     nearPublicKey: text("nearPublicKey"),
     nearPrivateKey: text("nearPrivateKey"), // Encrypted private key
+    /** Phase 0: CTC EVM 지갑. 신규 지갑은 여기만 사용. (evmAddress ?? nearAccountId 로 통일 후 near* 제거 예정) */
+    evmAddress: text("evmAddress").unique(),
+    evmPrivateKey: text("evmPrivateKey"), // Encrypted private key (기존 key-encryption 재사용)
     chocoBalance: text("chocoBalance").notNull().default("0"), // BigNumber string
     chocoLastSyncAt: integer("chocoLastSyncAt", { mode: "timestamp" }),
     heartsCount: integer("heartsCount").notNull().default(0),
@@ -42,6 +45,8 @@ export const user = sqliteTable("User", {
     allowanceExpiresAt: integer("allowanceExpiresAt", { mode: "timestamp" }),
     isSweepEnabled: integer("isSweepEnabled", { mode: "boolean" }).default(true),
     nearLastBalance: text("nearLastBalance").notNull().default("0"), // BigNumber string for deposit detection
+    /** Phase 0-4: CTC 입금 감지용. 직전 조회 CTC 잔액(wei 문자열). */
+    ctcLastBalance: text("ctcLastBalance").notNull().default("0"),
     walletStatus: text("walletStatus"), // "PENDING" | "CREATING" | "READY" | "FAILED" | null (no wallet yet)
     walletCreatedAt: integer("walletCreatedAt", { mode: "timestamp" }), // background job start time
     walletCompletedAt: integer("walletCompletedAt", { mode: "timestamp" }), // completion time
@@ -110,7 +115,7 @@ export const characterMedia = sqliteTable("CharacterMedia", {
     createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
 }, (table) => {
     return [
-        index("CharacterMedia_charId_type_v2_idx").on(table.characterId, table.type),
+        index("CharacterMedia_charId_type_idx").on(table.characterId, table.type),
     ];
 });
 
@@ -514,7 +519,7 @@ export const systemLog = sqliteTable("SystemLog", {
 export const tokenTransfer = sqliteTable("TokenTransfer", {
     id: text("id").primaryKey(),
     userId: text("userId").notNull(),
-    txHash: text("txHash").notNull().unique(),
+    txHash: text("txHash").unique(), // Phase 0: CTC 스윕 엔진에서 txHash 없이 저장 가능하도록 nullable 허용
     amount: text("amount").notNull(), // BigNumber
     tokenContract: text("tokenContract").notNull(),
     status: text("status").notNull().default("PENDING"), // PENDING, COMPLETED, FAILED

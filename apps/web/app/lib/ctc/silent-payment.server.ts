@@ -1,12 +1,13 @@
+/**
+ * Silent Payment 한도 확인 (오프체인 포인트 버전)
+ * lib/near/silent-payment.server.ts에서 이동 (NEAR 의존성 없음)
+ */
 import { db } from "../db.server";
 import * as schema from "../../db/schema";
 import { eq } from "drizzle-orm";
 
 /**
  * 사용자가 "자동 결제(Silent Payment)" 한도 내에 있는지 확인합니다.
- * @param userId 사용자 ID
- * @param requestAmountUSD 이번에 청구될 금액 (USD)
- * @returns { canAutoPay: boolean, remainingAllowance: number }
  */
 export async function checkSilentPaymentAllowance(
     userId: string,
@@ -23,7 +24,6 @@ export async function checkSilentPaymentAllowance(
 
     if (!user) return { canAutoPay: false, reason: "User not found" };
 
-    // 1. 한도 설정 확인
     const now = new Date();
     const hasAllowance = user.allowanceAmount !== null && user.allowanceAmount > 0;
     const isNotExpired = !user.allowanceExpiresAt || user.allowanceExpiresAt > now;
@@ -36,9 +36,6 @@ export async function checkSilentPaymentAllowance(
         };
     }
 
-    // 2. 요청 금액이 남은 한도 이내인지 확인
-    // (여기서는 단순하게 현재 설정값과 비교하지만, 실제로는 누적 소모량을 차감해야 함)
-    // TODO: 일일 누적 소모량 추적 테이블 연동 필요
     if (requestAmountUSD > (user.allowanceAmount || 0)) {
         return {
             canAutoPay: false,

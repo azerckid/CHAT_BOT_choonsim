@@ -1,43 +1,19 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
-import { Copy, Wallet, RefreshCw, QrCode, History, ExternalLink } from "lucide-react";
-import QRCode from "react-qr-code";
-import { toast } from "sonner";
-import { CHAIN_LABELS, formatChainForDisplay, formatChainUnitForDisplay } from "~/lib/constants/chain-labels";
+import { History } from "lucide-react";
 
 interface WalletCardProps {
     chocoBalance: string | null;
-    nearBalance: string;
-    nearAccountId: string | null;
-    depositDialogOpen: boolean;
-    swapDialogOpen: boolean;
-    historyDialogOpen: boolean;
-    onDepositDialogChange: (open: boolean) => void;
-    onSwapDialogChange: (open: boolean) => void;
-    onHistoryDialogChange: (open: boolean) => void;
-    onScanDeposits: () => Promise<void>;
-    isScanning: boolean;
     history: any[];
-    onCopyAddress: () => void;
-    nearPriceUSD: number;
+    historyDialogOpen: boolean;
+    onHistoryDialogChange: (open: boolean) => void;
 }
 
 export function WalletCard({
     chocoBalance,
-    nearBalance,
-    nearAccountId,
-    depositDialogOpen,
-    swapDialogOpen,
-    historyDialogOpen,
-    onDepositDialogChange,
-    onSwapDialogChange,
-    onHistoryDialogChange,
-    onScanDeposits,
-    isScanning,
     history,
-    onCopyAddress,
-    nearPriceUSD,
+    historyDialogOpen,
+    onHistoryDialogChange,
 }: WalletCardProps) {
 
     const formatDate = (dateString: string) => {
@@ -57,138 +33,23 @@ export function WalletCard({
                 <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-32 h-32 rounded-full bg-black/10 blur-xl"></div>
 
                 <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-6">
+                    <div className="flex justify-between items-start mb-4">
                         <div>
                             <p className="text-xs text-indigo-200 font-medium mb-1 tracking-wider uppercase">My Wallet</p>
                             <div className="flex items-baseline gap-1.5">
                                 <h3 className="text-3xl font-bold tracking-tight">{parseInt(chocoBalance || "0").toLocaleString()}</h3>
                                 <span className="text-sm font-semibold text-indigo-200">CHOCO</span>
                             </div>
-                            <div className="flex items-center gap-2 mt-2">
-                                <div className="text-sm text-indigo-100 flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full">
-                                    <span className="font-medium">≈ {nearBalance}{CHAIN_LABELS.NATIVE_BALANCE_UNIT ? ` ${CHAIN_LABELS.NATIVE_BALANCE_UNIT}` : ""}</span>
-                                </div>
-                                <span className="text-[10px] text-indigo-300 bg-indigo-950/30 px-2 py-0.5 rounded-full border border-indigo-400/20">
-                                    가스비 무료
-                                </span>
-                            </div>
                         </div>
-                        <div className="text-right">
-                            {/* History Button (Small) */}
-                            <button
-                                onClick={() => onHistoryDialogChange(true)}
-                                className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
-                            >
-                                <History className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Address Display (Priority 2) */}
-                    <div className="mb-6 flex items-center gap-2 bg-black/20 p-2 rounded-lg cursor-pointer hover:bg-black/30 transition-colors" onClick={onCopyAddress}>
-                        <div className="p-1.5 bg-white/10 rounded-md">
-                            <Wallet className="w-3.5 h-3.5" />
-                        </div>
-                        <code className="text-xs font-mono text-indigo-100 flex-1 truncate">
-                            {nearAccountId || "지갑 주소 없음"}
-                        </code>
-                        <Copy className="w-3.5 h-3.5 text-indigo-300 mr-1" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        {/* Deposit Button */}
-                        <Button
-                            onClick={() => onDepositDialogChange(true)}
-                            size="lg"
-                            className="bg-white text-indigo-700 hover:bg-indigo-50 border-0 font-bold shadow-sm"
+                        <button
+                            onClick={() => onHistoryDialogChange(true)}
+                            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
                         >
-                            <QrCode className="w-4 h-4 mr-2" />
-                            입금 (Receive)
-                        </Button>
-
-                        {/* Swap Button */}
-                        <Button
-                            onClick={() => onSwapDialogChange(true)}
-                            size="lg"
-                            className="bg-indigo-800/50 hover:bg-indigo-800/70 text-indigo-100 border border-indigo-500/30 shadow-sm backdrop-blur-sm"
-                        >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            환전 (Swap)
-                        </Button>
+                            <History className="w-5 h-5" />
+                        </button>
                     </div>
                 </div>
             </div>
-
-            {/* Deposit Dialog */}
-            <Dialog open={depositDialogOpen} onOpenChange={onDepositDialogChange}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{CHAIN_LABELS.DEPOSIT_DIALOG_TITLE}</DialogTitle>
-                        <DialogDescription>{CHAIN_LABELS.DEPOSIT_INSTRUCTION}</DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col items-center justify-center py-6 space-y-6">
-                        <div className="p-4 bg-white rounded-xl shadow-inner border mx-auto">
-                            {nearAccountId && (
-                                <QRCode value={nearAccountId} size={160} />
-                            )}
-                        </div>
-                        <div className="text-center w-full px-4">
-                            <div className="flex items-center gap-2 p-3 bg-slate-100 dark:bg-slate-800 rounded-lg w-full">
-                                <code className="flex-1 text-xs font-mono break-all text-left text-slate-600 dark:text-slate-300">
-                                    {nearAccountId}
-                                </code>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={onCopyAddress}>
-                                    <Copy className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-xs text-blue-600 dark:text-blue-300 text-center w-full max-w-xs">
-                            <span className="font-bold">실시간 시장 시세 적용</span><br />
-                            입금 확인 시 1단위당 약 {(nearPriceUSD * 1000).toLocaleString()} CHOCO로 자동 환전됩니다.
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            {/* Swap Dialog */}
-            <Dialog open={swapDialogOpen} onOpenChange={onSwapDialogChange}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>토큰 환전 (Auto-Swap)</DialogTitle>
-                        <DialogDescription>{CHAIN_LABELS.SWAP_DESCRIPTION}</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-8 text-center space-y-6">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full"></div>
-                            <div className="relative p-6 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
-                                <p className="text-sm font-medium text-slate-500 mb-2">현재 적용 환율</p>
-                                <div className="flex items-center justify-center gap-3 text-2xl font-bold text-slate-900 dark:text-white">
-                                    <span>{CHAIN_LABELS.RATE_FROM_UNIT}</span>
-                                    <span className="material-symbols-outlined text-slate-400">arrow_right_alt</span>
-                                    <span className="text-primary">{(nearPriceUSD * 1000).toLocaleString()} CHOCO</span>
-                                </div>
-                            </div>
-                        </div>
-                        <p className="text-sm text-slate-500 leading-relaxed">
-                            {CHAIN_LABELS.DEPOSIT_CONFIRM_PROMPT}<br />
-                            아래 버튼을 누르면 <b>최신 입금 내역</b>을 확인하고<br />
-                            자동으로 환전하여 지갑에 넣어드립니다.
-                        </p>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={onScanDeposits} disabled={isScanning} className="w-full h-12 text-base">
-                            {isScanning ? (
-                                <>
-                                    <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                                    블록체인 스캔 중...
-                                </>
-                            ) : (
-                                "입금 확인 및 환전 실행"
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
             {/* History Dialog */}
             <Dialog open={historyDialogOpen} onOpenChange={onHistoryDialogChange}>
@@ -210,11 +71,8 @@ export function WalletCard({
                                         <div className="flex justify-between items-start">
                                             <div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${log.fromChain === 'NEAR'
-                                                        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-                                                        : 'bg-slate-100 text-slate-700'
-                                                        }`}>
-                                                        {formatChainForDisplay(log.fromChain)}
+                                                    <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                                                        {log.fromChain}
                                                     </span>
                                                     <span className="text-xs text-slate-400">
                                                         {formatDate(log.createdAt)}
@@ -226,21 +84,10 @@ export function WalletCard({
                                                 <p className="text-xs text-slate-400">{log.toToken}</p>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center justify-between text-xs bg-slate-100 dark:bg-black/20 p-2 rounded-lg">
-                                            <div className="flex items-center gap-1.5 text-slate-500">
-                                                <span>환율: 1:{log.rate}</span>
-                                                <span className="w-px h-2.5 bg-slate-300 dark:bg-slate-700"></span>
-                                                <span className="text-slate-400">{log.fromAmount} {formatChainUnitForDisplay(log.fromChain)}</span>
-                                            </div>
-                                            <a
-                                                href={`https://testnet.nearblocks.io/txns/${log.txHash}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex items-center gap-1 text-blue-500 hover:text-blue-600 font-medium"
-                                            >
-                                                Tx 확인 <ExternalLink className="w-3 h-3" />
-                                            </a>
+                                        <div className="flex items-center text-xs bg-slate-100 dark:bg-black/20 p-2 rounded-lg gap-1.5 text-slate-500">
+                                            <span>환율: 1:{log.rate}</span>
+                                            <span className="w-px h-2.5 bg-slate-300 dark:bg-slate-700"></span>
+                                            <span className="text-slate-400">{log.fromAmount} {log.fromChain}</span>
                                         </div>
                                     </div>
                                 ))}

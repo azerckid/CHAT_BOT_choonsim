@@ -8,8 +8,8 @@ import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
 import { logger } from "~/lib/logger.server";
 import * as schema from "~/db/schema";
 import { eq, and, sql, desc, gte, count } from "drizzle-orm";
-import { createX402Invoice, createX402Response } from "~/lib/near/x402.server";
-import { checkSilentPaymentAllowance } from "~/lib/near/silent-payment.server";
+import { createX402Invoice, createX402Response } from "~/lib/ctc/x402.server";
+import { checkSilentPaymentAllowance } from "~/lib/ctc/silent-payment.server";
 import {
     getFullContextData,
     compressMemoryForPrompt,
@@ -67,7 +67,7 @@ export async function action({ request }: ActionFunctionArgs) {
         }),
         db.query.user.findFirst({
             where: eq(schema.user.id, session.user.id),
-            columns: { id: true, bio: true, subscriptionTier: true, chocoBalance: true, nearAccountId: true, nearPrivateKey: true },
+            columns: { id: true, bio: true, subscriptionTier: true, chocoBalance: true },
         }),
         db.query.conversation.findFirst({
             where: eq(schema.conversation.id, conversationId),
@@ -283,25 +283,20 @@ export async function action({ request }: ActionFunctionArgs) {
                     return;
                 }
 
-                // 3단계. 토큰 사용량에 따른 CHOCO 차감 및 서비스 계정으로 반환 (스트리밍 완료 후)
+                // 3단계. 토큰 사용량에 따른 CHOCO 차감 (스트리밍 완료 후)
                 if (tokenUsage && tokenUsage.totalTokens > 0) {
                     try {
                         const { BigNumber } = await import("bignumber.js");
-                        const { decrypt } = await import("~/lib/near/key-encryption.server");
-                        const { returnChocoToService } = await import("~/lib/near/token.server");
-                        const { nanoid } = await import("nanoid");
                         // 새 정책: 1,000 토큰 = 10 CHOCO ($0.01 가치)
                         // 공식: Deduction = TotalTokens / 100
                         const chocoToDeduct = new BigNumber(tokenUsage.totalTokens)
                             .dividedBy(100)
                             .toFixed(0);
 
-                        const chocoAmountRaw = new BigNumber(chocoToDeduct).multipliedBy(new BigNumber(10).pow(18)).toFixed(0);
-
-                        // 사용자 정보 조회 (NEAR 계정 및 개인키 확인)
+                        // 사용자 정보 조회
                         const userForDeduction = await db.query.user.findFirst({
                             where: eq(schema.user.id, session.user.id),
-                            columns: { chocoBalance: true, nearAccountId: true, nearPrivateKey: true },
+                            columns: { chocoBalance: true },
                         });
 
                         if (!userForDeduction) {
@@ -311,63 +306,18 @@ export async function action({ request }: ActionFunctionArgs) {
                         const currentChocoBalance = userForDeduction?.chocoBalance ? parseFloat(userForDeduction.chocoBalance) : 0;
                         const newChocoBalance = new BigNumber(currentChocoBalance).minus(chocoToDeduct).toString();
 
-                        // 온체인 전송: 사용자 계정 → 서비스 계정
-                        let returnTxHash: string | null = null;
-                        if (userForDeduction.nearAccountId && userForDeduction.nearPrivateKey) {
-                            try {
-                                const decryptedPrivateKey = decrypt(userForDeduction.nearPrivateKey);
-                                const returnResult = await returnChocoToService(
-                                    userForDeduction.nearAccountId,
-                                    decryptedPrivateKey,
-                                    chocoAmountRaw,
-                                    "Chat Usage"
-                                );
-                                returnTxHash = (returnResult as any).transaction.hash;
-
-                                logger.info({
-                                    category: "API",
-                                    message: `Returned ${chocoToDeduct} CHOCO to service account (chat usage)`,
-                                    metadata: { userId: session.user.id, txHash: returnTxHash, tokenUsage }
-                                });
-                            } catch (onChainError) {
-                                logger.error({
-                                    category: "API",
-                                    message: "Failed to return CHOCO on-chain (chat usage)",
-                                    stackTrace: (onChainError as Error).stack,
-                                    metadata: { userId: session.user.id }
-                                });
-                                // 온체인 전송 실패해도 DB는 업데이트 (나중에 복구 가능)
-                            }
-                        }
-
                         // DB 업데이트
-                        await db.transaction(async (tx) => {
-                            await tx.update(schema.user)
-                                .set({
-                                    chocoBalance: newChocoBalance,
-                                    updatedAt: new Date()
-                                })
-                                .where(eq(schema.user.id, session.user.id));
-
-                            // TokenTransfer 기록 (온체인 전송 성공 시)
-                            if (returnTxHash) {
-                                await tx.insert(schema.tokenTransfer).values({
-                                    id: nanoid(),
-                                    userId: session.user.id,
-                                    txHash: returnTxHash,
-                                    amount: chocoAmountRaw,
-                                    tokenContract: process.env.NEAR_CHOCO_TOKEN_CONTRACT || "",
-                                    status: "COMPLETED",
-                                    purpose: "USAGE", // 채팅 사용
-                                    createdAt: new Date(),
-                                });
-                            }
-                        });
+                        await db.update(schema.user)
+                            .set({
+                                chocoBalance: newChocoBalance,
+                                updatedAt: new Date()
+                            })
+                            .where(eq(schema.user.id, session.user.id));
 
                         logger.info({
                             category: "API",
                             message: `Deducted ${chocoToDeduct} CHOCO for user ${session.user.id}`,
-                            metadata: { tokenUsage, chocoDeducted: chocoToDeduct, returnTxHash }
+                            metadata: { tokenUsage, chocoDeducted: chocoToDeduct }
                         });
                     } catch (err) {
                         logger.error({
