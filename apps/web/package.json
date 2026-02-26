@@ -35,6 +35,7 @@
     "@types/formidable": "^3.4.6",
     "@types/node-cron": "^3.0.11",
     "@types/qrcode.react": "^1.0.5",
+    "@vercel/react-router": "^1.2.5",
     "ai": "^6.0.78",
     "axios": "^1.13.2",
     "better-auth": "^1.4.10",
