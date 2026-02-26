@@ -1,6 +1,6 @@
 /**
  * CHOCO 잔액 부족 모달 (CTC 오프체인 포인트 버전)
- * Phase 0-3: NEAR 지갑 연결·서명·전송 로직 전체 제거
+ * Phase 0-3: 레거시 지갑 연결·서명·전송 로직 전체 제거
  * 402 수신 시 /profile/subscription 충전 페이지로 유도합니다.
  */
 import { X, ShieldCheck, Coins, ArrowRight } from "lucide-react";

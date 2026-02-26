@@ -1,6 +1,6 @@
 /**
  * Silent Payment 한도 확인 (오프체인 포인트 버전)
- * lib/near/silent-payment.server.ts에서 이동 (NEAR 의존성 없음)
+ * 이전 구현에서 이동 (온체인 의존성 없음)
  */
 import { db } from "../db.server";
 import * as schema from "../../db/schema";

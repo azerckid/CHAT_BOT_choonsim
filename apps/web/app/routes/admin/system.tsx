@@ -137,7 +137,7 @@ export default function AdminSystem() {
                         </div>
 
                         {/* 2. Service Net Liquidity (Available) */}
-                        <div className="bg-gradient-to-br from-primary/10 to-transparent border border-primary/20 rounded-[32px] p-6 space-y-4 relative overflow-hidden group">
+                        <div className="bg-linear-to-br from-primary/10 to-transparent border border-primary/20 rounded-[32px] p-6 space-y-4 relative overflow-hidden group">
                             <div className="space-y-1 relative z-10">
                                 <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Net Available (Service)</p>
                                 <div className="flex items-baseline gap-1">
@@ -239,8 +239,8 @@ export default function AdminSystem() {
                             <span className="text-sm font-black italic text-primary/80">+{economy.stats.totalGrantedChoco} CHOCO</span>
                         </div>
                         <div className="bg-[#1A1821] border border-white/5 rounded-2xl p-4 flex items-center justify-between">
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Service Gas Reserve</span>
-                            <span className="text-sm font-black italic text-white/80">{economy.serviceWallet.nearBalance}</span>
+                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Service Balance</span>
+                            <span className="text-sm font-black italic text-white/80">{economy.serviceWallet.serviceBalance}</span>
                         </div>
                     </div>
                 </div>

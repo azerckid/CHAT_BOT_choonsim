@@ -3,10 +3,10 @@ import * as schema from "../../db/schema";
 import { sum, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
 
-// Phase 0-3: NEAR 온체인 서비스 지갑 연결 제거. CTC EVM 지갑 통계는 Phase 0-4에서 추가 예정.
+// Phase 0-3: 레거시 온체인 서비스 지갑 연결 제거. CTC EVM 지갑 통계는 Phase 0-4에서 추가 예정.
 export async function getServiceWalletStats() {
     return {
-        nearBalance: "N/A",
+        serviceBalance: "N/A",
         chocoBalance: "N/A",
         chocoBalanceRaw: "0",
         totalSupply: "N/A",

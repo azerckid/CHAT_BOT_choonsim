@@ -1,6 +1,6 @@
 /**
  * X402 결제 프로토콜 (CTC 오프체인 포인트 버전)
- * Phase 0-3: NEAR 온체인 검증 제거 → CHOCO DB 포인트 기반으로 단순화
+ * Phase 0-3: 레거시 온체인 검증 제거 → CHOCO DB 포인트 기반으로 단순화
  */
 import { db } from "../db.server";
 import * as schema from "../../db/schema";

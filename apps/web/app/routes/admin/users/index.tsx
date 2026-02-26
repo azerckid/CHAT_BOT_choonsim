@@ -61,7 +61,7 @@ export default function AdminUsers() {
                             <thead>
                                 <tr className="border-b border-white/5 bg-white/2">
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">User</th>
-                                    <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">NEAR Address</th>
+                                    <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Wallet Address</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Role / Tier</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">CHOCO</th>
                                     <th className="px-8 py-6 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Joined</th>

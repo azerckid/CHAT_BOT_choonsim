@@ -143,6 +143,6 @@ export function initCronJobs() {
 
 
 
-    // Phase 0-3: NEAR Deposit Monitor 및 Wallet Creation Queue 제거됨
+    // Phase 0-3: 레거시 Deposit Monitor 및 Wallet Creation Queue 제거됨
     // CTC 스윕 엔진은 Phase 0-4에서 별도 크론으로 추가 예정
 }

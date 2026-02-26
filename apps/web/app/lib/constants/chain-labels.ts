@@ -1,6 +1,6 @@
 /**
  * 사용자에게 노출되는 온체인/지갑 관련 라벨.
- * 기술 스택(NEAR 등)을 사용자에게 노출하지 않고, 일반화된 용어를 사용합니다.
+ * 체인 기술명을 사용자에게 노출하지 않고 일반화된 용어를 사용합니다.
  *
  * Created: 2026-02-11
  * Last Updated: 2026-02-11
@@ -52,25 +52,25 @@ export const CHAIN_LABELS = {
     /** 히스토리에서 체인 표시 시 (사용 건) */
     HISTORY_LABEL_USE: "사용",
 
-    /** 히스토리 금액 표시 시 fromChain 대체 (NEAR 등) */
+    /** 히스토리 금액 표시 시 fromChain 대체용 */
     HISTORY_AMOUNT_UNIT: "입금",
 } as const;
 
 /**
  * 백엔드/DB에서 반환되는 fromChain 값을 사용자 표시용으로 변환합니다.
- * "NEAR" -> HISTORY_LABEL_SWAP 등
+ * LEGACY/NEAR(과거 데이터) -> HISTORY_LABEL_SWAP 등
  */
 export function formatChainForDisplay(chain: string | null | undefined): string {
     if (!chain) return CHAIN_LABELS.HISTORY_LABEL_USE;
     const upper = String(chain).toUpperCase();
-    if (upper === "NEAR") return CHAIN_LABELS.HISTORY_LABEL_SWAP;
+    if (upper === "LEGACY" || upper === "NEAR") return CHAIN_LABELS.HISTORY_LABEL_SWAP;
     return chain;
 }
 
-/** 히스토리 등에서 금액+체인 표시용 (NEAR 등 기술명 숨김) */
+/** 히스토리 등에서 금액+체인 표시용 (레거시 체인명 숨김) */
 export function formatChainUnitForDisplay(chain: string | null | undefined): string {
     if (!chain) return CHAIN_LABELS.HISTORY_AMOUNT_UNIT;
     const upper = String(chain).toUpperCase();
-    if (upper === "NEAR") return CHAIN_LABELS.HISTORY_AMOUNT_UNIT;
+    if (upper === "LEGACY" || upper === "NEAR") return CHAIN_LABELS.HISTORY_AMOUNT_UNIT;
     return chain;
 }

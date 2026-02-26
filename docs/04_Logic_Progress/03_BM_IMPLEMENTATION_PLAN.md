@@ -250,10 +250,10 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 - [x] `lib/ctc/deposit-engine.server.ts` 구현 (잔액 조회·입금 감지·환율·유저 지갑→Treasury Sweep)
 - [x] `routes/api/cron/ctc-sweep.ts` 신규 생성 (CRON_SECRET 인증 포함)
 - [x] `vercel.json`에 Cron Job 추가 (`/api/cron/ctc-sweep`, 10분 주기)
-- [ ] 환경변수 `.env` 및 Vercel 대시보드에 추가 (CTC_RPC_URL, CTC_TREASURY_ADDRESS, CTC_PRICE_API_URL, CRON_SECRET)
+- [ ] 환경변수 `.env` 및 Vercel 대시보드에 추가 (CTC_RPC_URL, CTC_TREASURY_ADDRESS, CTC_PRICE_API_URL, CRON_SECRET) → 상세: [05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md](./05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md)
 - [x] `User.ctcLastBalance` 스키마 추가 및 마이그레이션 `drizzle/0013_add_ctc_last_balance.sql` (실행: `npx tsx scripts/run-migration-0013.ts`)
 - [x] `TokenTransfer` 테이블에 CTC 입금 기록 저장 로직
-- [ ] 로컬 테스트: CTC 소액 입금 → CHOCO 적립 → Treasury Sweep 흐름 확인
+- [ ] 로컬 테스트: CTC 소액 입금 → CHOCO 적립 → Treasury Sweep 흐름 확인 → 절차: [05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md](./05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md)
 
 ---
 

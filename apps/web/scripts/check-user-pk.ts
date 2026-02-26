@@ -19,7 +19,7 @@ async function main() {
     });
 
     console.log(`User ID: ${user?.id}`);
-    console.log(`Public Key in DB: ${user?.nearPublicKey}`);
+    console.log(`EVM Address: ${user?.evmAddress ?? "(none)"}`);
 }
 
 main().catch(console.error);

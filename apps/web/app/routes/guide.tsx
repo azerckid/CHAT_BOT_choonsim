@@ -89,7 +89,7 @@ const FAQS = [
   { q: "구독을 취소하면 남은 CHOCO는 어떻게 되나요?", a: "이미 지급된 CHOCO는 그대로 유지됩니다. 다음 달 리필만 중단됩니다." },
   { q: "여러 캐릭터에게 CHOCO를 쓸 수 있나요?", a: "네. CHOCO는 앱 공통 화폐로, 모든 캐릭터와의 대화에 동일하게 사용됩니다." },
   { q: "환불이 가능한가요?", a: "미사용 CHOCO에 한해 결제일로부터 7일 이내 환불 신청이 가능합니다." },
-  { q: "온체인 각인이란 무엇인가요?", a: "중요한 대화를 NEAR 블록체인에 NFT로 영구 기록하는 기능입니다. 기억 각인 티켓(AI 메모리 고정)과는 별개입니다." },
+  { q: "온체인 각인이란 무엇인가요?", a: "중요한 대화를 블록체인에 NFT로 영구 기록하는 기능입니다. 기억 각인 티켓(AI 메모리 고정)과는 별개입니다." },
   { q: "X 팔로워 인증은 어떻게 하나요?", a: "설정 > 계정 연동에서 X 계정을 연결하면 자동으로 조상신 보너스가 지급됩니다." },
 ];
 
@@ -197,7 +197,7 @@ export default function GuidePage() {
 
         {/* 로그인 유저 잔액 카드 */}
         {user && (
-          <Card className="bg-gradient-to-br from-primary/10 to-purple-900/10 border-primary/20">
+          <Card className="bg-linear-to-br from-primary/10 to-purple-900/10 border-primary/20">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white/40 text-xs font-bold uppercase tracking-wider">내 현재 상태</p>
@@ -400,7 +400,7 @@ export default function GuidePage() {
 
         {/* ── 하단 CTA ── */}
         <section className="space-y-3 pt-2">
-          <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
           <p className="text-center text-white/30 text-xs font-bold uppercase tracking-wider">지금 바로 시작하기</p>
           <div className="grid grid-cols-2 gap-3">
             <Link

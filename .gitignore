@@ -1,6 +1,7 @@
 
 .DS_Store
 # Env: 실제 값이 들어간 파일은 제외, 템플릿만 커밋
+.secret.env
 .env
 .env.local
 .env.development

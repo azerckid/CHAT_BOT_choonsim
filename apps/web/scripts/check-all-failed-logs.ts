@@ -16,11 +16,11 @@ async function main() {
 
     const logs = await db.select().from(schema.exchangeLog).where(
         and(
-            eq(schema.exchangeLog.fromChain, "NEAR"),
+            eq(schema.exchangeLog.fromChain, "LEGACY"),
             sql`${schema.exchangeLog.status} IN ('FAILED', 'PENDING_SWEEP')`
         )
     );
-    console.log(`Found ${logs.length} failed/pending NEAR sweeps:`);
+    console.log(`Found ${logs.length} failed/pending LEGACY sweeps:`);
     console.log(JSON.stringify(logs, null, 2));
 }
 

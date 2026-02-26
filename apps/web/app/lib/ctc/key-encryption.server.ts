@@ -1,6 +1,6 @@
 /**
  * EVM 개인키 암호화 및 복호화 유틸리티
- * (lib/near/key-encryption.server.ts에서 이동, ENCRYPTION_KEY 환경변수 사용)
+ * (이전 구현에서 이동, ENCRYPTION_KEY 환경변수 사용)
  */
 import crypto from "crypto";
 

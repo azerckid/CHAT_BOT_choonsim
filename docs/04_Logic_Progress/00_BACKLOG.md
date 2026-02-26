@@ -14,6 +14,11 @@ _(현재 진행 중인 작업 없음)_
 
 ## 📅 Upcoming (예정)
 
+### 0. NEAR 잔여 제거 (UI·코드·DB)
+- **목표**: 사용자·관리자에게 NEAR 노출 없음, 코드·DB에서 near 관련 식별자 제거.
+- **관련 문서**: [04_NEAR_REMOVAL_PLAN.md](./04_NEAR_REMOVAL_PLAN.md)
+- **범위**: 가이드/Admin 문구, NearPayButton 삭제, wallet fallback 제거, User 테이블 near* 컬럼 DROP 등.
+
 ### 1. 나만의 춘심 (유료 아이템)
 - **목표**: 유저가 구매한 아이템을 통해 Identity, Soul, Heartbeat를 직접 설정하고, 캐릭터 이름 변경 가능.
 - **예정 내용**:
