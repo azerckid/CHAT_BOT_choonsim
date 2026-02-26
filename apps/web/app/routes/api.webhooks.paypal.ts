@@ -6,7 +6,6 @@ import { DateTime } from "luxon";
 import * as schema from "~/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
-import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
     if (request.method !== "POST") {

@@ -29,7 +29,6 @@ import { eq, inArray, isNotNull, count } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
 import { calculateUSDFromChoco } from "~/lib/ctc/exchange-rate.server";
 import { sendRevenue, sendMetrics } from "~/lib/bondbase/client.server";
-import { logger } from "~/lib/logger.server";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -46,6 +45,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     try {
+        const { logger } = await import("~/lib/logger.server");
         // ── REVENUE ──────────────────────────────────────────────────────────
 
         // 2. isSynced=false 레코드 전체 조회

@@ -7,7 +7,6 @@ import { requireUserId } from "~/lib/auth.server";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
-import { logger } from "~/lib/logger.server";
 
 const CaptureOrderSchema = z.object({
     orderId: z.string(),

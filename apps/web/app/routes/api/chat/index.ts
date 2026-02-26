@@ -5,7 +5,6 @@ import type { ActionFunctionArgs } from "react-router";
 import { streamAIResponse, extractPhotoMarker, extractEmotionMarker } from "~/lib/ai.server";
 import { streamAIResponseV2 } from "~/lib/ai-v2.server";
 import { HumanMessage, AIMessage, BaseMessage } from "@langchain/core/messages";
-import { logger } from "~/lib/logger.server";
 import * as schema from "~/db/schema";
 import { eq, and, sql, desc, gte, count } from "drizzle-orm";
 import { createX402Invoice, createX402Response } from "~/lib/ctc/x402.server";
@@ -40,6 +39,7 @@ const chatSchema = z.object({
 });
 
 export async function action({ request }: ActionFunctionArgs) {
+    const { logger } = await import("~/lib/logger.server");
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) {
         return new Response("Unauthorized", { status: 401 });

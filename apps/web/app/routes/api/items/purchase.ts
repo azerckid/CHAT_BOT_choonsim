@@ -6,7 +6,6 @@ import { z } from "zod";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
-import { logger } from "~/lib/logger.server";
 
 const purchaseSchema = z.object({
     itemId: z.string(),
@@ -94,6 +93,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return Response.json({ success: true, chocoSpent: totalCost });
     } catch (error: any) {
+        const { logger } = await import("~/lib/logger.server");
         logger.error({
             category: "PAYMENT",
             message: "Purchase transaction error",

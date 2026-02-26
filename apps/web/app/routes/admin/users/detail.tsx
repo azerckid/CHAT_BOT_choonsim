@@ -13,7 +13,6 @@ import { eq, and } from "drizzle-orm";
 import { deleteAllUserContexts } from "~/lib/context/db";
 import { SUBSCRIPTION_PLANS } from "~/lib/subscription-plans";
 import { BigNumber } from "bignumber.js";
-import { logger } from "~/lib/logger.server";
 import { DateTime } from "luxon";
 import crypto from "crypto";
 

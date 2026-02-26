@@ -7,7 +7,6 @@ import { DateTime } from "luxon";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
-import { logger } from "~/lib/logger.server";
 
 const ActivateSubscriptionSchema = z.object({
     subscriptionId: z.string(),

@@ -12,7 +12,6 @@ import { auth } from "~/lib/auth.server";
 import { getMemoryItems, addMemoryItem, deleteMemoryItemsByIds } from "~/lib/context/db";
 import { CHARACTERS } from "~/lib/characters";
 import { hasReachedMemoryLimit, getUserTier } from "~/lib/context/tier";
-import { logger } from "~/lib/logger.server";
 
 const addMemorySchema = z.object({
     content: z.string().min(1),
@@ -105,6 +104,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         }
 
         try {
+            const { logger } = await import("~/lib/logger.server");
             logger.audit({
                 category: "API",
                 message: `Memory items deletion requested`,
