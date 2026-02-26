@@ -1,6 +1,6 @@
 /**
  * 환율 계산 서버 유틸리티 (CTC 버전)
- * lib/near/exchange-rate.server.ts에서 이동 — NEAR 가격 조회 함수 제거
+ * 이전 구현에서 이동 — 레거시 가격 조회 함수 제거
  * USD/KRW → CHOCO 환산에 사용됩니다.
  */
 import { db } from "../db.server";
@@ -68,6 +68,17 @@ export async function calculateChocoFromUSD(usdAmount: number): Promise<string> 
     });
 
     return chocoAmount.toString();
+}
+
+/**
+ * CHOCO → USD 역산 함수 ($1 = 1,000 CHOCO 고정)
+ * BondBase REVENUE 전송 시 USDC 환산에 사용됩니다.
+ *
+ * @param chocoAmount CHOCO 금액 문자열 (BigNumber)
+ * @returns USDC 금액 문자열 (소수점 6자리)
+ */
+export function calculateUSDFromChoco(chocoAmount: string): string {
+    return new BigNumber(chocoAmount).multipliedBy(CHOCO_PRICE_USD).toFixed(6);
 }
 
 /**

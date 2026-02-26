@@ -60,6 +60,7 @@ export default [
   route("api/upload", "routes/api/upload.ts"),
   route("api/test-cron", "routes/api/test-cron.ts"),
   route("api/cron/ctc-sweep", "routes/api/cron/ctc-sweep.ts"),
+  route("api/cron/bondbase-sync", "routes/api/cron/bondbase-sync.ts"),
   route("api/wallet/status", "routes/api/wallet/status.ts"),
   route("api/account/delete", "routes/api/account/delete.ts"),
   route("api/push-subscription", "routes/api/push-subscription.ts"),

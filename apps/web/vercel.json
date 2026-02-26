@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/ctc-sweep",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/bondbase-sync",
+      "schedule": "0 * * * *"
     }
   ]
 }

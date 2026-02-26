@@ -314,6 +314,19 @@ export async function action({ request }: ActionFunctionArgs) {
                             })
                             .where(eq(schema.user.id, session.user.id));
 
+                        // fire-and-forget: BondBase 집계용 소비 로그
+                        db.insert(schema.chocoConsumptionLog).values({
+                            id: crypto.randomUUID(),
+                            characterId,
+                            chocoAmount: chocoToDeduct,
+                            source: "CHAT",
+                            createdAt: new Date(),
+                        }).catch(err => logger.error({
+                            category: "DB",
+                            message: "BondBase ConsumptionLog insert failed",
+                            stackTrace: (err as Error).stack,
+                        }));
+
                         logger.info({
                             category: "API",
                             message: `Deducted ${chocoToDeduct} CHOCO for user ${session.user.id}`,

@@ -115,6 +115,15 @@ export async function action({ request }: ActionFunctionArgs) {
                 createdAt: new Date(),
             }).returning();
 
+            // BondBase 집계용 소비 로그 (트랜잭션 내)
+            await tx.insert(schema.chocoConsumptionLog).values({
+                id: crypto.randomUUID(),
+                characterId,
+                chocoAmount: ((item.priceChoco ?? 0) * amount).toString(),
+                source: "GIFT",
+                createdAt: new Date(),
+            });
+
             // 6. Create a system message for the chat to acknowledge the gift
             const [systemMsg] = await tx.insert(schema.message).values({
                 id: crypto.randomUUID(),

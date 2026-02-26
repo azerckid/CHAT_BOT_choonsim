@@ -31,10 +31,7 @@ export const user = sqliteTable("User", {
     lastTokenRefillAt: integer("lastTokenRefillAt", { mode: "timestamp" }),
     credits: integer("credits").notNull().default(0),
     role: text("role").default("USER"),
-    nearAccountId: text("nearAccountId").unique(),
-    nearPublicKey: text("nearPublicKey"),
-    nearPrivateKey: text("nearPrivateKey"), // Encrypted private key
-    /** Phase 0: CTC EVM 지갑. 신규 지갑은 여기만 사용. (evmAddress ?? nearAccountId 로 통일 후 near* 제거 예정) */
+    /** Phase 0: CTC EVM 지갑. 신규 지갑은 여기만 사용. */
     evmAddress: text("evmAddress").unique(),
     evmPrivateKey: text("evmPrivateKey"), // Encrypted private key (기존 key-encryption 재사용)
     chocoBalance: text("chocoBalance").notNull().default("0"), // BigNumber string
@@ -44,7 +41,6 @@ export const user = sqliteTable("User", {
     allowanceCurrency: text("allowanceCurrency").default("USD"),
     allowanceExpiresAt: integer("allowanceExpiresAt", { mode: "timestamp" }),
     isSweepEnabled: integer("isSweepEnabled", { mode: "boolean" }).default(true),
-    nearLastBalance: text("nearLastBalance").notNull().default("0"), // BigNumber string for deposit detection
     /** Phase 0-4: CTC 입금 감지용. 직전 조회 CTC 잔액(wei 문자열). */
     ctcLastBalance: text("ctcLastBalance").notNull().default("0"),
     walletStatus: text("walletStatus"), // "PENDING" | "CREATING" | "READY" | "FAILED" | null (no wallet yet)
@@ -102,6 +98,8 @@ export const character = sqliteTable("Character", {
     personaPrompt: text("personaPrompt").notNull(),
     greetingMessage: text("greetingMessage"),
     isOnline: integer("isOnline", { mode: "boolean" }).notNull().default(false),
+    /** BondBase 온체인 bondId. null이면 BondBase 전송 건너뜀. */
+    bondBaseId: integer("bondBaseId"),
     createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
     updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
 });
@@ -613,13 +611,28 @@ export const relayerLog = sqliteTable("RelayerLog", {
 });
 
 // ---------------------------------------------------------
+// BondBase Integration
+// ---------------------------------------------------------
+
+export const chocoConsumptionLog = sqliteTable("ChocoConsumptionLog", {
+    id: text("id").primaryKey(),
+    characterId: text("characterId").notNull(),       // 소비 귀속 캐릭터
+    chocoAmount: text("chocoAmount").notNull(),        // 소비된 CHOCO (BigNumber 문자열)
+    source: text("source").notNull(),                  // "CHAT" | "GIFT"
+    isSynced: integer("isSynced", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+}, (table) => [
+    index("ChocoConsumptionLog_characterId_isSynced_idx").on(table.characterId, table.isSynced),
+]);
+
+// ---------------------------------------------------------
 // Multichain & Exchange (Phase 6.5 ~ 9)
 // ---------------------------------------------------------
 
 export const multichainAddress = sqliteTable("MultichainAddress", {
     id: text("id").primaryKey(),
     userId: text("userId").notNull(),
-    chain: text("chain").notNull(), // "NEAR", "BTC", "ETH", "SOL" 등
+    chain: text("chain").notNull(), // "LEGACY", "BTC", "ETH", "SOL" 등
     address: text("address").notNull(), // 해당 체인의 주소
     derivationPath: text("derivationPath"), // 파생 경로
     createdAt: integer("createdAt", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
@@ -632,7 +645,7 @@ export const multichainAddress = sqliteTable("MultichainAddress", {
 
 export const exchangeRate = sqliteTable("ExchangeRate", {
     id: text("id").primaryKey(),
-    tokenPair: text("tokenPair").notNull().unique(), // "NEAR/USD", "ETH/USD" 등
+    tokenPair: text("tokenPair").notNull().unique(), // "LEGACY/USD", "ETH/USD" 등
     rate: real("rate").notNull(),
     updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull(),
 }, (table) => ({
@@ -642,7 +655,7 @@ export const exchangeRate = sqliteTable("ExchangeRate", {
 export const exchangeLog = sqliteTable("ExchangeLog", {
     id: text("id").primaryKey(),
     userId: text("userId").notNull(),
-    fromChain: text("fromChain").notNull(), // "NEAR", "BTC", "ETH", "SOL"
+    fromChain: text("fromChain").notNull(), // "LEGACY", "BTC", "ETH", "SOL" 등
     fromAmount: text("fromAmount").notNull(), // BigNumber string
     toToken: text("toToken").notNull(), // "CHOCO", "CREDIT"
     toAmount: text("toAmount").notNull(), // BigNumber string
@@ -737,6 +750,14 @@ export const characterRelations = relations(character, ({ one, many }) => ({
     stats: one(characterStat),
     gifts: many(giftLog),
     conversations: many(conversation),
+    chocoConsumptionLogs: many(chocoConsumptionLog),
+}));
+
+export const chocoConsumptionLogRelations = relations(chocoConsumptionLog, ({ one }) => ({
+    character: one(character, {
+        fields: [chocoConsumptionLog.characterId],
+        references: [character.id],
+    }),
 }));
 
 export const characterStatRelations = relations(characterStat, ({ one }) => ({
