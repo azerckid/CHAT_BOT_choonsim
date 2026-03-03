@@ -55,7 +55,10 @@
                 "CHOONSIM_API_KEY",
                 "OPENWEATHER_API_KEY",
                 "AMADEUS_CLIENT_ID",
-                "AMADEUS_CLIENT_SECRET"
+                "AMADEUS_CLIENT_SECRET",
+                "ELEVENLABS_API_KEY",
+                "ELEVENLABS_VOICE_ID_CHOONSIM",
+                "ELEVENLABS_MODEL_ID"
             ]
         },
         "dev": {
