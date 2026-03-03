@@ -48,6 +48,8 @@ export const user = sqliteTable("User", {
     walletCompletedAt: integer("walletCompletedAt", { mode: "timestamp" }), // completion time
     walletError: text("walletError"), // error message on failure
     walletRetryCount: integer("walletRetryCount").notNull().default(0), // retry count (max 3)
+    /** Phase 3-1: BASIC+ 주 1회 무료 선톡 쿼터. 해당 주에 무료 선톡 사용한 시각. */
+    lastFreePresendAt: integer("lastFreePresendAt", { mode: "timestamp" }),
 });
 
 export const account = sqliteTable("account", {

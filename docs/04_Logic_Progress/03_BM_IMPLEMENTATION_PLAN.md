@@ -446,7 +446,7 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 - [x] 알림 → 채팅방: 푸시 payload에 `url: /chat/{conversationId}` (`lib/push.server.ts`)
 - [x] 선톡 티켓 차감: 비구독자만 `presend_ticket` 1개 차감
 - [x] GitHub Actions: `.github/workflows/presend.yml` (매일 09:00 KST)
-- [ ] 주 1회 무료 선톡 제한 (BASIC+): 추후 주간 쿼터 로직 추가 가능
+- [x] 주 1회 무료 선톡 제한 (BASIC+): `User.lastFreePresendAt` + Luxon 주간(KST) 판별, 초과 시 티켓 사용
 
 ---
 
@@ -479,11 +479,11 @@ ELEVENLABS_VOICE_ID_CHOONSIM=
 
 **체크리스트**:
 - [ ] ElevenLabs 계정 생성 및 춘심이 Voice ID 확보
-- [ ] `lib/elevenlabs.server.ts` 구현
-- [ ] `routes/api/voice/generate.ts` 구현
-- [ ] 채팅 말풍선에 보이스 버튼 UI 추가
-- [ ] 보이스 티켓 차감 + 재생 흐름 연동
-- [ ] 오디오 캐싱 (동일 텍스트 중복 생성 방지)
+- [x] `lib/elevenlabs.server.ts` 구현
+- [x] `routes/api/voice/generate.ts` 구현
+- [x] 채팅 말풍선에 보이스 버튼 UI 추가
+- [x] 보이스 티켓 차감 + 재생 흐름 연동
+- [ ] 오디오 캐싱 (동일 텍스트 중복 생성 방지): 추후 선택 구현
 
 ---
 

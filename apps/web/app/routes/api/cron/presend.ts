@@ -1,10 +1,12 @@
 /**
  * Phase 3-1: 선톡 Cron — 캐릭터가 먼저 DM
  * 선톡 티켓 보유 또는 BASIC+ 구독 유저에게 AI 선톡 메시지 전송 + Web Push.
+ * BASIC+ 구독자는 주 1회 무료 선톡(쿼터), 초과 시 티켓 사용.
  *
  * Related: docs/04_Logic_Progress/03_BM_IMPLEMENTATION_PLAN.md Phase 3-1
  */
 import type { LoaderFunctionArgs } from "react-router";
+import { DateTime } from "luxon";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, desc, and, gt, inArray, sql } from "drizzle-orm";
@@ -57,6 +59,8 @@ async function runPresend(): Promise<number> {
   const targetUserIds = new Set([...subscriberIds, ...ticketUserIds]);
   if (targetUserIds.size === 0) return 0;
 
+  const weekStartKst = DateTime.now().setZone("Asia/Seoul").startOf("week");
+
   const users = await db.query.user.findMany({
     where: inArray(schema.user.id, Array.from(targetUserIds)),
     columns: {
@@ -65,11 +69,22 @@ async function runPresend(): Promise<number> {
       pushSubscription: true,
       subscriptionTier: true,
       bio: true,
+      lastFreePresendAt: true,
     },
   });
 
   let sent = 0;
   for (const user of users) {
+    const isSubscriber = user.subscriptionTier && SUBSCRIBER_TIERS.includes(user.subscriptionTier);
+    const hasTicket = ticketUserIds.has(user.id);
+    const usedFreeThisWeek =
+      isSubscriber &&
+      user.lastFreePresendAt &&
+      DateTime.fromJSDate(user.lastFreePresendAt).setZone("Asia/Seoul") >= weekStartKst;
+    const canUseFree = isSubscriber && !usedFreeThisWeek;
+    const canUseTicket = hasTicket;
+    if (!canUseFree && !canUseTicket) continue;
+
     try {
       const conversation = await db.query.conversation.findFirst({
         where: eq(schema.conversation.userId, user.id),
@@ -126,8 +141,12 @@ async function runPresend(): Promise<number> {
         url: `/chat/${conv.id}`,
       });
 
-      const isSubscriber = user.subscriptionTier && SUBSCRIBER_TIERS.includes(user.subscriptionTier);
-      if (!isSubscriber && ticketUserIds.has(user.id)) {
+      if (canUseFree) {
+        await db
+          .update(schema.user)
+          .set({ lastFreePresendAt: new Date(), updatedAt: new Date() })
+          .where(eq(schema.user.id, user.id));
+      } else if (canUseTicket) {
         await db
           .update(schema.userInventory)
           .set({
