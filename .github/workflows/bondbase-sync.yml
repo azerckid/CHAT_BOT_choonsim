@@ -1,0 +1,23 @@
+name: BondBase Sync
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 매시간 정각 (UTC 기준)
+  workflow_dispatch:       # 수동 트리거 (테스트용)
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call bondbase-sync
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/bondbase-sync")
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Cron failed with status $STATUS"
+            exit 1
+          fi

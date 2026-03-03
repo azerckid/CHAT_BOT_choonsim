@@ -1,0 +1,23 @@
+name: CTC EVM Sweep
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # 10분마다
+  workflow_dispatch:          # 수동 트리거 (테스트용)
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call ctc-sweep
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.APP_URL }}/api/cron/ctc-sweep")
+          echo "HTTP Status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Cron failed with status $STATUS"
+            exit 1
+          fi

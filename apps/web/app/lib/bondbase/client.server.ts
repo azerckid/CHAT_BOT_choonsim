@@ -28,8 +28,7 @@ export async function sendRevenue(
         body: JSON.stringify({
             bondId,
             type: "REVENUE",
-            // TODO: BondBase 팀에 data.source 허용 값 확인 필요
-            data: { amount: amountUsdc, source: "SUBSCRIPTION", description },
+            data: { amount: amountUsdc, source: "CHOCO_CONSUMPTION", description },
         }),
     });
 
