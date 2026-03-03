@@ -537,6 +537,7 @@ export default function ChatRoom() {
         }),
       });
 
+      if (response.status === 402) return; // useX402가 PaymentSheet 열음, 별도 throw 없음
       if (!response.ok) throw new Error("AI 응답 요청 실패");
 
       setIsOptimisticTyping(false); // 응답 시작되면 낙관적 타이핑 해제 (스트리밍 버블이 대신함)
@@ -560,7 +561,7 @@ export default function ChatRoom() {
                 const data = JSON.parse(line.slice(6));
                 if (data.error && data.code === 402) {
                   toast.error("CHOCO 잔액이 부족합니다.", {
-                    action: { label: "안내 보기", onClick: () => window.location.href = "/guide#earn" },
+                    action: { label: "CHOCO 충전하기", onClick: () => window.location.href = "/profile/subscription" },
                   });
                   setIsAiStreaming(false);
                   setIsOptimisticTyping(false);

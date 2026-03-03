@@ -308,9 +308,10 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 
 **체크리스트**:
 - [ ] 잔액 0인 계정으로 채팅 시도 → 402 응답 확인
-- [ ] 프론트에서 `X-x402-Token` 헤더 감지 → Shop/충전 모달 표시
-- [ ] 충전 후 대화 재개 흐름 확인
-- [ ] 버그 있으면 `routes/api/chat/index.ts` + 프론트 채팅 컴포넌트 수정
+- [x] 프론트에서 402 시 PaymentSheet(충전 모달) 표시 — `useX402` 훅 + `routes/chat/$id.tsx` 402 조기 return 처리
+- [x] 스트리밍 중 402 토스트 액션을 "CHOCO 충전하기" → `/profile/subscription` 으로 통일
+- [ ] 충전 후 대화 재개 흐름 확인 (수동 E2E)
+- [x] 버그 수정: 402 응답 시 throw 제거하여 PaymentSheet만 노출되도록 처리
 
 ---
 
