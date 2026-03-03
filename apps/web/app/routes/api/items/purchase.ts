@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { ITEMS } from "~/lib/items";
 import { z } from "zod";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";

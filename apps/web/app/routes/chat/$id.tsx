@@ -64,7 +64,7 @@ const PAYWALL_TRIGGER_CONFIG: Record<string, {
     itemName: "보이스 티켓",
     itemId: "voice_ticket",
     icon: "record_voice_over",
-    price: 1500,
+    price: 500,
   },
 };
 
