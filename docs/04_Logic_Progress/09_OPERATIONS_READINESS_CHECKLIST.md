@@ -1,0 +1,93 @@
+# 운영 준비 체크리스트
+
+> Created: 2026-02-11
+> Last Updated: 2026-02-11
+
+**목적**: Phase 0-4(CTC Deposit), Phase 1-1(Shop 시드), Phase 1-2(402 E2E)를 권장 순서대로 정리한다.
+
+**관련 문서**: [03_BM_IMPLEMENTATION_PLAN.md](./03_BM_IMPLEMENTATION_PLAN.md)
+
+---
+
+## 권장 진행 순서
+
+| 순서 | 단계 | 내용 | 완료 |
+|------|------|------|------|
+| 1 | Phase 0-4 | CTC Deposit Engine 환경변수 및 로컬 테스트 | [ ] |
+| 2 | Phase 1-1 | Shop 아이템 시드 실행 | [ ] |
+| 3 | Phase 1-2 | 402 흐름 E2E 수동 검증 | [ ] |
+
+---
+
+## 1. Phase 0-4: CTC Deposit Engine
+
+상세 절차는 [05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md](./05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md) 참조.
+
+### 1.1 환경변수 (`.env.development` 또는 `.env`)
+
+```
+CTC_RPC_URL=https://...
+CTC_TREASURY_ADDRESS=0x...
+CRON_SECRET=your-secret-string
+CTC_PRICE_API_URL=...  # 선택
+```
+
+### 1.2 체크리스트
+
+- [ ] `CTC_RPC_URL`, `CTC_TREASURY_ADDRESS`, `CRON_SECRET` 로컬 설정
+- [ ] (선택) `CTC_PRICE_API_URL` 설정
+- [ ] Vercel 대시보드에 동일 변수 추가
+- [ ] 로컬에서 `/api/cron/ctc-sweep` 수동 호출 테스트 (05 문서 Step 5~6)
+
+---
+
+## 2. Phase 1-1: Shop 아이템 시드
+
+### 2.1 시드 실행
+
+```bash
+cd apps/web
+npx tsx scripts/seed-shop-items.ts
+```
+
+- 8종 아이템(memory_ticket, voice_ticket, secret_episode, memory_album, ticket_msg_10, ticket_msg_50, presend_ticket, heart) upsert
+- DB `Item` 테이블에 `ON CONFLICT DO UPDATE`로 idempotent 실행
+
+### 2.2 체크리스트
+
+- [ ] 시드 스크립트 실행 완료
+- [ ] Admin `/admin/items`에서 8종 아이템 노출 확인
+- [ ] 페이월 트리거 ID (`memory_ticket`, `voice_ticket`, `secret_episode`, `memory_album`)와 일치 확인
+
+---
+
+## 3. Phase 1-2: 402 흐름 E2E 검증
+
+### 3.1 사전 조건
+
+- CHOCO 잔액이 부족한 테스트 유저 (또는 대화 수 차감 후 잔액 0)
+- Shop 아이템 시드 완료 (Phase 1-1)
+
+### 3.2 검증 시나리오
+
+| 단계 | 동작 | 확인 |
+|------|------|------|
+| 1 | 채팅 중 크레딧 소진 또는 페이월 트리거 발생 | 402 응답 |
+| 2 | PaymentSheet(또는 잔액 부족 모달) 노출 | "CHOCO 충전하기" 등 CTA 표시 |
+| 3 | `/profile/subscription` 이동 후 CHOCO 충전 | 결제·적립 정상 |
+| 4 | 채팅으로 복귀 후 대화 재개 | 응답 정상 |
+| 5 | 모달 닫기 후 대화 흐름 | 오류 없이 재개 |
+
+### 3.3 체크리스트
+
+- [ ] 402 시 PaymentSheet만 노출 (추가 에러 토스트 없음)
+- [ ] "CHOCO 충전하기" → `/profile/subscription` 이동
+- [ ] 충전 후 대화 재개 흐름 확인
+- [ ] 모달 닫기 후 대화 정상 재개
+
+---
+
+## Related Documents
+
+- [05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md](./05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md) — Phase 0-4 상세
+- [08_SHOP_ITEMS_IMPLEMENTATION_PRIORITY.md](./08_SHOP_ITEMS_IMPLEMENTATION_PRIORITY.md) — Shop 아이템 우선순위
