@@ -111,7 +111,8 @@ curl -X GET "http://localhost:5173/api/cron/ctc-sweep" \
   -H "X-Cron-Secret: YOUR_CRON_SECRET"
 ```
 
-- [ ] 200 OK 응답 및 `{ "ok": true, "processed": N, "errors": 0 }` 형태 확인
+- [ ] 200 OK 응답 및 `{ "ok": true, "processed": N, "errors": 0 }` 형태 확인  
+  (편의 스크립트: `npx tsx scripts/test-ctc-sweep.ts` — 로컬 서버 실행 후 실행)
 
 #### Step 6: DB 및 결과 검증
 

@@ -20,6 +20,7 @@
 **검증 스크립트**:
 - `npx tsx scripts/verify-shop-items.ts` — 8종 아이템 존재 확인
 - `npx tsx scripts/verify-ctc-env.ts` — Phase 0-4 환경변수 설정 확인
+- `npx tsx scripts/test-ctc-sweep.ts` — ctc-sweep API 호출 테스트 (로컬 서버 실행 후)
 
 ---
 
@@ -41,7 +42,7 @@ CTC_PRICE_API_URL=...  # 선택
 - [x] `CTC_RPC_URL`, `CTC_TREASURY_ADDRESS`, `CRON_SECRET` 로컬 설정
 - [ ] (선택) `CTC_PRICE_API_URL` 설정
 - [ ] Vercel 대시보드에 동일 변수 추가
-- [ ] 로컬에서 `/api/cron/ctc-sweep` 수동 호출 테스트 (05 문서 Step 5~6)
+- [x] 로컬에서 `/api/cron/ctc-sweep` 수동 호출 테스트 (`npx tsx scripts/test-ctc-sweep.ts`)
 
 ---
 
