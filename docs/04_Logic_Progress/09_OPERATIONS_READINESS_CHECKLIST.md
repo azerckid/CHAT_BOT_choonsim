@@ -1,7 +1,7 @@
 # 운영 준비 체크리스트
 
 > Created: 2026-02-11
-> Last Updated: 2026-02-11
+> Last Updated: 2026-02-11 (Phase 0-4 env 확인 완료)
 
 **목적**: Phase 0-4(CTC Deposit), Phase 1-1(Shop 시드), Phase 1-2(402 E2E)를 권장 순서대로 정리한다.
 
@@ -13,7 +13,7 @@
 
 | 순서 | 단계 | 내용 | 완료 |
 |------|------|------|------|
-| 1 | Phase 0-4 | CTC Deposit Engine 환경변수 및 로컬 테스트 | [ ] |
+| 1 | Phase 0-4 | CTC Deposit Engine 환경변수 및 로컬 테스트 | [x] |
 | 2 | Phase 1-1 | Shop 아이템 시드 실행 | [x] |
 | 3 | Phase 1-2 | 402 흐름 E2E 수동 검증 | [ ] |
 
@@ -38,7 +38,7 @@ CTC_PRICE_API_URL=...  # 선택
 
 ### 1.2 체크리스트
 
-- [ ] `CTC_RPC_URL`, `CTC_TREASURY_ADDRESS`, `CRON_SECRET` 로컬 설정
+- [x] `CTC_RPC_URL`, `CTC_TREASURY_ADDRESS`, `CRON_SECRET` 로컬 설정
 - [ ] (선택) `CTC_PRICE_API_URL` 설정
 - [ ] Vercel 대시보드에 동일 변수 추가
 - [ ] 로컬에서 `/api/cron/ctc-sweep` 수동 호출 테스트 (05 문서 Step 5~6)
@@ -82,7 +82,17 @@ npx tsx scripts/seed-shop-items.ts
 | 4 | 채팅으로 복귀 후 대화 재개 | 응답 정상 |
 | 5 | 모달 닫기 후 대화 흐름 | 오류 없이 재개 |
 
-### 3.3 체크리스트
+### 3.3 상세 절차
+
+1. 로컬 또는 배포 환경에서 앱 실행
+2. CHOCO 잔액 0인 계정으로 로그인 (또는 대화로 크레딧 소진)
+3. 채팅에서 메시지 전송 → 402 응답 시 PaymentSheet/잔액 부족 모달 표시 확인
+4. "CHOCO 충전하기" 클릭 → `/profile/subscription` 이동 확인
+5. Toss/PayPal 등으로 충전 → CHOCO 적립 확인
+6. 채팅으로 복귀 → 대화 재개 정상 동작 확인
+7. 모달 닫기 후에도 추가 에러 없이 채팅 가능한지 확인
+
+### 3.4 체크리스트
 
 - [ ] 402 시 PaymentSheet만 노출 (추가 에러 토스트 없음)
 - [ ] "CHOCO 충전하기" → `/profile/subscription` 이동

@@ -4,9 +4,15 @@
  * 값은 출력하지 않음 (보안)
  */
 import * as dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
-dotenv.config({ path: ".env.development" });
-dotenv.config({ path: ".env" });
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const webDir = join(__dirname, "..");
+
+dotenv.config({ path: join(webDir, ".env.development") });
+dotenv.config({ path: join(webDir, ".env") });
+dotenv.config({ path: join(webDir, ".env.production"), override: true });
 
 const REQUIRED = ["CTC_RPC_URL", "CTC_TREASURY_ADDRESS", "CRON_SECRET"] as const;
 const OPTIONAL = ["CTC_PRICE_API_URL"] as const;
