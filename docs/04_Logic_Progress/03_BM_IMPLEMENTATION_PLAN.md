@@ -277,6 +277,8 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 **담당**: 운영팀 (개발자 불필요)
 **경로**: `/admin/items/new`
 
+**우선순위·입력 스펙 상세**: [08_SHOP_ITEMS_IMPLEMENTATION_PRIORITY.md](./08_SHOP_ITEMS_IMPLEMENTATION_PRIORITY.md)
+
 입력할 아이템 목록 및 권장 ID:
 
 > [!IMPORTANT]
