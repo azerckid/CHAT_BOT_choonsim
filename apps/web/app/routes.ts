@@ -77,6 +77,7 @@ export default [
   route("payment/toss/success", "routes/payment.toss.success.tsx"),
   route("payment/toss/fail", "routes/payment.toss.fail.tsx"),
   route("api/items/purchase", "routes/api/items/purchase.ts"),
+  route("api/voice/generate", "routes/api/voice/generate.ts"),
   route("api/payment/coinbase/create-charge", "routes/api/payment/coinbase/create-charge.ts"),
   route("api/webhooks/coinbase", "routes/api/webhooks/coinbase.ts"),
   route("api/payment/solana/create-request", "routes/api/payment/solana/create-request.ts"),

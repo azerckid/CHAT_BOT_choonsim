@@ -269,6 +269,8 @@ export default function ChatRoom() {
   const [isInterrupting, setIsInterrupting] = useState(false);
   const [paywallTrigger, setPaywallTrigger] = useState<string | null>(null);
   const [isPaywallPurchasing, setIsPaywallPurchasing] = useState(false);
+  const [voiceConfirmMessageId, setVoiceConfirmMessageId] = useState<string | null>(null);
+  const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   // Add heart burst state
 
@@ -833,6 +835,8 @@ export default function ChatRoom() {
                 auraStyle={msg.role === "assistant" ? EMOTION_MAP[currentEmotion]?.style : undefined}
                 timestamp={new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 isLiked={msg.isLiked || false}
+                showVoiceButton={msg.role === "assistant"}
+                onPlayVoice={(messageId) => setVoiceConfirmMessageId(messageId)}
                 onLike={async (messageId, liked) => {
                   try {
                     const response = await fetch(`/api/messages/${messageId}/like`, {
@@ -897,6 +901,71 @@ export default function ChatRoom() {
         paypalClientId={paypalClientId}
         tossClientKey={tossClientKey}
       />
+
+      {/* Phase 3-2: 보이스 티켓 사용 확인 모달 */}
+      <AlertDialog
+        open={!!voiceConfirmMessageId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setVoiceConfirmMessageId(null);
+            setIsVoiceLoading(false);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>목소리로 들기</AlertDialogTitle>
+            <AlertDialogDescription>
+              보이스 티켓 1개를 사용해 이 메시지를 춘심이 목소리로 들을까요?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isVoiceLoading}>취소</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isVoiceLoading}
+              onClick={async () => {
+                if (!voiceConfirmMessageId) return;
+                setIsVoiceLoading(true);
+                try {
+                  const res = await fetch("/api/voice/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messageId: voiceConfirmMessageId }),
+                  });
+                  if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    const msg = (data as { error?: string })?.error ?? "음성 생성에 실패했습니다.";
+                    toast.error(msg);
+                    setVoiceConfirmMessageId(null);
+                    return;
+                  }
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const audio = new Audio(url);
+                  await audio.play();
+                  URL.revokeObjectURL(url);
+                  revalidator.revalidate();
+                } catch (e) {
+                  console.error("Voice play error:", e);
+                  toast.error("재생할 수 없습니다.");
+                } finally {
+                  setIsVoiceLoading(false);
+                  setVoiceConfirmMessageId(null);
+                }
+              }}
+            >
+              {isVoiceLoading ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  생성 중...
+                </>
+              ) : (
+                "들기"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete Confirmation Modal */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

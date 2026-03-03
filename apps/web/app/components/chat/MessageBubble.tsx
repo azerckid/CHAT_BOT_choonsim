@@ -13,6 +13,10 @@ interface MessageBubbleProps {
   messageId?: string;
   isLiked?: boolean;
   onLike?: (messageId: string, currentLiked: boolean) => void;
+  /** Phase 3-2: AI 메시지에 보이스 재생 버튼 표시 여부 */
+  showVoiceButton?: boolean;
+  /** Phase 3-2: 보이스 재생 요청 (messageId로 API 호출 후 재생) */
+  onPlayVoice?: (messageId: string) => void;
   auraClass?: string;
   auraOpacity?: number;
   auraStyle?: React.CSSProperties;
@@ -31,6 +35,8 @@ export function MessageBubble({
   messageId,
   isLiked = false,
   onLike,
+  showVoiceButton = false,
+  onPlayVoice,
   auraClass,
   auraOpacity = 1,
   auraStyle,
@@ -98,7 +104,7 @@ export function MessageBubble({
               src={avatarUrl}
             />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40" />
+            <div className="w-full h-full bg-linear-to-br from-primary/20 to-primary/40" />
           )}
         </div>
       )}
@@ -124,6 +130,16 @@ export function MessageBubble({
             <span className="text-[11px] text-gray-400 dark:text-white/30">
               {timestamp}
             </span>
+            {showVoiceButton && messageId && onPlayVoice && (
+              <button
+                type="button"
+                onClick={() => onPlayVoice(messageId)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
+                title="목소리로 들기"
+              >
+                <span className="material-symbols-outlined text-[18px]">record_voice_over</span>
+              </button>
+            )}
             {messageId && onLike && (
               <button
                 onClick={handleLike}
@@ -142,21 +158,35 @@ export function MessageBubble({
             )}
           </div>
         )}
-        {!timestamp && messageId && onLike && (
-          <button
-            onClick={handleLike}
-            className={cn(
-              "opacity-0 group-hover:opacity-100 transition-opacity p-1 ml-1",
-              isLiked
-                ? "opacity-100 text-primary"
-                : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
+        {!timestamp && (showVoiceButton && messageId && onPlayVoice || messageId && onLike) && (
+          <div className="flex items-center gap-0 ml-1">
+            {showVoiceButton && messageId && onPlayVoice && (
+              <button
+                type="button"
+                onClick={() => onPlayVoice(messageId)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
+                title="목소리로 들기"
+              >
+                <span className="material-symbols-outlined text-[18px]">record_voice_over</span>
+              </button>
             )}
-          >
-            <span className={cn(
-              "material-symbols-outlined text-[18px]",
-              isLiked && "fill"
-            )}>favorite</span>
-          </button>
+            {messageId && onLike && (
+              <button
+                onClick={handleLike}
+                className={cn(
+                  "opacity-0 group-hover:opacity-100 transition-opacity p-1",
+                  isLiked
+                    ? "opacity-100 text-primary"
+                    : "text-gray-400 dark:text-gray-600 hover:text-primary dark:hover:text-primary"
+                )}
+              >
+                <span className={cn(
+                  "material-symbols-outlined text-[18px]",
+                  isLiked && "fill"
+                )}>favorite</span>
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
