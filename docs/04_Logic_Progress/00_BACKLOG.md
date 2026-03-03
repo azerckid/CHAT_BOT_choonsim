@@ -1,6 +1,6 @@
 # 프로젝트 백로그 (Project Backlog)
 > Created: 2026-02-08 17:59
-> Last Updated: 2026-02-22 (i18n, Today's Pick 매일 교체, Gallery 수정 반영)
+> Last Updated: 2026-03-03 (크론 외부 스케줄러 마이그레이션 완료)
 
 본 문서는 프로젝트의 현재 진행 상황과 향후 계획을 칸반 형태로 관리하는 실행 로직 문서입니다.
 
@@ -13,6 +13,15 @@ _(현재 진행 중인 작업 없음)_
 ---
 
 ## 📅 Upcoming (예정)
+
+### ~~0-a. 크론 작업 외부 스케줄러 마이그레이션~~ ✅ 완료 (2026-03-03)
+- **방식**: GitHub Actions `schedule` 트리거 사용
+- **완료 내역**:
+  - `.github/workflows/bondbase-sync.yml` — 매시간 BondBase 수익 동기화
+  - `.github/workflows/ctc-sweep.yml` — 10분마다 CTC EVM 스윕
+  - GitHub Secrets: `CRON_SECRET`, `APP_URL` 등록 완료
+  - HTTP Status 200 수동 테스트 확인 완료
+- **관련 문서**: [07_GITHUB_ACTIONS_CRON_SETUP.md](./07_GITHUB_ACTIONS_CRON_SETUP.md)
 
 ### 0. NEAR 잔여 제거 (UI·코드·DB)
 - **목표**: 사용자·관리자에게 NEAR 노출 없음, 코드·DB에서 near 관련 식별자 제거.
