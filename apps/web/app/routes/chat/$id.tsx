@@ -836,7 +836,7 @@ export default function ChatRoom() {
                 timestamp={new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 isLiked={msg.isLiked || false}
                 showVoiceButton={msg.role === "assistant"}
-                onPlayVoice={(messageId) => setVoiceConfirmMessageId(messageId)}
+                onPlayVoice={() => toast.info("보이스 메시지 기능은 준비 중입니다.")}
                 onLike={async (messageId, liked) => {
                   try {
                     const response = await fetch(`/api/messages/${messageId}/like`, {
