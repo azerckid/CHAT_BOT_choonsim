@@ -97,7 +97,7 @@ export async function action({ request }: ActionFunctionArgs) {
             )
         );
 
-    return new Response(audioBuffer, {
+    return new Response(new Uint8Array(audioBuffer), {
         status: 200,
         headers: {
             "Content-Type": "audio/mpeg",

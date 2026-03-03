@@ -296,9 +296,11 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 | 우정 앨범 생성 | `memory_album` | ALBUM | 2,000 | 월간 대화 앨범 생성 |
 
 **체크리스트**:
-- [ ] `/admin/items/new` 에서 필수 ID를 지정하여 아이템 입력
-- [ ] 각 아이템 `isActive: true` 설정
+- [x] 시드 스크립트 실행 (`npx tsx scripts/seed-shop-items.ts`) — 8종 아이템 upsert 완료
+- [ ] (선택) Admin에서 추가 수정 필요 시 `/admin/items` 에서 확인
 - [ ] `/shop` 에서 정상 노출 확인
+
+운영 준비 전체 순서: [09_OPERATIONS_READINESS_CHECKLIST.md](./09_OPERATIONS_READINESS_CHECKLIST.md)
 
 ---
 
@@ -510,11 +512,11 @@ ELEVENLABS_VOICE_ID_CHOONSIM=
    - PDF 생성 → Vercel Blob 저장 → 다운로드 URL 반환
 
 **체크리스트**:
-- [ ] PDF 생성 라이브러리 선택 및 설치
-- [ ] 대화 선별 알고리즘 구현
-- [ ] 앨범 PDF 템플릿 디자인
-- [ ] `routes/api/album/generate.ts` 구현
-- [ ] 프로필 페이지에 "내 대화 앨범" 섹션 추가
+- [x] PDF 생성 라이브러리: @react-pdf/renderer
+- [x] 대화 선별 알고리즘: `lib/album-generator.server.ts` (최근 30일, 최대 80건)
+- [x] 앨범 PDF 템플릿: `lib/album-pdf-document.tsx` (말풍선 레이아웃)
+- [x] `routes/api/album/generate.ts` 구현
+- [x] 프로필 페이지 "내 대화 앨범" 섹션 추가
 
 ---
 
@@ -557,6 +559,7 @@ ELEVENLABS_VOICE_ID_CHOONSIM=
 ---
 
 ## Related Documents
+- **Logic_Progress**: [09_OPERATIONS_READINESS_CHECKLIST.md](./09_OPERATIONS_READINESS_CHECKLIST.md) — Phase 0-4, 1-1, 1-2 운영 준비 순서
 - **Concept_Design**: [Monetization Strategy](../01_Concept_Design/19_MONETIZATION_STRATEGY.md) - 수익화 전략 원본
 - **Concept_Design**: [Core Pitch Deck](../01_Concept_Design/00_CORE_PITCH_DECK.md) - 투자자 비전 및 목표 수치
 - **Technical_Specs**: [CHOCO Guide Page Spec](../03_Technical_Specs/23_choco-guide-page-spec.md) - 가이드 페이지 상세 스펙

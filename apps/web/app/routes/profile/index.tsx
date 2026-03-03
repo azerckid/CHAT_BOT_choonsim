@@ -3,7 +3,7 @@ import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate } from "react-router";
+import { useLoaderData, useNavigate, useRevalidator } from "react-router";
 import { signOut } from "~/lib/auth-client";
 import { toast } from "sonner";
 import { DateTime } from "luxon";
@@ -75,6 +75,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
     where: and(
       eq(schema.userInventory.userId, session.user.id),
       eq(schema.userInventory.itemId, "heart")
+    ),
+  });
+
+  // 대화 앨범 티켓 보유량 (Phase 4-1)
+  const albumInventory = await db.query.userInventory.findFirst({
+    where: and(
+      eq(schema.userInventory.userId, session.user.id),
+      eq(schema.userInventory.itemId, "memory_album")
     ),
   });
 
@@ -163,21 +171,24 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
   const tossClientKey = process.env.TOSS_CLIENT_KEY;
 
-  return Response.json({ user, stats, todayUsage, mainCharacterName, paypalClientId, tossClientKey });
+  return Response.json({ user, stats, todayUsage, mainCharacterName, albumTickets: albumInventory?.quantity ?? 0, paypalClientId, tossClientKey });
 }
 
 export default function ProfileScreen() {
-  const { user, stats, todayUsage, mainCharacterName, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as {
+  const { user, stats, todayUsage, mainCharacterName, albumTickets, paypalClientId, tossClientKey } = useLoaderData<typeof loader>() as {
     user: any;
     stats: any;
     todayUsage: { totalTokens: number; promptTokens: number; completionTokens: number; messageCount: number };
     mainCharacterName: string;
+    albumTickets?: number;
     paypalClientId?: string;
     tossClientKey?: string;
   };
   const navigate = useNavigate();
+  const revalidator = useRevalidator();
   const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
   const [isItemStoreOpen, setIsItemStoreOpen] = useState(false);
+  const [isAlbumGenerating, setIsAlbumGenerating] = useState(false);
 
   // 토큰 수를 읽기 쉬운 형식으로 포맷팅 (예: 1.2K, 5.3M)
   const formatTokenCount = (count: number): string => {
@@ -393,6 +404,55 @@ export default function ProfileScreen() {
           <div>
             <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 ml-2">나의 활동</h3>
             <div className="bg-surface-dark border border-white/5 rounded-2xl overflow-hidden">
+              {/* 내 대화 앨범 (Phase 4-1) */}
+              <button
+                disabled={isAlbumGenerating || (albumTickets ?? 0) <= 0}
+                onClick={async () => {
+                  if ((albumTickets ?? 0) <= 0) {
+                    toast.error("대화 앨범 티켓이 없습니다. 상점에서 구매해 주세요.");
+                    return;
+                  }
+                  setIsAlbumGenerating(true);
+                  try {
+                    const res = await fetch("/api/album/generate", { method: "POST" });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      toast.error((data as { error?: string })?.error ?? "앨범 생성에 실패했습니다.");
+                      return;
+                    }
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `album-${new Date().toISOString().slice(0, 10)}.pdf`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    revalidator.revalidate();
+                    toast.success("대화 앨범이 다운로드되었습니다.");
+                  } catch (e) {
+                    toast.error("앨범 생성 중 오류가 발생했습니다.");
+                  } finally {
+                    setIsAlbumGenerating(false);
+                  }
+                }}
+                className="w-full flex items-center gap-4 p-4 hover:bg-white/5 transition-colors group text-left disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center justify-center shrink-0 size-10 rounded-xl bg-amber-500/20 text-amber-400 group-hover:bg-amber-500 group-hover:text-white transition-colors">
+                  <span className="material-symbols-outlined">photo_album</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-semibold text-white truncate">내 대화 앨범</p>
+                  <p className="text-xs text-white/50 truncate">
+                    최근 30일 대화 PDF 생성 {(albumTickets ?? 0) > 0 ? `(보유 ${albumTickets}장)` : ""}
+                  </p>
+                </div>
+                {isAlbumGenerating ? (
+                  <span className="material-symbols-outlined text-white/50 animate-spin">progress_activity</span>
+                ) : (
+                  <span className="material-symbols-outlined text-white/30">download</span>
+                )}
+              </button>
+              <div className="h-px bg-white/5 mx-4" />
               {/* List Item */}
               <button
                 onClick={() => navigate("/profile/saved")}

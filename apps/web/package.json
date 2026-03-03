@@ -26,6 +26,7 @@
     "@libsql/client": "^0.15.15",
     "@paypal/checkout-server-sdk": "^1.0.3",
     "@paypal/react-paypal-js": "^8.9.2",
+    "@react-pdf/renderer": "^4.3.2",
     "@react-router/dev": "7.10.1",
     "@react-router/node": "7.10.1",
     "@react-router/serve": "7.10.1",
