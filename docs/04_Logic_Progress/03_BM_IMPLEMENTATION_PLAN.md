@@ -439,12 +439,14 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 - `db/schema.ts` — PushSubscription 테이블 추가 필요
 
 **체크리스트**:
-- [ ] PushSubscription DB 테이블 추가 + 마이그레이션
-- [ ] Web Push 구독 등록 API (`/api/push/subscribe`)
-- [ ] Cron API 구현 (`/api/cron/presend`)
-- [ ] 선톡 메시지 AI 생성 로직 (캐릭터 컨텍스트 기반)
-- [ ] 알림 → 채팅방 딥링크
-- [ ] 선톡 티켓 차감 로직 연동
+- [x] PushSubscription: User.pushSubscription 컬럼 사용 (별도 테이블 없음)
+- [x] Web Push 구독 등록 API: `/api/push-subscription` (POST) 기존 구현
+- [x] Cron API 구현: `routes/api/cron/presend.ts` (CRON_SECRET 인증, 선톡 티켓/BASIC+ 대상)
+- [x] 선톡 메시지 AI 생성: `generateProactiveMessage` (캐릭터 컨텍스트·bio 기반)
+- [x] 알림 → 채팅방: 푸시 payload에 `url: /chat/{conversationId}` (`lib/push.server.ts`)
+- [x] 선톡 티켓 차감: 비구독자만 `presend_ticket` 1개 차감
+- [x] GitHub Actions: `.github/workflows/presend.yml` (매일 09:00 KST)
+- [ ] 주 1회 무료 선톡 제한 (BASIC+): 추후 주간 쿼터 로직 추가 가능
 
 ---
 
