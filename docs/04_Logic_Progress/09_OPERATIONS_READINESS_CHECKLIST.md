@@ -14,8 +14,12 @@
 | 순서 | 단계 | 내용 | 완료 |
 |------|------|------|------|
 | 1 | Phase 0-4 | CTC Deposit Engine 환경변수 및 로컬 테스트 | [ ] |
-| 2 | Phase 1-1 | Shop 아이템 시드 실행 | [ ] |
+| 2 | Phase 1-1 | Shop 아이템 시드 실행 | [x] |
 | 3 | Phase 1-2 | 402 흐름 E2E 수동 검증 | [ ] |
+
+**검증 스크립트**:
+- `npx tsx scripts/verify-shop-items.ts` — 8종 아이템 존재 확인
+- `npx tsx scripts/verify-ctc-env.ts` — Phase 0-4 환경변수 설정 확인
 
 ---
 
@@ -55,7 +59,7 @@ npx tsx scripts/seed-shop-items.ts
 
 ### 2.2 체크리스트
 
-- [ ] 시드 스크립트 실행 완료
+- [x] 시드 스크립트 실행 완료
 - [ ] Admin `/admin/items`에서 8종 아이템 노출 확인
 - [ ] 페이월 트리거 ID (`memory_ticket`, `voice_ticket`, `secret_episode`, `memory_album`)와 일치 확인
 
