@@ -58,6 +58,7 @@
                 "AMADEUS_CLIENT_SECRET",
                 "ELEVENLABS_API_KEY",
                 "ELEVENLABS_VOICE_ID_CHOONSIM",
+                "ELEVENLABS_VOICE_ID_RINA",
                 "ELEVENLABS_MODEL_ID"
             ]
         },
