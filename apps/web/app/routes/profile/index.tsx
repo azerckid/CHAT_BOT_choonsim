@@ -219,7 +219,7 @@ export default function ProfileScreen() {
   return (
     <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto shadow-2xl overflow-hidden bg-background-light dark:bg-background-dark">
       {/* Background Decoration */}
-      <div className="absolute top-0 left-0 w-full h-[400px] bg-gradient-to-b from-primary/20 via-primary/5 to-transparent pointer-events-none z-0" />
+      <div className="absolute top-0 left-0 w-full h-[400px] bg-linear-to-b from-primary/20 via-primary/5 to-transparent pointer-events-none z-0" />
 
       {/* Top App Bar */}
       <header className="sticky top-0 z-50 bg-background-dark/70 backdrop-blur-md border-b border-white/5 px-4 h-14 flex items-center justify-between">
@@ -242,7 +242,7 @@ export default function ProfileScreen() {
         {/* Profile Header */}
         <section className="flex flex-col items-center pt-8 pb-6 px-6">
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-tr from-primary to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-500" />
+            <div className="absolute -inset-1 bg-linear-to-tr from-primary to-purple-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-500" />
             <div className="relative w-28 h-28 rounded-full p-[3px] bg-background-dark">
               <div
                 className="w-full h-full rounded-full bg-cover bg-center overflow-hidden border-2 border-surface-highlight"

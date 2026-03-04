@@ -30,7 +30,7 @@ async function main() {
     sql: "SELECT id, email FROM User WHERE nearAccountId IS NOT NULL AND evmAddress IS NULL",
     args: [],
   });
-  const rows: { id: string; email: string | null }[] = Array.isArray(r.rows) ? r.rows : [];
+  const rows = (Array.isArray(r.rows) ? r.rows : []) as unknown as { id: string; email: string | null }[];
 
   if (rows.length === 0) {
     console.log("No users with nearAccountId and no evmAddress. Done.");

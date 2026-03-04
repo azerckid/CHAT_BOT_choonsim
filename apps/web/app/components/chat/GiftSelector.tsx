@@ -3,6 +3,7 @@ import { cn } from "~/lib/utils";
 import { ITEMS } from "~/lib/items";
 import { LoadingSpinner } from "~/components/ui/LoadingSpinner";
 import { toast } from "sonner";
+import type { SItem, SUserInventory } from "~/lib/types/routes";
 
 interface GiftSelectorProps {
     isOpen: boolean;
@@ -10,8 +11,8 @@ interface GiftSelectorProps {
     onGift: (itemId: string, amount: number) => Promise<void>;
     onOpenStore: () => void;
     ownedHearts?: number;
-    userInventory?: any[];
-    heartItem?: any;
+    userInventory?: (SUserInventory & { item: SItem })[];
+    heartItem?: SItem;
 }
 
 export function GiftSelector({
@@ -79,12 +80,12 @@ export function GiftSelector({
 
     return (
         <div className="absolute bottom-20 left-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-4">
-            <div className="bg-[#1A1821]/95 backdrop-blur-xl border border-white/10 rounded-[32px] p-6 shadow-2xl overflow-hidden relative flex flex-col gap-4">
+            <div className="bg-[#1A1821]/95 backdrop-blur-xl border border-white/10 rounded-[32px] pt-5 px-6 pb-6 shadow-2xl overflow-hidden relative flex flex-col gap-4">
                 {/* Background Glow */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-3xl rounded-full -mr-16 -mt-16 pointer-events-none" />
 
                 {/* Header */}
-                <div className="flex justify-between items-center relative z-10 -mt-2">
+                <div className="flex justify-between items-center relative z-10">
                     <div>
                         <h3 className="text-sm font-black italic tracking-tighter text-white uppercase leading-none">
                             Gift <span className="text-primary">Inventory</span>
@@ -96,7 +97,7 @@ export function GiftSelector({
                 </div>
 
                 {/* Swiper Tabs (Horizontal List) */}
-                <div className="flex overflow-x-auto snap-x gap-3 pb-2 -mx-2 px-2 hide-scrollbar relative z-10 w-full">
+                <div className="flex overflow-x-auto snap-x gap-3 pt-2 pb-2 -mx-2 px-2 hide-scrollbar relative z-10 w-full">
                     {allItems.map(item => {
                         const isSelected = selectedItemId === item.id;
                         const isHeart = item.id === defaultHeartData.id;
@@ -153,7 +154,7 @@ export function GiftSelector({
                                 <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full group-hover:bg-primary/30 transition-all" />
                                 <div className="relative w-14 h-14 rounded-[20px] bg-[#2d1622] border border-primary/20 flex items-center justify-center overflow-hidden shadow-[inset_0_2px_10px_rgba(238,43,140,0.1)]">
                                     {isImageUrl ? (
-                                        <img src={selectedItemData.iconUrl} alt={selectedItemData.name} className="w-full h-full object-cover" />
+                                        <img src={selectedItemData.iconUrl ?? ""} alt={selectedItemData.name} className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                                             {selectedItemData.iconUrl || "favorite"}

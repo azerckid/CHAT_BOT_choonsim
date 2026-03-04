@@ -97,7 +97,7 @@ export default function AdminMissionIndex() {
                             <p className="text-white/20 font-black italic tracking-widest uppercase">No missions configured</p>
                         </div>
                     ) : (
-                        (missions as any[]).map((m) => (
+                        missions.map((m) => (
                             <div key={m.id} className="bg-[#1A1821] border border-white/5 rounded-[32px] p-8 flex flex-col group hover:border-emerald-500/20 transition-all">
                                 <div className="flex justify-between items-start mb-6">
                                     <div className={cn(

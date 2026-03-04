@@ -29,7 +29,7 @@ async function main() {
     args: REQUIRED_IDS,
   });
 
-  const found = new Set(rows.map((r: { id?: string }) => r.id));
+  const found = new Set((rows as unknown as { id?: string }[]).map((r) => r.id));
   const missing = REQUIRED_IDS.filter((id) => !found.has(id));
 
   if (missing.length > 0) {
@@ -39,7 +39,7 @@ async function main() {
   }
 
   console.log("[OK] 8 shop items verified:");
-  for (const r of rows as { id: string; name: string; priceChoco: number; isActive: number }[]) {
+  for (const r of rows as unknown as { id: string; name: string; priceChoco: number; isActive: number }[]) {
     console.log(`  ${r.id} — ${r.name} (${r.priceChoco} CHOCO, isActive=${r.isActive})`);
   }
   client.close();

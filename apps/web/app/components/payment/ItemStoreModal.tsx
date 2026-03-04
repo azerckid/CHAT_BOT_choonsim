@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import type { OnApproveData, OnApproveActions } from "@paypal/paypal-js";
 import {
     Dialog,
     DialogContent,
@@ -75,7 +76,7 @@ export function ItemStoreModal({
         }
     };
 
-    const handlePayPalApprove = async (data: any, actions: any) => {
+    const handlePayPalApprove = async (data: OnApproveData, _actions: OnApproveActions) => {
         setIsProcessing(true);
         try {
             const response = await fetch("/api/payment/item/capture-order", {

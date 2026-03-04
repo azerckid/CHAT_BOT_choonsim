@@ -3,6 +3,7 @@ import * as schema from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
+import type { NoticesLoaderData } from "~/lib/types/routes";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
@@ -20,7 +21,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function NoticeListPage() {
-    const { notices } = useLoaderData<typeof loader>() as any;
+    const { notices } = useLoaderData<typeof loader>() as NoticesLoaderData;
     const navigate = useNavigate();
 
     return (
@@ -40,7 +41,7 @@ export default function NoticeListPage() {
                         <p className="text-white/20 text-xs font-bold uppercase tracking-[0.2em]">No official updates available</p>
                     </div>
                 ) : (
-                    (notices as any[]).map((notice) => (
+                    notices.map((notice) => (
                         <div
                             key={notice.id}
                             onClick={() => navigate(`/notices/${notice.id}`)}

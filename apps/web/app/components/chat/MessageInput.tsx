@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { cn } from "~/lib/utils";
 import { GiftSelector } from "./GiftSelector";
+import type { SItem, SUserInventory } from "~/lib/types/routes";
 
 interface MessageInputProps {
   onSend?: (message: string, mediaUrl?: string) => void;
@@ -8,8 +9,8 @@ interface MessageInputProps {
   onOpenStore?: () => void;
   userChocoBalance?: number;
   ownedHearts?: number;
-  userInventory?: any[];
-  heartItem?: any;
+  userInventory?: (SUserInventory & { item: SItem })[];
+  heartItem?: SItem;
   placeholder?: string;
   disabled?: boolean;
   className?: string;

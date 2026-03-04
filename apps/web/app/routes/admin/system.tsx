@@ -296,10 +296,10 @@ export default function AdminSystem() {
                                 Recent System Logs
                             </h3>
                             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                {(logs as any[]).length === 0 ? (
+                                {logs.length === 0 ? (
                                     <p className="text-center py-10 text-white/10 font-bold italic uppercase tracking-widest">No logs recorded</p>
                                 ) : (
-                                    (logs as any[]).map((log, i) => (
+                                    logs.map((log, i) => (
                                         <div key={log.id} className="group flex flex-col gap-2 p-4 bg-black/20 border border-white/5 rounded-2xl hover:border-white/10 transition-all">
                                             <div className="flex items-center gap-3">
                                                 <div className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest text-black",
@@ -340,7 +340,7 @@ export default function AdminSystem() {
                                     { name: "Daily CHOCO Refill", pattern: "Daily CHOCO Refill", icon: "database" },
                                     { name: "Proactive Service", pattern: "proactive message", icon: "send" }
                                 ].map((job) => {
-                                    const lastRun = (logs as any[]).find(l => l.message.includes(job.pattern) || l.message.toLowerCase().includes(job.pattern.toLowerCase()));
+                                    const lastRun = logs.find(l => l.message.includes(job.pattern) || l.message.toLowerCase().includes(job.pattern.toLowerCase()));
                                     const isOk = lastRun && lastRun.level !== "ERROR";
                                     return (
                                         <div key={job.name} className="flex items-center gap-4">

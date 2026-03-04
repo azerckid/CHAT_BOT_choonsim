@@ -44,14 +44,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
         }
 
         return { error: "Invalid payment type or missing data" };
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error("Toss Success Loader Error:", error);
-        return { error: error.message || "결제 승인 처리 중 오류가 발생했습니다." };
+        return { error: errorMessage || "결제 승인 처리 중 오류가 발생했습니다." };
     }
 }
 
 export default function TossSuccessPage() {
-    const data = useLoaderData<typeof loader>() as any;
+    const data = useLoaderData<typeof loader>();
     const navigate = useNavigate();
 
     useEffect(() => {

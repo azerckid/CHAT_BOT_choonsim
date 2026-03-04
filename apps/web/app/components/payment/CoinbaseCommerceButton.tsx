@@ -50,10 +50,11 @@ export function CoinbaseCommerceButton({
             } else {
                 throw new Error("결제 URL을 받을 수 없습니다.");
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             console.error("Coinbase Payment Error:", error);
-            toast.error(error.message || "암호화폐 결제 준비 중 오류가 발생했습니다.");
-            if (onError) onError(error.message);
+            toast.error(errorMessage || "암호화폐 결제 준비 중 오류가 발생했습니다.");
+            if (onError) onError(errorMessage);
         } finally {
             setIsLoading(false);
         }

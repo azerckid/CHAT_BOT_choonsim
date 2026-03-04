@@ -1,10 +1,11 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "~/components/ui/dialog";
 import { Button } from "~/components/ui/button";
 import { History } from "lucide-react";
+import type { SExchangeLog } from "~/lib/types/routes";
 
 interface WalletCardProps {
     chocoBalance: string | null;
-    history: any[];
+    history: SExchangeLog[];
     historyDialogOpen: boolean;
     onHistoryDialogChange: (open: boolean) => void;
 }

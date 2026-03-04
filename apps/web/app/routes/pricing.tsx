@@ -6,6 +6,7 @@ import { SUBSCRIPTION_PLANS, type SubscriptionPlan } from "~/lib/subscription-pl
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import type { OnApproveData, OnApproveActions } from "@paypal/paypal-js";
 import { Button } from "~/components/ui/button";
 import {
     Dialog,
@@ -84,11 +85,11 @@ export default function PricingPage() {
         setIsModalOpen(true);
     };
 
-    const handleApproveSubscription = async (data: any, actions: any) => {
+    const handleApproveSubscription = async (data: OnApproveData, _actions: OnApproveActions) => {
         if (!selectedPlan || !selectedPlan.paypalPlanId) return;
 
         const formData = new FormData();
-        formData.append("subscriptionId", data.subscriptionID);
+        formData.append("subscriptionId", data.subscriptionID ?? "");
         formData.append("planId", selectedPlan.paypalPlanId);
 
         fetcher.submit(formData, {

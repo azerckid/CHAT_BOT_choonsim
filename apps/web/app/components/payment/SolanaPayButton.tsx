@@ -43,9 +43,10 @@ export const SolanaPayButton: React.FC<SolanaPayButtonProps> = ({
             setPaymentData(data);
             setStatus("PENDING");
             startPolling(data.reference, data.paymentId);
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             console.error("Solana Pay Error:", error);
-            toast.error(error.message);
+            toast.error(errorMessage);
             setStatus("ERROR");
         } finally {
             setLoading(false);

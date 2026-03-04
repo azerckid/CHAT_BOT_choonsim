@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { PayPalButtons, PayPalScriptProvider } from "@paypal/react-paypal-js";
+import type { OnApproveData, OnApproveActions } from "@paypal/paypal-js";
 import {
     Dialog,
     DialogContent,
@@ -59,7 +60,7 @@ export function TokenTopUpModal({
         }
     }, [fetcher.data, onOpenChange, revalidator]);
 
-    const handleApprove = async (data: any, actions: any) => {
+    const handleApprove = async (data: OnApproveData, _actions: OnApproveActions) => {
         const formData = new FormData();
         formData.append("orderId", data.orderID);
         formData.append("packageId", selectedPackageId);

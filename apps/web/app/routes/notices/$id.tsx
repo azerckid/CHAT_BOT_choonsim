@@ -3,6 +3,7 @@ import * as schema from "~/db/schema";
 import { eq } from "drizzle-orm";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
+import type { NoticeDetailLoaderData } from "~/lib/types/routes";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
@@ -24,7 +25,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
 }
 
 export default function NoticeDetailPage() {
-    const { notice } = useLoaderData<typeof loader>() as any;
+    const { notice } = useLoaderData<typeof loader>() as NoticeDetailLoaderData;
     const navigate = useNavigate();
 
     return (

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, useActionData, useNavigation, Form, redirect, useNavigate } from "react-router";
+import type { ProfileEditLoaderData } from "~/lib/types/routes";
 import { auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
@@ -79,7 +80,7 @@ const DEFAULT_AVATAR =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCutVt4neD3mw-fGim_WdODfouQz3b0aaqpPfx1sNTt8N75jfKec3kNioEoZugl2D0eqVP5833PF21_hTqlDz38aVNUICprwHAM45vTdJeUPcA0mj_wzSgkMVSzYiv-RCJhNyAAZ0RlWSJQxzSa8Mi-yYPu-czB9WEbQsDFEjcAQwezmcZqtAbSB5bwyRhTTfr1y2rrxDHIFNN2G2fVmkHcCWo7uvVNjtAehxS8fgGKMbJgQ59q1ClGgD--3EuZR6f_esg0NbdGCao";
 
 export default function ProfileEditScreen() {
-  const { user } = useLoaderData<typeof loader>() as { user: any };
+  const { user } = useLoaderData<typeof loader>() as ProfileEditLoaderData;
   const actionData = useActionData() as { errors?: Record<string, string[]> } | undefined;
   const navigation = useNavigation();
   const navigate = useNavigate();

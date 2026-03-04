@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useLoaderData } from "react-router";
+import type { SettingsLoaderData } from "~/lib/types/routes";
 import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import { signOut } from "~/lib/auth-client";
@@ -46,7 +47,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function SettingsScreen() {
-  const { user } = useLoaderData<typeof loader>() as { user: any };
+  const { user } = useLoaderData<typeof loader>() as SettingsLoaderData;
   const navigate = useNavigate();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
@@ -116,8 +117,9 @@ export default function SettingsScreen() {
 
       setPrivateKey(data.privateKey);
       toast.success("프라이빗 키를 불러왔습니다. 안전하게 보관하세요.");
-    } catch (error: any) {
-      setExportError(error.message || "프라이빗 키를 가져오는데 실패했습니다.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setExportError(errorMessage || "프라이빗 키를 가져오는데 실패했습니다.");
     } finally {
       setIsLoadingPrivateKey(false);
     }

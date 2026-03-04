@@ -4,6 +4,7 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useFetcher } from "react-router";
+import type { MissionsLoaderData } from "~/lib/types/routes";
 import { BottomNavigation } from "~/components/layout/BottomNavigation";
 import { cn } from "~/lib/utils";
 import { toast } from "sonner";
@@ -100,7 +101,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function MissionsPage() {
-    const { missions } = useLoaderData<typeof loader>() as any;
+    const { missions } = useLoaderData<typeof loader>() as MissionsLoaderData;
     const navigate = useNavigate();
     const fetcher = useFetcher();
 
@@ -139,14 +140,14 @@ export default function MissionsPage() {
                         <h2 className="text-sm font-black text-white/60 uppercase tracking-[0.2em] mb-1">Today's Progress</h2>
                         <div className="flex items-baseline gap-2 mb-4">
                             <span className="text-4xl font-black text-white">
-                                {missions.filter((m: any) => m.status === "CLAIMED").length}
+                                {missions.filter((m) => m.status === "CLAIMED").length}
                             </span>
                             <span className="text-lg font-bold text-white/40">/ {missions.length}</span>
                         </div>
                         <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
                             <div
                                 className="h-full bg-primary shadow-[0_0_10px_rgba(238,43,140,0.5)] transition-all duration-1000"
-                                style={{ width: `${(missions.filter((m: any) => m.status === "CLAIMED").length / (missions.length || 1)) * 100}%` }}
+                                style={{ width: `${(missions.filter((m) => m.status === "CLAIMED").length / (missions.length || 1)) * 100}%` }}
                             />
                         </div>
                     </div>
@@ -165,7 +166,7 @@ export default function MissionsPage() {
                                 <p className="text-white/20 text-xs font-bold uppercase tracking-[0.2em]">No missions available</p>
                             </div>
                         ) : (
-                            missions.map((mission: any) => (
+                            missions.map((mission) => (
                                 <div key={mission.id} className={cn(
                                     "bg-[#1A1821] border border-white/5 rounded-2xl p-4 transition-all",
                                     mission.status === "CLAIMED" && "opacity-50 grayscale"
