@@ -9,6 +9,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { getFullContextData, deleteUserContext } from "~/lib/context/db";
 import { CHARACTERS } from "~/lib/characters";
+import { logger } from "~/lib/logger.server";
 import {
     DEFAULT_HEARTBEAT,
     DEFAULT_IDENTITY,
@@ -55,7 +56,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
     try {
         // 삭제 전 감사 로그 기록
-        const { logger } = await import("~/lib/logger.server");
         logger.audit({
             category: "API",
             message: `User context deletion requested`,

@@ -6,6 +6,7 @@ import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useFetcher } from "react-router";
+import type { FandomLoaderData, SCharacter } from "~/lib/types/routes";
 import { cn } from "~/lib/utils";
 import { DateTime } from "luxon";
 import { toast } from "sonner";
@@ -175,7 +176,7 @@ export async function action({ request }: ActionFunctionArgs) {
   return Response.json({ error: "Invalid intent" }, { status: 400 });
 }
 
-function FandomCharacterButton({ char, characterId }: { char: any; characterId: string }) {
+function FandomCharacterButton({ char, characterId }: { char: SCharacter; characterId: string }) {
   const navigate = useNavigate();
   const { name } = useLocalizedCharacter(char.id, char.name, char.role);
 
@@ -204,7 +205,7 @@ function FandomCharacterButton({ char, characterId }: { char: any; characterId: 
               "w-full h-full object-cover",
               !isInService && "grayscale"
             )}
-            src={(char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
+            src={(char.media?.find((m) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
             alt={name}
           />
         </div>
@@ -220,7 +221,7 @@ function FandomCharacterButton({ char, characterId }: { char: any; characterId: 
 }
 
 export default function FandomScreen() {
-  const { allCharacters, selectedCharacter, characterStat, missions, notices, leaderboard, feedPosts, characterId } = useLoaderData<typeof loader>() as any;
+  const { allCharacters, selectedCharacter, characterStat, missions, notices, leaderboard, feedPosts, characterId } = useLoaderData<typeof loader>() as FandomLoaderData;
   const navigate = useNavigate();
   const fetcher = useFetcher();
   const { t } = useTranslation();
@@ -233,7 +234,7 @@ export default function FandomScreen() {
   const chunsim = allCharacters.find((c: { id: string }) => c.id === "chunsim");
   const rina = allCharacters.find((c: { id: string }) => c.id === "rina");
   const rest = allCharacters.filter((c: { id: string }) => c.id !== "chunsim" && c.id !== "rina");
-  const characters = [chunsim, rina, ...rest].filter(Boolean);
+  const characters = [chunsim, rina, ...rest].filter((c): c is SCharacter => c != null);
 
   useEffect(() => {
     if (fetcher.data?.success) {
@@ -278,7 +279,7 @@ export default function FandomScreen() {
         {/* Character Selector */}
         <div className="w-full overflow-x-auto scrollbar-hide px-4">
           <div className="flex gap-4 min-w-max">
-            {characters.map((char: any) => (
+            {characters.map((char) => (
               <FandomCharacterButton key={char.id} char={char} characterId={characterId} />
             ))}
           </div>
@@ -290,7 +291,7 @@ export default function FandomScreen() {
             <div
               className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay"
               style={{
-                backgroundImage: `url('${(selectedCharacter.media?.find((m: any) => m.type === "COVER")?.url) || selectedCharacter.media?.[0]?.url}')`
+                backgroundImage: `url('${(selectedCharacter.media?.find((m) => m.type === "COVER")?.url) || selectedCharacter.media?.[0]?.url}')`
               }}
             />
             <div className="absolute inset-0 bg-linear-to-t from-background-dark via-transparent to-transparent opacity-90" />
@@ -352,7 +353,7 @@ export default function FandomScreen() {
               <div className="min-w-[260px] h-32 rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 flex items-center justify-center">
                 <p className="text-white/20 text-xs font-bold uppercase">No updates yet</p>
               </div>
-            ) : notices.map((item: any) => (
+            ) : notices.map((item) => (
               <div
                 key={item.id}
                 onClick={() => navigate(`/notices/${item.id}`)}
@@ -400,7 +401,7 @@ export default function FandomScreen() {
                 <p className="text-white/20 text-xs font-bold uppercase tracking-widest">No missions available</p>
               </div>
             ) : (
-              missions.map((mission: any) => (
+              missions.map((mission) => (
                 <div
                   key={mission.id}
                   className={cn(
@@ -506,7 +507,7 @@ export default function FandomScreen() {
                 </div>
                 {/* List Items (4 and 5) */}
                 <div className="flex flex-col gap-2">
-                  {leaderboard.slice(3).map((user: any) => (
+                  {leaderboard.slice(3).map((user) => (
                     <div key={user.rank} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
                       <span className="text-sm font-bold text-white/40 w-4 text-center">{user.rank}</span>
                       <div className="size-8 rounded-full bg-slate-700 overflow-hidden">
@@ -550,7 +551,7 @@ export default function FandomScreen() {
               <span className="material-symbols-outlined text-6xl text-white/5">feed</span>
               <p className="text-white/10 text-xs font-black uppercase mt-4">Be the first to post!</p>
             </div>
-          ) : feedPosts.map((post: any) => (
+          ) : feedPosts.map((post) => (
             <div
               key={post.id}
               className="bg-white dark:bg-surface-dark rounded-xl border border-slate-100 dark:border-white/5 p-4 mb-4 shadow-sm"
@@ -559,12 +560,12 @@ export default function FandomScreen() {
                 <div className="size-10 rounded-full bg-slate-200 overflow-hidden border border-white/5">
                   <img
                     className="w-full h-full object-cover"
-                    src={post.user.avatarUrl || post.user.image || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + post.userId}
-                    alt={post.user.name}
+                    src={post.user?.avatarUrl || post.user?.image || "https://api.dicebear.com/7.x/avataaars/svg?seed=" + post.userId}
+                    alt={post.user?.name ?? ""}
                   />
                 </div>
                 <div>
-                  <p className="text-sm font-bold dark:text-white text-slate-900">{post.user.name}</p>
+                  <p className="text-sm font-bold dark:text-white text-slate-900">{post.user?.name}</p>
                   <p className="text-[10px] text-slate-500 dark:text-white/40 font-bold uppercase tracking-tight">
                     {DateTime.fromJSDate(new Date(post.createdAt)).toRelative()}
                   </p>

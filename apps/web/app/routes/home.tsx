@@ -1,4 +1,5 @@
 import { useNavigate, useLoaderData, redirect } from "react-router";
+import type { HomeLoaderData, SCharacter } from "~/lib/types/routes";
 import { useTranslation } from "react-i18next";
 import { useLocalizedCharacter } from "~/lib/useLocalizedCharacter";
 import { toast } from "sonner";
@@ -129,7 +130,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   });
 }
 
-function ContinueChatCard({ conversation, formatTimeAgo }: { conversation: any; formatTimeAgo: (d: Date) => string }) {
+function ContinueChatCard({ conversation, formatTimeAgo }: { conversation: HomeLoaderData['recentConversations'][number]; formatTimeAgo: (d: Date | string) => string }) {
   const navigate = useNavigate();
   const character = conversation.character;
   const { name } = useLocalizedCharacter(character?.id ?? "", character?.name ?? "AI", character?.role ?? "");
@@ -146,9 +147,9 @@ function ContinueChatCard({ conversation, formatTimeAgo }: { conversation: any; 
           className="h-14 w-14 rounded-full object-cover ring-2 ring-primary/50"
           src={
             character.media
-              ?.filter((m: any) => m.type === "AVATAR")
-              ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
-            || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+              ?.filter((m) => m.type === "AVATAR")
+              ?.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+            || character.media?.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
           }
         />
         {character.isOnline && (
@@ -175,7 +176,7 @@ function ContinueChatCard({ conversation, formatTimeAgo }: { conversation: any; 
   );
 }
 
-function TrendingIdolCard({ character, index }: { character: any; index: number }) {
+function TrendingIdolCard({ character, index }: { character: SCharacter; index: number }) {
   const navigate = useNavigate();
   const { name, role } = useLocalizedCharacter(character.id, character.name, character.role);
   const { t } = useTranslation();
@@ -194,9 +195,9 @@ function TrendingIdolCard({ character, index }: { character: any; index: number 
           )}
           src={
             character.media
-              ?.filter((m: any) => m.type === "COVER")
-              ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
-            || character.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+              ?.filter((m) => m.type === "COVER")
+              ?.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+            || character.media?.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
           }
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent opacity-60"></div>
@@ -206,6 +207,7 @@ function TrendingIdolCard({ character, index }: { character: any; index: number 
         <div className="absolute bottom-2 left-2 right-2">
           <div className="flex items-center gap-1 text-xs text-white/80 mb-0.5">
             <span className="material-symbols-outlined text-[12px] text-primary">favorite</span>
+            {/* TODO: 실제 팔로워 수를 loader에서 조회하여 표시 */}
             <span>{Math.floor(Math.random() * 5000 + 5000)}</span>
           </div>
         </div>
@@ -223,7 +225,7 @@ function TrendingIdolCard({ character, index }: { character: any; index: number 
 }
 
 export default function HomeScreen() {
-  const { user, todaysPick, recentConversations, trendingIdols, notices, isAuthenticated, walletStatus, unreadNotificationCount } = useLoaderData<typeof loader>() as any;
+  const { user, todaysPick, recentConversations, trendingIdols, notices, isAuthenticated, walletStatus, unreadNotificationCount } = useLoaderData<typeof loader>() as HomeLoaderData;
   const navigate = useNavigate();
   const { t } = useTranslation();
   const todaysPickLocalized = todaysPick ? useLocalizedCharacter(todaysPick.id, todaysPick.name, todaysPick.role) : null;
@@ -253,7 +255,7 @@ export default function HomeScreen() {
     }
   };
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: Date | string) => {
     const now = DateTime.now();
     const messageTime = DateTime.fromJSDate(new Date(date));
     const diff = now.diff(messageTime, ["minutes", "hours", "days"]);
@@ -265,7 +267,7 @@ export default function HomeScreen() {
     return messageTime.toFormat("MM/dd");
   };
 
-  const getCharacterFromConversation = (conversation: any) => {
+  const getCharacterFromConversation = (conversation: HomeLoaderData['recentConversations'][number]) => {
     return conversation.character;
   };
 
@@ -313,9 +315,9 @@ export default function HomeScreen() {
             className="absolute inset-0 h-full w-full bg-cover bg-center"
             style={{
               backgroundImage: `url(${todaysPick?.media
-                ?.filter((m: any) => m.type === "COVER")
-                ?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
-                || todaysPick?.media?.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                ?.filter((m) => m.type === "COVER")
+                ?.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
+                || todaysPick?.media?.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))[0]?.url
                 })`
             }}
           />
@@ -328,11 +330,11 @@ export default function HomeScreen() {
               {todaysPickLocalized?.name ?? todaysPick?.name}
             </h1>
             <p className="text-base text-gray-200 font-medium mb-6 line-clamp-2">
-              "{todaysPick.bio}"
+              "{todaysPick?.bio}"
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => handleStartChat(todaysPick.id)}
+                onClick={() => handleStartChat(todaysPick?.id ?? "")}
                 className="flex-1 cursor-pointer items-center justify-center rounded-xl h-12 bg-primary text-white text-base font-bold shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all"
               >
                 {t("home.chatNow")}
@@ -399,7 +401,7 @@ export default function HomeScreen() {
               {t("common.viewAll")}
             </button>
           </div>
-          {recentConversations.slice(0, 1).map((conversation: any) => (
+          {recentConversations.slice(0, 1).map((conversation) => (
             <ContinueChatCard key={conversation.id} conversation={conversation} formatTimeAgo={formatTimeAgo} />
           ))}
         </div>
@@ -412,7 +414,7 @@ export default function HomeScreen() {
           <span className="material-symbols-outlined text-gray-400">trending_up</span>
         </div>
         <div className="flex overflow-x-auto px-4 gap-4 pb-4 scrollbar-hide snap-x">
-          {(trendingIdols as any[]).map((character: any, index: number) => (
+          {trendingIdols.filter((c): c is SCharacter => c != null).map((character, index) => (
             <TrendingIdolCard key={character.id} character={character} index={index} />
           ))}
         </div>
@@ -435,7 +437,7 @@ export default function HomeScreen() {
               <p className="text-white/20 text-xs font-bold uppercase tracking-[0.2em]">No official updates yet</p>
             </div>
           ) : (
-            (notices as any[]).map((notice) => (
+            notices.map((notice) => (
               <div
                 key={notice.id}
                 onClick={() => navigate(`/notices/${notice.id}`)}

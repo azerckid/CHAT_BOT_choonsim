@@ -62,7 +62,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 // Custom Voice Player Component
-function VoicePlayer({ item, isPlaying, onPlay, onPause, label }: { item: any; isPlaying: boolean; onPlay: () => void; onPause: () => void; label?: string; }) {
+type CharacterMediaRow = typeof schema.characterMedia.$inferSelect;
+
+function VoicePlayer({ item, isPlaying, onPlay, onPause, label }: { item: CharacterMediaRow; isPlaying: boolean; onPlay: () => void; onPause: () => void; label?: string; }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -151,8 +153,8 @@ export default function CharacterProfileScreen() {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const voiceMedia = character.media?.filter((m: any) => m.type === "VOICE") || [];
-  const galleryMedia = character.media?.filter((m: any) => m.type === "NORMAL") || [];
+  const voiceMedia = character.media?.filter((m) => m.type === "VOICE") || [];
+  const galleryMedia = character.media?.filter((m) => m.type === "NORMAL") || [];
   const firstVoice = voiceMedia.length > 0 ? voiceMedia[0] : null;
 
   // 프로필 화면에 필요한 추가 정보 가공
@@ -177,8 +179,8 @@ export default function CharacterProfileScreen() {
     ],
     // Priority: 1. COVER (Main), 2. AVATAR (Main), 3. First available image
     heroImage:
-      character.media?.find((m: any) => m.type === "COVER")?.url ||
-      character.media?.find((m: any) => m.type === "AVATAR")?.url ||
+      character.media?.find((m) => m.type === "COVER")?.url ||
+      character.media?.find((m) => m.type === "AVATAR")?.url ||
       character.media?.[0]?.url,
   };
 
@@ -405,7 +407,7 @@ export default function CharacterProfileScreen() {
         {activeTab === "voice" && (
           <div className="space-y-4 pb-12 animate-in fade-in duration-300">
             {voiceMedia.length > 0 ? (
-              voiceMedia.map((media: any, i: number) => (
+              voiceMedia.map((media, i) => (
                 <VoicePlayer
                   key={media.id}
                   item={media}
@@ -430,7 +432,7 @@ export default function CharacterProfileScreen() {
           <div className="animate-in fade-in duration-300 pb-12">
             {galleryMedia.length > 0 ? (
               <div className="columns-2 gap-3 space-y-3">
-                {galleryMedia.map((m: any, i: number) => (
+                {galleryMedia.map((m, i) => (
                   <div
                     key={m.id}
                     className="break-inside-avoid rounded-xl overflow-hidden cursor-pointer relative group border border-white/10 shadow-sm bg-surface-dark"

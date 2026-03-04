@@ -8,6 +8,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { getFullContextData, getMemoryItems } from "~/lib/context/db";
 import { CHARACTERS } from "~/lib/characters";
+import { logger } from "~/lib/logger.server";
 import {
     compressHeartbeatForPrompt,
     compressIdentityForPrompt,
@@ -95,7 +96,7 @@ ${toolsStr || "(No data)"}
         });
 
     } catch (e) {
-        console.error("Export failed:", e);
+        logger.error({ category: "API", message: "Context export failed", stackTrace: (e as Error).stack });
         return new Response("Internal Server Error", { status: 500 });
     }
 }

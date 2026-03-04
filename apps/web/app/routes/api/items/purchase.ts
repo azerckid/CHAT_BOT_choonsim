@@ -91,12 +91,12 @@ export async function action({ request }: ActionFunctionArgs) {
         });
 
         return Response.json({ success: true, chocoSpent: totalCost });
-    } catch (error: any) {
+    } catch (error: unknown) {
         const { logger } = await import("~/lib/logger.server");
         logger.error({
             category: "PAYMENT",
             message: "Purchase transaction error",
-            stackTrace: error.stack,
+            stackTrace: (error as Error).stack,
             metadata: { userId: session.user.id, itemId, quantity }
         });
         return Response.json({ error: "Purchase failed" }, { status: 500 });

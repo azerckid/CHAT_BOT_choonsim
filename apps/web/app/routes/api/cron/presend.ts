@@ -10,8 +10,10 @@ import { DateTime } from "luxon";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, desc, and, gt, inArray, sql } from "drizzle-orm";
-import { generateProactiveMessage } from "~/lib/ai.server";
+import { generateProactiveMessage, type PersonaMode } from "~/lib/ai.server";
 import { sendWebPush } from "~/lib/push.server";
+import { logger } from "~/lib/logger.server";
+import { BioSchema } from "~/lib/schemas/bio";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const PRESEND_TICKET_ITEM_ID = "presend_ticket";
@@ -30,7 +32,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const sent = await runPresend();
     return Response.json({ ok: true, sent });
   } catch (e) {
-    console.error("[Presend Cron]", e);
+    logger.error({ category: "SYSTEM", message: "[Presend Cron] 실패", stackTrace: (e as Error).stack });
     return Response.json(
       { ok: false, error: (e as Error).message },
       { status: 500 }
@@ -109,13 +111,19 @@ async function runPresend(): Promise<number> {
       if (!conv) continue;
 
       let memory = "";
-      let personaMode: "lover" | "hybrid" = "hybrid";
+      let personaMode: PersonaMode = "hybrid";
       if (user.bio) {
         try {
-          const bioData = JSON.parse(user.bio);
-          memory = bioData.memory || "";
-          personaMode = bioData.personaMode || "hybrid";
-        } catch {}
+          const bioData = BioSchema.parse(JSON.parse(user.bio));
+          memory = bioData.memory;
+          personaMode = bioData.personaMode ?? "hybrid";
+        } catch (e) {
+          logger.warn({
+            category: "SYSTEM",
+            message: `Failed to parse bio JSON for user ${user.id}`,
+            metadata: { userId: user.id, error: String(e) },
+          });
+        }
       }
 
       const messageContent = await Promise.race([
@@ -164,7 +172,7 @@ async function runPresend(): Promise<number> {
 
       sent++;
     } catch (err) {
-      console.error(`[Presend] user ${user.id}:`, err);
+      logger.error({ category: "SYSTEM", message: `[Presend] user ${user.id} 선톡 실패`, stackTrace: (err as Error).stack });
     }
   }
 

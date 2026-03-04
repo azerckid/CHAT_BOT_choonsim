@@ -30,7 +30,7 @@ export async function evictOldMemoriesIfOverLimit(
     if (idsToDelete.length > 0) {
         await deleteMemoryItemsByIds(userId, characterId, idsToDelete);
         logger.info?.({
-            category: "Context",
+            category: "SYSTEM",
             message: "Memory eviction (over limit)",
             metadata: { userId, characterId, tier, removed: idsToDelete.length },
         });
@@ -64,7 +64,7 @@ export async function extractAndSaveMemoriesFromConversation(
         await evictOldMemoriesIfOverLimit(userId, characterId);
     } catch (err) {
         logger.error?.({
-            category: "Context",
+            category: "SYSTEM",
             message: "extractAndSaveMemoriesFromConversation failed",
             stackTrace: (err as Error).stack,
             metadata: { userId, characterId },

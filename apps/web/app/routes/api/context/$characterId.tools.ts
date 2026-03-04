@@ -9,6 +9,7 @@ import { auth } from "~/lib/auth.server";
 import { updateUserTools } from "~/lib/context/tools";
 import { getFullContextData } from "~/lib/context/db";
 import { CHARACTERS } from "~/lib/characters";
+import { logger } from "~/lib/logger.server";
 
 const specialDateSchema = z.object({
     date: z.string().regex(/^\d{2}-\d{2}$/, "Format must be MM-DD"),
@@ -72,7 +73,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         await updateUserTools(session.user.id, characterId, result.data);
         return Response.json({ success: true });
     } catch (e) {
-        console.error("Failed to update tools:", e);
+        logger.error({ category: "API", message: "Failed to update tools", stackTrace: (e as Error).stack });
         return Response.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

@@ -4,6 +4,7 @@ import { db } from "~/lib/db.server";
 import { z } from "zod";
 import * as schema from "~/db/schema";
 import { eq, and, sql, or } from "drizzle-orm";
+import { logger } from "~/lib/logger.server";
 
 const giftSchema = z.object({
     characterId: z.string(),
@@ -184,9 +185,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
             return Response.json({ success: true, giftLog: newGiftLog, systemMsg });
         });
-    } catch (error: any) {
-        console.error("Gifting transaction error:", error);
-        if (error.message === "Insufficient hearts") {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error({ category: "PAYMENT", message: "Gifting transaction error", stackTrace: (error as Error).stack });
+        if (errorMessage === "Insufficient hearts") {
             return Response.json({ error: "Insufficient hearts" }, { status: 400 });
         }
         return Response.json({ error: "Gifting failed" }, { status: 500 });

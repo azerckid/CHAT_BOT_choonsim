@@ -6,6 +6,8 @@ import { deleteImage } from "~/lib/cloudinary.server";
 import * as schema from "~/db/schema";
 import { eq, isNotNull, and } from "drizzle-orm";
 import { deleteUserContext } from "~/lib/context/db";
+import { logger } from "~/lib/logger.server";
+import { BioSchema } from "~/lib/schemas/bio";
 
 const deleteSchema = z.object({
     conversationId: z.string().uuid(),
@@ -71,15 +73,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
                 if (user?.bio) {
                     try {
-                        const bioData = JSON.parse(user.bio);
-                        delete bioData.memory;
-                        delete bioData.lastMemoryUpdate;
-
+                        const bioData = BioSchema.parse(JSON.parse(user.bio));
+                        const { memory: _m, lastMemoryUpdate: _l, ...rest } = bioData;
                         await tx.update(schema.user)
-                            .set({ bio: JSON.stringify(bioData), updatedAt: new Date() })
+                            .set({ bio: JSON.stringify(rest), updatedAt: new Date() })
                             .where(eq(schema.user.id, session.user.id));
                     } catch (e) {
-                        console.error("Failed to reset memory:", e);
+                        logger.warn({ category: "DB", message: "Failed to reset legacy bio memory", stackTrace: e instanceof Error ? e.stack : String(e) });
                     }
                 }
             }
@@ -101,7 +101,7 @@ export async function action({ request }: ActionFunctionArgs) {
                     try {
                         await deleteUserContext(session.user.id, conversation.characterId);
                     } catch (e) {
-                        console.error("Failed to reset user context layers:", e);
+                        logger.error({ category: "DB", message: "Failed to reset user context layers", stackTrace: (e as Error).stack });
                     }
                 }
             }
@@ -109,7 +109,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return Response.json({ success: true });
     } catch (error) {
-        console.error("Delete conversation error:", error);
+        logger.error({ category: "API", message: "Delete conversation error", stackTrace: (error as Error).stack });
         return Response.json({ error: "Failed to delete conversation" }, { status: 500 });
     }
 }

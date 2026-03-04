@@ -11,6 +11,7 @@ import { auth } from "~/lib/auth.server";
 import { updateHeartbeatContext } from "~/lib/context/heartbeat";
 import { getFullContextData } from "~/lib/context/db";
 import { CHARACTERS } from "~/lib/characters";
+import { logger } from "~/lib/logger.server";
 
 const updateHeartbeatSchema = z.object({
     /** true면 대화 종료 시점, false면 대화 시작 시점 */
@@ -62,7 +63,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             heartbeat: context?.heartbeat || null
         });
     } catch (e) {
-        console.error("Failed to update heartbeat:", e);
+        logger.error({ category: "API", message: "Failed to update heartbeat", stackTrace: (e as Error).stack });
         return Response.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

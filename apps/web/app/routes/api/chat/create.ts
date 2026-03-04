@@ -4,6 +4,7 @@ import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import * as schema from "~/db/schema";
 import { eq, and } from "drizzle-orm";
+import { logger } from "~/lib/logger.server";
 
 const createChatSchema = z.object({
     characterId: z.string(),
@@ -70,7 +71,7 @@ export async function action({ request }: ActionFunctionArgs) {
         return Response.json({ conversationId: newConversation.id });
 
     } catch (error) {
-        console.error("Create chat error:", error);
+        logger.error({ category: "API", message: "Create chat error", stackTrace: (error as Error).stack });
         return Response.json({ error: "Failed to create chat" }, { status: 500 });
     }
 }

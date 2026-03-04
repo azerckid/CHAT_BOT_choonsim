@@ -10,6 +10,7 @@ import { updateUserIdentity } from "~/lib/context/identity";
 import { getFullContextData } from "~/lib/context/db";
 import { CHARACTERS } from "~/lib/characters";
 import { DEFAULT_IDENTITY } from "~/lib/context/types";
+import { logger } from "~/lib/logger.server";
 
 const updateIdentitySchema = z.object({
     nickname: z.string().max(20).optional(),
@@ -62,7 +63,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         await updateUserIdentity(session.user.id, characterId, result.data);
         return Response.json({ success: true });
     } catch (e) {
-        console.error("Failed to update identity:", e);
+        logger.error({ category: "API", message: "Failed to update identity", stackTrace: (e as Error).stack });
         return Response.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

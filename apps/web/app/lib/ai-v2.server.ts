@@ -15,6 +15,7 @@ import {
     type SubscriptionTier,
 } from "~/lib/ai.server";
 import type { PersonaMode } from "~/lib/ai.server";
+import { logger } from "~/lib/logger.server";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
@@ -125,7 +126,7 @@ export async function* streamAIResponseV2(
         if (error instanceof Error && error.name === "AbortError") {
             return;
         }
-        console.error("streamAIResponseV2 Error:", error);
+        logger.error({ category: "SYSTEM", message: "streamAIResponseV2 Error:", stackTrace: (error as Error).stack });
         yield {
             type: "content" as const,
             content: "아... 갑자기 머리가 핑 돌아... 미안해, 잠시만 이따가 다시 불러줄래?",

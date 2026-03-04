@@ -9,6 +9,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { getAllUserContexts } from "~/lib/context/db";
 import { CHARACTERS } from "~/lib/characters";
+import { logger } from "~/lib/logger.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -34,7 +35,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
             totalCount: enrichedContexts.length,
         });
     } catch (e) {
-        console.error("Failed to get all contexts:", e);
+        logger.error({ category: "API", message: "Failed to get all contexts", stackTrace: (e as Error).stack });
         return Response.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

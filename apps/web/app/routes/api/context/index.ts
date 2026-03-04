@@ -9,6 +9,7 @@ import type { ActionFunctionArgs } from "react-router";
 import { auth } from "~/lib/auth.server";
 import { deleteAllUserContexts } from "~/lib/context/db";
 import { z } from "zod";
+import { logger } from "~/lib/logger.server";
 
 const deleteAllSchema = z.object({
     confirm: z.literal(true, { message: "confirm must be true to delete all context" }),
@@ -39,7 +40,6 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     try {
-        const { logger } = await import("~/lib/logger.server");
         logger.audit({
             category: "API",
             message: "User requested full context deletion (all characters)",

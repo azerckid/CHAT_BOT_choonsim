@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLoaderData, useFetcher, useRevalidator, Link } from "react-router";
+import { EMOTION_MAP, PAYWALL_TRIGGER_CONFIG } from "~/lib/chat/ui-constants";
+import { useChatStream } from "~/hooks/use-chat-stream";
+import type { Message } from "~/lib/chat/types";
 import { ChatHeader } from "~/components/chat/ChatHeader";
 import { MessageBubble } from "~/components/chat/MessageBubble";
 import { MessageInput } from "~/components/chat/MessageInput";
@@ -9,6 +12,7 @@ import { NetworkError } from "~/components/ui/NetworkError";
 import { LoadingSpinner } from "~/components/ui/LoadingSpinner";
 
 import { auth } from "~/lib/auth.server";
+import type { ChatDetailLoaderData } from "~/lib/types/routes";
 import { type LoaderFunctionArgs, type ActionFunctionArgs, redirect } from "react-router";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -26,99 +30,9 @@ import {
 
 type LoadingState = "idle" | "loading" | "network-error";
 
-const PAYWALL_TRIGGER_CONFIG: Record<string, {
-  title: string;
-  desc: string;
-  itemName: string;
-  itemId: string;
-  icon: string;
-  price: number;
-}> = {
-  memory_recall: {
-    title: "이 기억, 영원히 간직할까?",
-    desc: "춘심이가 이 순간을 영원히 기억하도록 고정할 수 있어요.",
-    itemName: "기억 각인 티켓",
-    itemId: "memory_ticket",
-    icon: "bookmark_heart",
-    price: 500,
-  },
-  secret_episode: {
-    title: "우리만의 비밀 이야기가 있어",
-    desc: "특별한 에피소드가 준비되어 있어요. 지금 해금할까요?",
-    itemName: "비밀 에피소드 해금",
-    itemId: "secret_episode",
-    icon: "lock_open",
-    price: 3000,
-  },
-  memory_album: {
-    title: "우리 추억을 앨범으로 만들어줄게",
-    desc: "지금까지의 대화를 AI가 편집한 앨범으로 만들어드려요.",
-    itemName: "대화 앨범",
-    itemId: "memory_album",
-    icon: "photo_album",
-    price: 2000,
-  },
-  birthday_voice: {
-    title: "목소리로 전하고 싶어",
-    desc: "춘심이의 목소리로 직접 생일 축하 메시지를 들어보세요.",
-    itemName: "보이스 티켓",
-    itemId: "voice_ticket",
-    icon: "record_voice_over",
-    price: 500,
-  },
-};
-
-const EMOTION_MAP: Record<string, { color: string; text: string; aura: string; style?: React.CSSProperties }> = {
-  JOY: {
-    color: "text-pink-400",
-    text: "기분 좋음",
-    aura: "ring-2 ring-pink-500/30 animate-aura-breathe",
-    style: { "--aura-color": "rgba(236,72,153,0.6)" } as React.CSSProperties
-  },
-  SHY: {
-    color: "text-rose-400",
-    text: "부끄러움",
-    aura: "ring-2 ring-rose-500/40 animate-neon-flicker",
-    style: { "--aura-color": "rgba(251,113,133,0.5)" } as React.CSSProperties
-  },
-  EXCITED: {
-    color: "text-orange-400",
-    text: "신남!",
-    aura: "ring-4 ring-orange-500/50 animate-intense-pulse",
-    style: { "--aura-color": "rgba(251,146,60,0.8)" } as React.CSSProperties
-  },
-  LOVING: {
-    color: "text-red-500",
-    text: "사랑해",
-    aura: "ring-4 ring-red-600 animate-intense-pulse shadow-[0_0_10px_rgba(220,38,38,0.8)]",
-    style: { "--aura-color": "rgba(220,38,38,0.9)" } as React.CSSProperties
-  },
-  SAD: {
-    color: "text-blue-400",
-    text: "시무룩",
-    aura: "ring-1 ring-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.3)]",
-    style: { "--aura-color": "rgba(59,130,246,0.3)" } as React.CSSProperties
-  },
-  THINKING: {
-    color: "text-purple-400",
-    text: "생각 중",
-    aura: "ring-2 ring-purple-500/40 animate-aura-breathe",
-    style: { "--aura-color": "rgba(168,85,247,0.5)" } as React.CSSProperties
-  },
-};
-
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, and, asc, inArray } from "drizzle-orm";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  mediaUrl?: string | null;
-  createdAt: string | Date;
-  isLiked?: boolean;
-}
 
 const sendSchema = z.object({
   message: z.string().optional(),
@@ -241,7 +155,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function ChatRoom() {
-  const { messages: initialMessages, user, conversation, characterStat, paypalClientId, tossClientKey, heartItem } = useLoaderData<typeof loader>() as { messages: any[], user: any, conversation: any, characterStat: any, paypalClientId: string, tossClientKey: string, heartItem: any };
+  const { messages: initialMessages, user, conversation, characterStat, paypalClientId, tossClientKey, heartItem } = useLoaderData<typeof loader>() as ChatDetailLoaderData;
   const fetcher = useFetcher();
   const revalidator = useRevalidator();
   const navigate = useNavigate();
@@ -250,7 +164,7 @@ export default function ChatRoom() {
   const dbCharacter = conversation?.character;
   const characterName = dbCharacter?.name || "AI";
   // Priority: Always try to find the MAIN AVATAR first based on sortOrder
-  const avatarUrl = dbCharacter?.media?.find((m: any) => m.type === "AVATAR")?.url || dbCharacter?.media?.[0]?.url;
+  const avatarUrl = dbCharacter?.media?.find((m) => m.type === "AVATAR")?.url || dbCharacter?.media?.[0]?.url;
 
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [streamingContent, setStreamingContent] = useState<string>("");
@@ -272,10 +186,9 @@ export default function ChatRoom() {
   const [voiceConfirmMessageId, setVoiceConfirmMessageId] = useState<string | null>(null);
   const [isVoiceLoading, setIsVoiceLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  // Add heart burst state
 
   // Hearts state
-  const [currentUserHearts, setCurrentUserHearts] = useState(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
+  const [currentUserHearts, setCurrentUserHearts] = useState(user?.inventory?.find((i) => i.itemId === "heart")?.quantity || 0);
   const userInventory = user?.inventory || [];
   const [currentUserChocoBalance, setCurrentUserChocoBalance] = useState(user?.chocoBalance ? parseFloat(user.chocoBalance) : 0);
 
@@ -283,7 +196,26 @@ export default function ChatRoom() {
   const [chocoChange, setChocoChange] = useState<number | undefined>(undefined);
   const [lastOptimisticDeduction, setLastOptimisticDeduction] = useState<number>(0); // 마지막 낙관적 차감량
   const lastOptimisticDeductionRef = useRef(0);
-  const optimisticIntervalRef = useRef<any>(null);
+  const optimisticIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { startAiStreaming, saveInterruptedMessage } = useChatStream({
+    conversationId: conversationId as string,
+    characterId: dbCharacter?.id,
+    setMessages,
+    setIsAiStreaming,
+    setIsOptimisticTyping,
+    setStreamingContent,
+    setStreamingMediaUrl,
+    setCurrentEmotion,
+    setEmotionExpiresAt,
+    setPaywallTrigger,
+    setCurrentUserChocoBalance,
+    setLastOptimisticDeduction,
+    setChocoChange,
+    optimisticIntervalRef,
+    lastOptimisticDeductionRef,
+    abortControllerRef,
+  });
 
   // Sync ref with state for async access
   useEffect(() => {
@@ -292,7 +224,7 @@ export default function ChatRoom() {
 
   // Re-sync states when loader data updates
   useEffect(() => {
-    setCurrentUserHearts(user?.inventory?.find((i: any) => i.itemId === "heart")?.quantity || 0);
+    setCurrentUserHearts(user?.inventory?.find((i) => i.itemId === "heart")?.quantity || 0);
 
     // AI 답변 중이거나 낙관적 차감이 진행 중, 또는 데이터 갱신 중일 때는 서버 데이터로 덮어쓰지 않음 (X402 안정화)
     if (!isAiStreaming && lastOptimisticDeduction === 0 && revalidator.state === "idle") {
@@ -398,22 +330,6 @@ export default function ChatRoom() {
     };
   }, []);
 
-  const saveInterruptedMessage = async (content: string, mediaUrl: string | null) => {
-    try {
-      await fetch("/api/chat/interrupt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          content,
-          mediaUrl
-        }),
-      });
-    } catch (e) {
-      console.error("Failed to save interrupted message:", e);
-    }
-  };
-
   const handleSend = async (content: string, mediaUrl?: string) => {
     // 0. AI가 답변 중이라면 중단 처리
     if (isAiStreaming) {
@@ -501,201 +417,13 @@ export default function ChatRoom() {
         message: content,
         mediaUrl: mediaUrl || "",
         createdAt: newUserMsg.createdAt
-      } as any,
+      } as Record<string, string>,
       { method: "post" }
     );
 
     // 3. AI 스트리밍 요청 처리 루틴 시작
     setIsOptimisticTyping(true);
     startAiStreaming(content, mediaUrl);
-  };
-
-  const startAiStreaming = async (userMessage: string, mediaUrl?: string, giftContext?: { amount: number; itemId: string }) => {
-    setIsAiStreaming(true);
-    setStreamingContent("");
-    setStreamingMediaUrl(null);
-
-    try {
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-
-      // 최신 낙관적 차감 인터벌 정리
-      if (optimisticIntervalRef.current) {
-        clearInterval(optimisticIntervalRef.current);
-        optimisticIntervalRef.current = null;
-      }
-      const controller = new AbortController();
-      abortControllerRef.current = controller;
-
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        signal: controller.signal,
-        body: JSON.stringify({
-          message: userMessage,
-          conversationId,
-          mediaUrl,
-          characterId: dbCharacter?.id,
-          giftContext
-        }),
-      });
-
-      if (response.status === 402) return; // useX402가 PaymentSheet 열음, 별도 throw 없음
-      if (!response.ok) throw new Error("AI 응답 요청 실패");
-
-      setIsOptimisticTyping(false); // 응답 시작되면 낙관적 타이핑 해제 (스트리밍 버블이 대신함)
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullAiContent = "";
-      let currentMessageContent = ""; // 현재 말풍선의 내용 추적
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.error && data.code === 402) {
-                  toast.error("CHOCO 잔액이 부족합니다.", {
-                    action: { label: "CHOCO 충전하기", onClick: () => window.location.href = "/profile/subscription" },
-                  });
-                  setIsAiStreaming(false);
-                  setIsOptimisticTyping(false);
-                  if (optimisticIntervalRef.current) {
-                    clearInterval(optimisticIntervalRef.current);
-                    optimisticIntervalRef.current = null;
-                  }
-                  if (lastOptimisticDeductionRef.current > 0) {
-                    setCurrentUserChocoBalance((p) => p + lastOptimisticDeductionRef.current);
-                    setLastOptimisticDeduction(0);
-                  }
-                  return;
-                }
-                if (data.emotion) {
-                  setCurrentEmotion(data.emotion);
-                }
-                if (data.expiresAt) {
-                  setEmotionExpiresAt(data.expiresAt);
-                }
-                if (data.text) {
-                  fullAiContent += data.text;
-                  currentMessageContent += data.text; // 현재 말풍선에 추가
-                  setStreamingContent(prev => prev + data.text);
-                }
-                if (data.messageComplete) {
-                  // 현재 스트리밍 중인 내용을 하나의 메시지로 완성
-                  const completedMessage: Message = {
-                    id: data.messageId || crypto.randomUUID(),
-                    role: "assistant",
-                    content: currentMessageContent, // 추적 중인 내용 사용
-                    mediaUrl: data.mediaUrl || null,
-                    createdAt: new Date().toISOString(),
-                    isLiked: false,
-                  };
-
-                  setMessages(prev => [...prev, completedMessage]);
-                  setStreamingContent(""); // 다음 말풍선을 위해 초기화
-                  setStreamingMediaUrl(null); // 다음 말풍선을 위해 초기화
-                  currentMessageContent = ""; // 다음 말풍선을 위해 초기화
-                  // 스트리밍은 계속 진행 (다음 말풍선 시작)
-                }
-                if (data.mediaUrl && !data.messageComplete) {
-                  // 스트리밍 중에 사진 URL이 있으면 저장 (첫 번째 메시지에만)
-                  setStreamingMediaUrl(data.mediaUrl);
-                }
-                if (data.paywallTrigger) {
-                  setPaywallTrigger(data.paywallTrigger);
-                }
-                if (data.done) {
-                  // 모든 스트리밍 완료
-                  setIsAiStreaming(false);
-
-                  // 낙관적 차감 인터벌 즉시 종료 및 최종 보정
-                  if (optimisticIntervalRef.current) {
-                    clearInterval(optimisticIntervalRef.current);
-                    optimisticIntervalRef.current = null;
-                  }
-
-                  // 실제 토큰 사용량으로 잔액 조정
-                  if (data.usage && data.usage.totalTokens) {
-                    const actualCost = Math.ceil(data.usage.totalTokens / 100);
-                    const adjustment = lastOptimisticDeductionRef.current - actualCost;
-
-                    // 실제 비용으로 조정 (예상 비용과의 차이만큼 보정)
-                    setCurrentUserChocoBalance((prev: number) => Math.max(0, prev + adjustment));
-
-                    // 변동량 업데이트 (실제 차감량)
-                    setChocoChange(-actualCost);
-
-                    // 2초 후 변동량 표시 제거
-                    setTimeout(() => {
-                      setChocoChange(undefined);
-                    }, 2000);
-
-                    setLastOptimisticDeduction(0); // 초기화
-                    // 스트리밍이 끝나면 서버 데이터와 동기화 시도
-                    revalidator.revalidate();
-                  } else {
-                    // 토큰 사용량 정보가 없으면 예상 비용으로 변동량 표시 유지
-                    // 2초 후 변동량 표시 제거
-                    setTimeout(() => {
-                      setChocoChange(undefined);
-                      setLastOptimisticDeduction(0);
-                      revalidator.revalidate();
-                    }, 2000);
-                  }
-                }
-              } catch (e) {
-                // Ignore parse errors
-              }
-            }
-          }
-        }
-      }
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
-        console.log("Stream aborted locally");
-        return;
-      }
-      console.error("Streaming error:", err);
-      toast.error("답변을 가져오는 중 오류가 발생했습니다.");
-      setIsAiStreaming(false);
-      setIsOptimisticTyping(false);
-
-      // 에러 발생 시 낙관적 차감 인터벌 정리 및 롤백
-      if (optimisticIntervalRef.current) {
-        clearInterval(optimisticIntervalRef.current);
-        optimisticIntervalRef.current = null;
-      }
-
-      if (lastOptimisticDeductionRef.current > 0) {
-        setCurrentUserChocoBalance((prev: number) => prev + lastOptimisticDeductionRef.current);
-        const rolledBackAmount = lastOptimisticDeductionRef.current;
-        setLastOptimisticDeduction(0);
-        setChocoChange(rolledBackAmount); // 롤백된 양을 표시
-        setTimeout(() => {
-          setChocoChange(undefined);
-        }, 2000);
-      }
-
-      // 중간에 끊겼다면 (에러로 발생한 경우) 현재까지의 내용이라도 유지
-      if (streamingContent && !isInterrupting) {
-        const partialMsg: Message = {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: streamingContent + "...",
-          createdAt: new Date().toISOString(),
-        };
-        setMessages(prev => [...prev, partialMsg]);
-        setStreamingContent("");
-      }
-    }
   };
 
   const handleGift = async (itemId: string, amount: number) => {
@@ -736,8 +464,9 @@ export default function ChatRoom() {
         setCurrentUserHearts((prev: number) => prev - amount);
       }
 
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      toast.error(errorMessage);
       throw error;
     }
     // Note: Do not navigate/revalidate here. It causes a race condition where
@@ -826,7 +555,7 @@ export default function ChatRoom() {
                 key={msg.id}
                 messageId={msg.id}
                 sender={msg.role === "user" ? "user" : "ai"}
-                senderName={msg.role === "user" ? user?.name : characterName}
+                senderName={msg.role === "user" ? (user?.name ?? "") : characterName}
                 content={msg.content}
                 mediaUrl={msg.mediaUrl || undefined}
                 avatarUrl={msg.role === "assistant" ? avatarUrl : undefined}
@@ -886,7 +615,7 @@ export default function ChatRoom() {
       <MessageInput
         onSend={handleSend}
         onGift={handleGift}
-        onOpenStore={() => setIsItemStoreOpen(true)}
+        onOpenStore={() => navigate("/shop")}
         userChocoBalance={currentUserChocoBalance}
         ownedHearts={currentUserHearts}
         userInventory={userInventory}

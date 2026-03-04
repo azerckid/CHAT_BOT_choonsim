@@ -1,4 +1,7 @@
 import { db } from "~/lib/db.server";
+import { MIN_REQUIRED_CHOCO, X402_CHARGE_AMOUNT_USD } from "~/lib/constants/chat";
+import { BioSchema, type Bio } from "~/lib/schemas/bio";
+import { deductChocoForTokens } from "~/lib/chat/choco.server";
 import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import type { ActionFunctionArgs } from "react-router";
@@ -76,11 +79,11 @@ export async function action({ request }: ActionFunctionArgs) {
     ]);
 
     // **X402 결제 체크** (새 정책: $1 = 1,000 CHOCO)
-    const MIN_REQUIRED_CHOCO = 10; // 최소 필요 CHOCO (채팅 약 1회 분량)
+    // MIN_REQUIRED_CHOCO, X402_CHARGE_AMOUNT_USD → ~/lib/constants/chat
     const currentChocoBalance = currentUser?.chocoBalance ? parseFloat(currentUser.chocoBalance) : 0;
     if (!currentUser || currentChocoBalance < MIN_REQUIRED_CHOCO) {
         // 1. 인보이스 생성 ($0.1 = 100 CHOCO, 채팅 약 10회 분량)
-        const amountToChargeUSD = 0.1;
+        const amountToChargeUSD = X402_CHARGE_AMOUNT_USD;
 
         // 2. Silent Payment 한도 확인
         const allowance = await checkSilentPaymentAllowance(
@@ -108,7 +111,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // 기억(memory): 5계층 컨텍스트 우선, 없으면 기존 bio 요약 사용
     let memory: string = "";
-    let bioData: any = {};
+    let bioData: Bio = { memory: "", personaMode: "hybrid" };
 
     // Phase 10: 대화 유형 분류 → 동적 토큰 예산 적용 후 5계층 로드
     try {
@@ -173,10 +176,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (!memory && currentUser?.bio) {
         try {
-            bioData = JSON.parse(currentUser.bio);
+            bioData = BioSchema.parse(JSON.parse(currentUser.bio));
             if (bioData.memory) memory = bioData.memory;
         } catch (e) {
-            console.error("Bio parsing error:", e);
+            logger.error({ category: "API", message: "Bio parsing error", stackTrace: e instanceof Error ? e.stack : String(e) });
         }
     }
 
@@ -286,52 +289,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 // 3단계. 토큰 사용량에 따른 CHOCO 차감 (스트리밍 완료 후)
                 if (tokenUsage && tokenUsage.totalTokens > 0) {
                     try {
-                        const { BigNumber } = await import("bignumber.js");
-                        // 새 정책: 1,000 토큰 = 10 CHOCO ($0.01 가치)
-                        // 공식: Deduction = TotalTokens / 100
-                        const chocoToDeduct = new BigNumber(tokenUsage.totalTokens)
-                            .dividedBy(100)
-                            .toFixed(0);
-
-                        // 사용자 정보 조회
-                        const userForDeduction = await db.query.user.findFirst({
-                            where: eq(schema.user.id, session.user.id),
-                            columns: { chocoBalance: true },
-                        });
-
-                        if (!userForDeduction) {
-                            throw new Error("User not found");
-                        }
-
-                        const currentChocoBalance = userForDeduction?.chocoBalance ? parseFloat(userForDeduction.chocoBalance) : 0;
-                        const newChocoBalance = new BigNumber(currentChocoBalance).minus(chocoToDeduct).toString();
-
-                        // DB 업데이트
-                        await db.update(schema.user)
-                            .set({
-                                chocoBalance: newChocoBalance,
-                                updatedAt: new Date()
-                            })
-                            .where(eq(schema.user.id, session.user.id));
-
-                        // fire-and-forget: BondBase 집계용 소비 로그
-                        db.insert(schema.chocoConsumptionLog).values({
-                            id: crypto.randomUUID(),
-                            characterId,
-                            chocoAmount: chocoToDeduct,
-                            source: "CHAT",
-                            createdAt: new Date(),
-                        }).catch(err => logger.error({
-                            category: "DB",
-                            message: "BondBase ConsumptionLog insert failed",
-                            stackTrace: (err as Error).stack,
-                        }));
-
-                        logger.info({
-                            category: "API",
-                            message: `Deducted ${chocoToDeduct} CHOCO for user ${session.user.id}`,
-                            metadata: { tokenUsage, chocoDeducted: chocoToDeduct }
-                        });
+                        await deductChocoForTokens(session.user.id, characterId, tokenUsage);
                     } catch (err) {
                         logger.error({
                             category: "DB",
@@ -416,7 +374,7 @@ export async function action({ request }: ActionFunctionArgs) {
                                     emotionExpiresAt: expiresAt || undefined,
                                     updatedAt: new Date(),
                                 }
-                            }).catch(err => console.error("Failed to update emotion:", err));
+                            }).catch(err => logger.error({ category: "API", message: "Failed to update emotion:", stackTrace: (err as Error).stack }));
                     }
 
                     if (i === 0 && photoUrl) {
@@ -452,7 +410,7 @@ export async function action({ request }: ActionFunctionArgs) {
                                 createdAt: new Date(),
                             });
                         } catch (executionError) {
-                            console.error("Failed to save AgentExecution:", executionError);
+                            logger.error({ category: "API", message: "Failed to save AgentExecution:", stackTrace: (executionError as Error).stack });
                         }
                     }
 

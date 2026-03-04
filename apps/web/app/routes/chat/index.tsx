@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLoaderData } from "react-router";
+import type { ChatListLoaderData, SCharacter, SMessage } from "~/lib/types/routes";
 import { useTranslation } from "react-i18next";
 import { useLocalizedCharacter } from "~/lib/useLocalizedCharacter";
 import { ChatListItem } from "~/components/chat/ChatListItem";
@@ -65,7 +66,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return Response.json({ conversations, allCharacters });
 }
 
-function ChatListItemWithLocale({ chat, lastMsg, character, avatarUrl }: { chat: any; lastMsg: any; character: any; avatarUrl: string }) {
+function ChatListItemWithLocale({ chat, lastMsg, character, avatarUrl }: { chat: ChatListLoaderData['conversations'][number]; lastMsg: SMessage | undefined; character: SCharacter; avatarUrl: string }) {
   const { t } = useTranslation();
   const { name } = useLocalizedCharacter(character?.id ?? "", character?.name ?? "AI", character?.role ?? "");
 
@@ -83,7 +84,7 @@ function ChatListItemWithLocale({ chat, lastMsg, character, avatarUrl }: { chat:
   );
 }
 
-function NewChatCharacterItem({ char, onStartChat, onPrepareError }: { char: any; onStartChat: (id: string) => void; onPrepareError: () => void }) {
+function NewChatCharacterItem({ char, onStartChat, onPrepareError }: { char: SCharacter; onStartChat: (id: string) => void; onPrepareError: () => void }) {
   const { name, role } = useLocalizedCharacter(char.id, char.name, char.role);
   const { t } = useTranslation();
 
@@ -103,7 +104,7 @@ function NewChatCharacterItem({ char, onStartChat, onPrepareError }: { char: any
     >
       <div className="relative flex-none">
         <img
-          src={(char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
+          src={(char.media?.find((m) => m.type === "AVATAR")?.url) || char.media?.[0]?.url}
           alt={name}
           className="w-12 h-12 rounded-full object-cover"
         />
@@ -122,7 +123,7 @@ function NewChatCharacterItem({ char, onStartChat, onPrepareError }: { char: any
 }
 
 export default function ChatListScreen() {
-  const { conversations, allCharacters } = useLoaderData<typeof loader>() as { conversations: any[], allCharacters: any[] };
+  const { conversations, allCharacters } = useLoaderData<typeof loader>() as ChatListLoaderData;
   const { t } = useTranslation();
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
@@ -158,14 +159,14 @@ export default function ChatListScreen() {
   };
 
   // 춘심 1번, Rina 2번, 나머지 순서 (미서비스는 비활성)
-  const chunsim = allCharacters.find((c: any) => c.id === "chunsim");
-  const rina = allCharacters.find((c: any) => c.id === "rina");
-  const rest = allCharacters.filter((c: any) => c.id !== "chunsim" && c.id !== "rina");
-  const orderedChars = [chunsim, rina, ...rest].filter(Boolean);
-  const onlineIdols = orderedChars.map((char: any) => ({
+  const chunsim = allCharacters.find((c) => c.id === "chunsim");
+  const rina = allCharacters.find((c) => c.id === "rina");
+  const rest = allCharacters.filter((c) => c.id !== "chunsim" && c.id !== "rina");
+  const orderedChars = [chunsim, rina, ...rest].filter((c): c is SCharacter => c != null);
+  const onlineIdols = orderedChars.map((char) => ({
     id: char.id,
     name: char.name,
-    avatarUrl: (char.media?.find((m: any) => m.type === "AVATAR")?.url) || char.media?.[0]?.url,
+    avatarUrl: (char.media?.find((m) => m.type === "AVATAR")?.url) || char.media?.[0]?.url,
     isOnline: char.isOnline,
   }));
 
@@ -231,10 +232,10 @@ export default function ChatListScreen() {
             <p className="text-sm text-slate-500">{t("chat.waitingForYou")}</p>
           </div>
         ) : (
-          conversations.map((chat: any) => {
+          conversations.map((chat) => {
             const lastMsg = chat.messages?.[0];
             const character = chat.character;
-            const avatarUrl = (character?.media?.find((m: any) => m.type === "AVATAR")?.url) || character?.media?.[0]?.url;
+            const avatarUrl = (character?.media?.find((m) => m.type === "AVATAR")?.url) || character?.media?.[0]?.url;
 
             return (
               <ChatListItemWithLocale
@@ -262,7 +263,7 @@ export default function ChatListScreen() {
             <DialogTitle>{t("chat.startChatTitle")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {allCharacters.map((char: any) => (
+            {allCharacters.map((char) => (
               <NewChatCharacterItem
                 key={char.id}
                 char={char}
