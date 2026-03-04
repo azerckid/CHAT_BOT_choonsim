@@ -7,6 +7,7 @@ import { requireUserId } from "~/lib/auth.server";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
+import { logger } from "~/lib/logger.server";
 
 const CaptureOrderSchema = z.object({
     orderId: z.string(),
@@ -49,7 +50,7 @@ export async function action({ request }: ActionFunctionArgs) {
         const amountPaid = parseFloat(purchaseUnit.payments.captures[0].amount.value);
 
         if (Math.abs(amountPaid - creditPackage.price) > 0.01) {
-            console.error(`Amount mismatch: expected ${creditPackage.price}, paid ${amountPaid}`);
+            logger.error({ category: "PAYMENT", message: `Amount mismatch: expected ${creditPackage.price}, paid ${amountPaid}` });
             return data({ error: "Payment amount mismatch. Please contact support." }, { status: 400 });
         }
 
@@ -114,9 +115,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return data({ success: true, newCredits: totalCredits, chocoAmount });
 
-    } catch (error: any) {
-        console.error("PayPal Capture Error:", error);
-        const errorMessage = error.message || "Failed to capture payment";
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error({ category: "PAYMENT", message: "PayPal Capture Error:", stackTrace: (error as Error).stack });
         return data({ error: errorMessage }, { status: 500 });
     }
 }

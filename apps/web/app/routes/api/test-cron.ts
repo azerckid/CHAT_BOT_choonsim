@@ -1,8 +1,10 @@
 import type { ActionFunctionArgs } from "react-router";
 import { db } from "~/lib/db.server";
-import { generateProactiveMessage } from "~/lib/ai.server";
+import { generateProactiveMessage, type PersonaMode } from "~/lib/ai.server";
 import * as schema from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { logger } from "~/lib/logger.server";
+import { BioSchema } from "~/lib/schemas/bio";
 
 export async function action({ request }: ActionFunctionArgs) {
     const formData = await request.formData();
@@ -40,13 +42,19 @@ export async function action({ request }: ActionFunctionArgs) {
 
         // 2. 메시지 생성
         let memory = "";
-        let personaMode: any = "hybrid";
+        let personaMode: PersonaMode = "hybrid";
         if (user.bio) {
             try {
-                const bioData = JSON.parse(user.bio);
-                memory = bioData.memory || "";
-                personaMode = bioData.personaMode || "hybrid";
-            } catch (e) { }
+                const bioData = BioSchema.parse(JSON.parse(user.bio));
+                memory = bioData.memory;
+                personaMode = bioData.personaMode ?? "hybrid";
+            } catch (e) {
+                logger.warn({
+                    category: "SYSTEM",
+                    message: `Failed to parse bio JSON for user ${userId}`,
+                    metadata: { userId, error: String(e) },
+                });
+            }
         }
 
         const messageContent = await generateProactiveMessage(user.name || "친구", memory, personaMode);
@@ -67,7 +75,7 @@ export async function action({ request }: ActionFunctionArgs) {
             messageId: savedMessage.id
         });
     } catch (error) {
-        console.error("Test Cron Error:", error);
+        logger.error({ category: "SYSTEM", message: "Test Cron Error", stackTrace: (error as Error).stack });
         return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 }

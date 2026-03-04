@@ -23,6 +23,7 @@
  * Related: docs/04_Logic_Progress/06_BONDBASE_BRIDGE_PLAN.md Phase D, E
  */
 import type { LoaderFunctionArgs } from "react-router";
+import { logger } from "~/lib/logger.server";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, inArray, isNotNull, count } from "drizzle-orm";
@@ -45,7 +46,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
 
     try {
-        const { logger } = await import("~/lib/logger.server");
         // ── REVENUE ──────────────────────────────────────────────────────────
 
         // 2. isSynced=false 레코드 전체 조회

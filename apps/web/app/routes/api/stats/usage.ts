@@ -3,6 +3,7 @@ import { auth } from "~/lib/auth.server";
 import type { LoaderFunctionArgs } from "react-router";
 import * as schema from "~/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
+import { logger } from "~/lib/logger.server";
 
 /**
  * 사용자별 토큰 사용량 통계 API
@@ -151,7 +152,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
             monthly,
         });
     } catch (error) {
-        console.error("Error fetching token usage stats:", error);
+        logger.error({ category: "API", message: "Error fetching token usage stats", stackTrace: (error as Error).stack });
         return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 }

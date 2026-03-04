@@ -2,10 +2,11 @@ import cron from "node-cron";
 import { db } from "./db.server";
 import * as schema from "../db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
-import { generateProactiveMessage } from "./ai.server";
+import { generateProactiveMessage, type PersonaMode } from "./ai.server";
 import { DateTime } from "luxon";
 import webpush from "web-push";
 import { logger } from "./logger.server";
+import { BioSchema } from "./schemas/bio";
 
 // VAPID 키 설정
 const vapidKeys = {
@@ -83,13 +84,19 @@ export function initCronJobs() {
                     if (!conversation) return;
 
                     let memory = "";
-                    let personaMode: any = "hybrid";
+                    let personaMode: PersonaMode = "hybrid";
                     if (user.bio) {
                         try {
-                            const bioData = JSON.parse(user.bio);
-                            memory = bioData.memory || "";
-                            personaMode = bioData.personaMode || "hybrid";
-                        } catch (e) { }
+                            const bioData = BioSchema.parse(JSON.parse(user.bio));
+                            memory = bioData.memory;
+                            personaMode = bioData.personaMode ?? "hybrid";
+                        } catch (e) {
+                            logger.warn({
+                                category: "SYSTEM",
+                                message: `Failed to parse bio JSON for user ${user.id}`,
+                                metadata: { userId: user.id, error: String(e) },
+                            });
+                        }
                     }
 
                     // AI API 호출에 타임아웃 설정 (30초)

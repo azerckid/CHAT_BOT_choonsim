@@ -6,6 +6,7 @@ import { DateTime } from "luxon";
 import * as schema from "~/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
     if (request.method !== "POST") {
@@ -21,14 +22,14 @@ export async function action({ request }: ActionFunctionArgs) {
     const isValid = await verifyWebhookSignature(headers as any, body);
 
     if (!isValid) {
-        console.error("Invalid Webhook Signature");
+        logger.error({ category: "PAYMENT", message: "Invalid Webhook Signature" });
         return new Response("Invalid Signature", { status: 400 });
     }
 
     const eventType = body.event_type;
     const resource = body.resource;
 
-    console.log(`[PayPal Webhook] Received event: ${eventType}`);
+    logger.info({ category: "PAYMENT", message: `[PayPal Webhook] Received event: ${eventType}` });
 
     try {
         switch (eventType) {
@@ -44,7 +45,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 });
 
                 if (!user) {
-                    console.warn(`User not found for subscription: ${subscriptionId}`);
+                    logger.warn({ category: "PAYMENT", message: `User not found for subscription: ${subscriptionId}` });
                     return new Response("User Not Found", { status: 200 });
                 }
 
@@ -54,7 +55,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 });
 
                 if (existingPayment) {
-                    console.log(`Transaction ${transactionId} already processed.`);
+                    logger.info({ category: "PAYMENT", message: `Transaction ${transactionId} already processed.` });
                     return new Response("Already Processed", { status: 200 });
                 }
 
@@ -108,7 +109,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
                 });
 
-                console.log(`[Subscription Renewal] Success for user ${user.id}. Added ${chocoAmount} CHOCO.`);
+                logger.info({ category: "PAYMENT", message: `[Subscription Renewal] Success for user ${user.id}. Added ${chocoAmount} CHOCO.` });
                 break;
             }
 
@@ -119,7 +120,7 @@ export async function action({ request }: ActionFunctionArgs) {
                     .set({ subscriptionStatus: "CANCELLED", updatedAt: new Date() })
                     .where(eq(schema.user.subscriptionId, subscriptionId));
 
-                console.log(`[Subscription Cancelled] Subscription ${subscriptionId} cancelled.`);
+                logger.info({ category: "PAYMENT", message: `[Subscription Cancelled] Subscription ${subscriptionId} cancelled.` });
                 break;
             }
 
@@ -130,15 +131,15 @@ export async function action({ request }: ActionFunctionArgs) {
                     .set({ subscriptionStatus: "SUSPENDED", updatedAt: new Date() })
                     .where(eq(schema.user.subscriptionId, subscriptionId));
 
-                console.log(`[Subscription Suspended] Subscription ${subscriptionId} suspended.`);
+                logger.info({ category: "PAYMENT", message: `[Subscription Suspended] Subscription ${subscriptionId} suspended.` });
                 break;
             }
 
             default:
-                console.log(`Unhandled event type: ${eventType}`);
+                logger.info({ category: "PAYMENT", message: `Unhandled event type: ${eventType}` });
         }
     } catch (error) {
-        console.error("Error processing webhook:", error);
+        logger.error({ category: "PAYMENT", message: "Error processing webhook:", stackTrace: (error as Error).stack });
         return new Response("Internal Server Error", { status: 500 });
     }
 

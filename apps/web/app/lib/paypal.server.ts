@@ -1,5 +1,5 @@
-
 import paypal from "@paypal/checkout-server-sdk";
+import { logger } from "./logger.server";
 
 // 환경 변수 확인
 const clientId = process.env.PAYPAL_CLIENT_ID;
@@ -21,9 +21,9 @@ const environment =
 export const paypalClient = new paypal.core.PayPalHttpClient(environment);
 
 // Webhook 서명 검증 함수
-export async function verifyWebhookSignature(headers: Record<string, string>, body: any) {
+export async function verifyWebhookSignature(headers: Record<string, string>, body: unknown) {
     if (!webhookId) {
-        console.warn("PAYPAL_WEBHOOK_ID is not set in env. Skipping signature verification (NOT RECOMMENDED for production).");
+        logger.warn({ category: "PAYMENT", message: "PAYPAL_WEBHOOK_ID is not set in env. Skipping signature verification (NOT RECOMMENDED for production)." });
         return true;
     }
 
@@ -54,7 +54,7 @@ export async function verifyWebhookSignature(headers: Record<string, string>, bo
 
         return response.result.verification_status === "SUCCESS";
     } catch (error) {
-        console.error("Webhook Verification Failed:", error);
+        logger.error({ category: "PAYMENT", message: "PayPal Webhook Verification Failed", stackTrace: (error as Error).stack });
         return false;
     }
 }
@@ -79,7 +79,7 @@ export async function cancelPayPalSubscription(subscriptionId: string, reason: s
         // Successful cancellation returns 204 No Content
         return response.statusCode === 204;
     } catch (error) {
-        console.error("Failed to cancel subscription:", error);
+        logger.error({ category: "PAYMENT", message: "Failed to cancel PayPal subscription", stackTrace: (error as Error).stack });
         throw error;
     }
 }

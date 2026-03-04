@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db.server";
 import * as schema from "../db/schema";
 import { eq } from "drizzle-orm";
+import { logger } from "./logger.server";
 
 export const auth = betterAuth({
     baseURL: process.env.BETTER_AUTH_URL,
@@ -78,7 +79,7 @@ export const auth = betterAuth({
                         data: profile,
                     };
                 } catch (error) {
-                    console.error("Error fetching Twitter user info:", error);
+                    logger.error({ category: "AUTH", message: "Error fetching Twitter user info", stackTrace: (error as Error).stack });
                     // Fallback: 기본값 반환
                     return {
                         user: {
@@ -151,14 +152,14 @@ export const auth = betterAuth({
         user: {
             create: {
                 after: async (user) => {
-                    console.log(`[Auth Hook] New user created: ${user.id} (${user.email})`);
+                    logger.info({ category: "AUTH", message: `New user created: ${user.id} (${user.email})` });
                 }
             }
         },
         session: {
             create: {
                 after: async (session) => {
-                    console.log(`[Auth Hook] New session created for user: ${session.userId}`);
+                    logger.info({ category: "AUTH", message: `New session created for user: ${session.userId}` });
                 }
             }
         },
@@ -175,7 +176,7 @@ export const auth = betterAuth({
 
                         if (user && account.providerId) {
                             // provider에 따라 다른 처리
-                            const updateData: any = {
+                            const updateData: { provider: string; updatedAt: Date; avatarUrl?: string } = {
                                 provider: account.providerId,
                                 updatedAt: new Date(),
                             };
@@ -202,7 +203,7 @@ export const auth = betterAuth({
                                 .where(eq(schema.user.id, account.userId));
                         }
                     } catch (error) {
-                        console.error("Error updating user in account create hook:", error);
+                        logger.error({ category: "AUTH", message: "Error updating user in account create hook", stackTrace: (error as Error).stack });
                     }
                 },
             },
@@ -217,7 +218,7 @@ export const auth = betterAuth({
 
                         if (user && account.providerId) {
                             // provider에 따라 다른 처리
-                            const updateData: any = {
+                            const updateData: { provider: string; updatedAt: Date; avatarUrl?: string } = {
                                 provider: account.providerId,
                                 updatedAt: new Date(),
                             };
@@ -243,7 +244,7 @@ export const auth = betterAuth({
                                 .where(eq(schema.user.id, account.userId));
                         }
                     } catch (error) {
-                        console.error("Error updating user in account update hook:", error);
+                        logger.error({ category: "AUTH", message: "Error updating user in account update hook", stackTrace: (error as Error).stack });
                     }
                 },
             },

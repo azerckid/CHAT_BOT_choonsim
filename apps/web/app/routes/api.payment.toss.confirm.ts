@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { requireUserId } from "~/lib/auth.server";
 import { confirmTossPayment, processSuccessfulTossPayment } from "~/lib/toss.server";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
     const userId = await requireUserId(request);
@@ -26,11 +27,12 @@ export async function action({ request }: ActionFunctionArgs) {
             credits: result.user?.credits ?? 0,
             message: "결제가 완료되었습니다."
         });
-    } catch (error: any) {
-        console.error("Toss Payment Confirmation Error:", error);
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error({ category: "PAYMENT", message: "Toss Payment Confirmation Error:", stackTrace: (error as Error).stack });
         return Response.json({
             success: false,
-            error: error.message || "결제 승인 중 오류가 발생했습니다."
+            error: errorMessage || "결제 승인 중 오류가 발생했습니다."
         }, { status: 500 });
     }
 }

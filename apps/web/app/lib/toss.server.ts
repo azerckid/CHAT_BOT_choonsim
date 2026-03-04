@@ -45,7 +45,7 @@ export async function confirmTossPayment(paymentKey: string, orderId: string, am
  */
 export async function processSuccessfulTossPayment(
     userId: string,
-    paymentData: any,
+    paymentData: { totalAmount: number; orderId: string; paymentKey: string },
     creditsGranted: number
 ) {
     // 1. 사용자 정보 조회
@@ -109,7 +109,7 @@ export async function processSuccessfulTossPayment(
  */
 export async function processSuccessfulTossSubscription(
     userId: string,
-    paymentData: any,
+    paymentData: { totalAmount: number; orderId: string; paymentKey: string },
     tier: string
 ) {
     // 1. 사용자 정보 및 플랜 정보 조회
@@ -179,7 +179,7 @@ export async function processSuccessfulTossSubscription(
  */
 export async function processSuccessfulTossItemPayment(
     userId: string,
-    paymentData: any,
+    paymentData: { totalAmount: number; orderId: string; paymentKey: string },
     itemId: string,
     quantity: number
 ) {

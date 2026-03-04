@@ -7,6 +7,7 @@ import { DateTime } from "luxon";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { BigNumber } from "bignumber.js";
+import { logger } from "~/lib/logger.server";
 
 const ActivateSubscriptionSchema = z.object({
     subscriptionId: z.string(),
@@ -23,7 +24,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const submission = ActivateSubscriptionSchema.safeParse(Object.fromEntries(formData));
 
     if (!submission.success) {
-        console.error("Invalid payload:", submission.error);
+        logger.error({ category: "PAYMENT", message: "Invalid payload:", stackTrace: (submission.error as Error).stack });
         return data({ error: "Invalid payload" }, { status: 400 });
     }
 
@@ -106,8 +107,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return data({ success: true });
 
-    } catch (error: any) {
-        console.error("Subscription Activation Error:", error);
+    } catch (error) {
+        logger.error({ category: "PAYMENT", message: "Subscription Activation Error:", stackTrace: (error as Error).stack });
         return data({ error: "Failed to activate subscription" }, { status: 500 });
     }
 }

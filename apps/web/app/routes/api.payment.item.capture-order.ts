@@ -6,6 +6,7 @@ import { HEART_PACKAGES } from "~/lib/items";
 import { requireUserId } from "~/lib/auth.server";
 import * as schema from "~/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { logger } from "~/lib/logger.server";
 
 const CaptureOrderSchema = z.object({
     orderId: z.string(),
@@ -48,7 +49,7 @@ export async function action({ request }: ActionFunctionArgs) {
         const amountPaid = parseFloat(purchaseUnit.payments.captures[0].amount.value);
 
         if (Math.abs(amountPaid - itemPackage.priceUSD) > 0.01) {
-            console.error(`Amount mismatch: expected ${itemPackage.priceUSD}, paid ${amountPaid}`);
+            logger.error({ category: "PAYMENT", message: `Amount mismatch: expected ${itemPackage.priceUSD}, paid ${amountPaid}` });
             return data({ error: "Payment amount mismatch. Please contact support." }, { status: 400 });
         }
 
@@ -95,8 +96,9 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return data({ success: true, quantityAdded: quantity });
 
-    } catch (error: any) {
-        console.error("PayPal Capture Item Error:", error);
-        return data({ error: error.message || "Failed to capture payment" }, { status: 500 });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error({ category: "PAYMENT", message: "PayPal Capture Item Error:", stackTrace: (error as Error).stack });
+        return data({ error: errorMessage || "Failed to capture payment" }, { status: 500 });
     }
 }

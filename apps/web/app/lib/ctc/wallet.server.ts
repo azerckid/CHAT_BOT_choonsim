@@ -11,6 +11,7 @@ import * as schema from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { encrypt } from "~/lib/ctc/key-encryption.server";
 import { BigNumber } from "bignumber.js";
+import { logger } from "~/lib/logger.server";
 
 const SIGNUP_CHOCO_REWARD = 5000;
 
@@ -69,6 +70,6 @@ export async function ensureEvmWalletAsync(userId: string): Promise<string | nul
     })
     .where(eq(schema.user.id, userId));
 
-  console.log(`[CTC Wallet] Created evmAddress for user ${userId} (${evmAddress}), signup reward +${SIGNUP_CHOCO_REWARD} CHOCO`);
+  logger.info({ category: "SYSTEM", message: `[CTC Wallet] Created evmAddress for user ${userId} (${evmAddress}), signup reward +${SIGNUP_CHOCO_REWARD} CHOCO` });
   return evmAddress;
 }

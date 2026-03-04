@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { uploadImage } from "~/lib/cloudinary.server";
 import { auth } from "~/lib/auth.server";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -31,7 +32,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return Response.json({ url });
     } catch (error) {
-        console.error("Upload error:", error);
+        logger.error({ category: "API", message: "Image upload error", stackTrace: (error as Error).stack });
         return Response.json({ error: "Failed to upload image" }, { status: 500 });
     }
 }

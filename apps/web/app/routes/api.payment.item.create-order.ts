@@ -3,6 +3,7 @@ import { z } from "zod";
 import { paypal, paypalClient } from "~/lib/paypal.server";
 import { HEART_PACKAGES } from "~/lib/items";
 import { requireUserId } from "~/lib/auth.server";
+import { logger } from "~/lib/logger.server";
 
 const CreateOrderSchema = z.object({
     packageId: z.string(),
@@ -49,8 +50,8 @@ export async function action({ request }: ActionFunctionArgs) {
     try {
         const order = await paypalClient.execute(requestBody);
         return data({ orderId: order.result.id });
-    } catch (error: any) {
-        console.error("PayPal Create Item Order Error:", error);
+    } catch (error) {
+        logger.error({ category: "PAYMENT", message: "PayPal Create Item Order Error:", stackTrace: (error as Error).stack });
         return data({ error: "Failed to create PayPal order" }, { status: 500 });
     }
 }

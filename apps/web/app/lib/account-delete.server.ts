@@ -9,6 +9,7 @@
 import { db } from "./db.server";
 import * as schema from "../db/schema";
 import { eq, inArray, or } from "drizzle-orm";
+import { logger } from "./logger.server";
 
 export async function deleteUserData(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
@@ -97,7 +98,7 @@ export async function deleteUserData(userId: string): Promise<{ success: boolean
 
         return { success: true };
     } catch (err) {
-        console.error("[AccountDelete] Error:", err);
+        logger.error({ category: "DB", message: "[AccountDelete] 계정 삭제 실패", stackTrace: (err as Error).stack });
         return {
             success: false,
             error: err instanceof Error ? err.message : "계정 삭제 중 오류가 발생했습니다.",

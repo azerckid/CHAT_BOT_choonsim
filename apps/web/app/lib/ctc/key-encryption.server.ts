@@ -71,10 +71,11 @@ export function decrypt(encryptedText: string): string {
         decrypted += decipher.final("utf8");
 
         return decrypted;
-    } catch (error: any) {
-        if (error.message?.includes("bad decrypt") || error.message?.includes("Unsupported state")) {
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage?.includes("bad decrypt") || errorMessage?.includes("Unsupported state")) {
             throw new Error("Decryption failed: encryption key may have changed or data is corrupted.");
         }
-        throw new Error(`Decryption failed: ${error.message || error}`);
+        throw new Error(`Decryption failed: ${errorMessage}`);
     }
 }

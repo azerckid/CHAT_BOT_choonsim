@@ -6,6 +6,7 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { findReference, validateTransfer } from "@solana/pay";
 import { eq, sql } from "drizzle-orm";
 import BigNumber from "bignumber.js";
+import { logger } from "~/lib/logger.server";
 
 // Solana RPC Connection (기본적으로 메인넷 사용, 테스트 시 devnet으로 변경 가능)
 const SOLANA_RPC_ENDPOINT = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
@@ -81,7 +82,7 @@ export async function action({ request }: ActionFunctionArgs) {
                     .where(eq(schema.user.id, paymentRecord.userId));
             });
 
-            console.info(`[SolanaPay] Payment COMPLETED: user=${paymentRecord.userId}, signature=${signatureInfo.signature}`);
+            logger.info({ category: "PAYMENT", message: `[SolanaPay] Payment COMPLETED: user=${paymentRecord.userId}, signature=${signatureInfo.signature}` });
 
             return Response.json({
                 success: true,
@@ -90,12 +91,12 @@ export async function action({ request }: ActionFunctionArgs) {
             });
 
         } catch (validationError) {
-            console.error("Solana Pay validation error:", validationError);
+            logger.error({ category: "PAYMENT", message: "Solana Pay validation error:", stackTrace: (validationError as Error).stack });
             return Response.json({ error: "Transaction validation failed" }, { status: 400 });
         }
 
     } catch (error) {
-        console.error("Solana Pay verification error:", error);
+        logger.error({ category: "PAYMENT", message: "Solana Pay verification error:", stackTrace: (error as Error).stack });
         return Response.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

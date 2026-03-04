@@ -6,6 +6,7 @@
  */
 import type { LoaderFunctionArgs } from "react-router";
 import { runCtcDepositAndSweep } from "~/lib/ctc/deposit-engine.server";
+import { logger } from "~/lib/logger.server";
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
@@ -25,7 +26,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       errors: result.errors,
     });
   } catch (e) {
-    console.error("[CTC Sweep Cron]", e);
+    logger.error({ category: "SYSTEM", message: "[CTC Sweep Cron] 실패", stackTrace: (e as Error).stack });
     return Response.json(
       { ok: false, error: (e as Error).message },
       { status: 500 }

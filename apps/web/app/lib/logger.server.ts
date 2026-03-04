@@ -9,7 +9,7 @@ interface LogPayload {
     category?: LogCategory;
     message: string;
     stackTrace?: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
 }
 
 export const logger = {
@@ -43,7 +43,7 @@ async function log(defaultLevel: LogLevel, payload: string | LogPayload) {
             stackTrace,
             metadata,
             createdAt: new Date(),
-        }).catch((err: any) => console.error("Critical: Failed to save log to DB", err));
+        }).catch((err: unknown) => console.error("Critical: Failed to save log to DB", err));
     } catch (err) {
         console.error("Critical: Logger infrastructure error", err);
     }

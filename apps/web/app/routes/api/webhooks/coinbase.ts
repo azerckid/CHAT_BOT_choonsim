@@ -3,6 +3,7 @@ import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
 import { eq, sql } from "drizzle-orm";
 import crypto from "node:crypto";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
     if (request.method !== "POST") {
@@ -11,7 +12,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const WEBHOOK_SECRET = process.env.COINBASE_COMMERCE_WEBHOOK_SECRET;
     if (!WEBHOOK_SECRET) {
-        console.error("COINBASE_COMMERCE_WEBHOOK_SECRET is not configured");
+        logger.error({ category: "PAYMENT", message: "COINBASE_COMMERCE_WEBHOOK_SECRET is not configured" });
         return Response.json({ error: "Webhook secret not configured" }, { status: 500 });
     }
 
@@ -29,7 +30,7 @@ export async function action({ request }: ActionFunctionArgs) {
         const expectedSignature = hmac.digest("hex");
 
         if (signature !== expectedSignature) {
-            console.error("Coinbase webhook verification failed: Signature mismatch");
+            logger.error({ category: "PAYMENT", message: "Coinbase webhook verification failed: Signature mismatch" });
             return Response.json({ error: "Invalid signature" }, { status: 401 });
         }
 
@@ -45,7 +46,7 @@ export async function action({ request }: ActionFunctionArgs) {
             });
 
             if (!paymentRecord) {
-                console.warn(`Payment record not found for charge ID: ${charge.id}`);
+                logger.warn({ category: "PAYMENT", message: `Payment record not found for charge ID: ${charge.id}` });
                 return Response.json({ success: true, message: "Payment record not found" });
             }
 
@@ -78,16 +79,16 @@ export async function action({ request }: ActionFunctionArgs) {
                         .where(eq(schema.user.id, paymentRecord.userId));
                 }
 
-                console.info(`[Coinbase] Payment COMPLETED: user=${paymentRecord.userId}, credits=${paymentRecord.creditsGranted}`);
+                logger.info({ category: "PAYMENT", message: `[Coinbase] Payment COMPLETED: user=${paymentRecord.userId}, credits=${paymentRecord.creditsGranted}` });
             } catch (dbError) {
-                console.error("DB Update failed during Coinbase webhook processing:", dbError);
+                logger.error({ category: "PAYMENT", message: "DB Update failed during Coinbase webhook processing:", stackTrace: (dbError as Error).stack });
                 return Response.json({ error: "Internal Server Error" }, { status: 500 });
             }
         }
 
         return Response.json({ success: true });
     } catch (error) {
-        console.error("Coinbase webhook error:", error);
+        logger.error({ category: "PAYMENT", message: "Coinbase webhook error:", stackTrace: (error as Error).stack });
         return Response.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

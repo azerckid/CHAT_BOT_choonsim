@@ -47,7 +47,7 @@ export async function createX402Invoice(userId: string, amountUSD: number) {
 /**
  * 402 Payment Required 응답 객체를 생성합니다.
  */
-export function createX402Response(token: string, invoice: any): Response {
+export function createX402Response(token: string, invoice: { amount: string; currency: string }): Response {
     return Response.json(
         {
             error: "Payment Required",

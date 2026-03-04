@@ -1,3 +1,5 @@
+import { logger } from "~/lib/logger.server";
+
 const BONDBASE_API_URL = process.env.BONDBASE_API_URL;
 const CHOONSIM_API_KEY = process.env.CHOONSIM_API_KEY;
 
@@ -15,7 +17,7 @@ export async function sendRevenue(
     description: string,
 ): Promise<void> {
     if (!BONDBASE_API_URL || !CHOONSIM_API_KEY) {
-        console.warn("[BondBase] 환경변수 미설정. 전송 건너뜀.");
+        logger.warn({ category: "SYSTEM", message: "[BondBase] 환경변수 미설정. 전송 건너뜀." });
         return;
     }
 
@@ -51,7 +53,7 @@ export async function sendMetrics(
     subscribers: number,
 ): Promise<void> {
     if (!BONDBASE_API_URL || !CHOONSIM_API_KEY) {
-        console.warn("[BondBase] 환경변수 미설정. 전송 건너뜀.");
+        logger.warn({ category: "SYSTEM", message: "[BondBase] 환경변수 미설정. 전송 건너뜀." });
         return;
     }
 

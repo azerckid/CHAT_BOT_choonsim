@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import { logger } from "./logger.server";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -13,7 +14,7 @@ export async function uploadImage(file: string) {
         });
         return result.secure_url;
     } catch (error) {
-        console.error("Cloudinary upload error:", error);
+        logger.error({ category: "SYSTEM", message: "Cloudinary upload error", stackTrace: (error as Error).stack });
         throw new Error("Failed to upload image");
     }
 }
@@ -28,9 +29,9 @@ export async function deleteImage(url: string) {
         const publicId = `${folder}/${filename.split(".")[0]}`;
 
         await cloudinary.uploader.destroy(publicId);
-        console.log(`Deleted from Cloudinary: ${publicId}`);
+        logger.info({ category: "SYSTEM", message: `Deleted from Cloudinary: ${publicId}` });
     } catch (error) {
-        console.error("Cloudinary delete error:", error);
+        logger.error({ category: "SYSTEM", message: "Cloudinary delete error", stackTrace: (error as Error).stack });
     }
 }
 

@@ -2,7 +2,8 @@ import { type ActionFunctionArgs, data } from "react-router";
 import { z } from "zod";
 import { paypal, paypalClient } from "~/lib/paypal.server";
 import { CREDIT_PACKAGES } from "~/lib/subscription-plans";
-import { requireUserId } from "~/lib/auth.server"; // Assuming this exists or I will use a similar auth check
+import { requireUserId } from "~/lib/auth.server";
+import { logger } from "~/lib/logger.server";
 
 const CreateOrderSchema = z.object({
     packageId: z.string(),
@@ -49,8 +50,8 @@ export async function action({ request }: ActionFunctionArgs) {
     try {
         const order = await paypalClient.execute(requestBody);
         return data({ orderId: order.result.id });
-    } catch (error: any) {
-        console.error("PayPal Create Order Error:", error);
+    } catch (error) {
+        logger.error({ category: "PAYMENT", message: "PayPal Create Order Error:", stackTrace: (error as Error).stack });
         return data({ error: "Failed to create PayPal order" }, { status: 500 });
     }
 }

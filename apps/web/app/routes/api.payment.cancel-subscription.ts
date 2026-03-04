@@ -5,6 +5,7 @@ import * as schema from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { requireUserId } from "~/lib/auth.server";
 import { cancelPayPalSubscription } from "~/lib/paypal.server";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
     const userId = await requireUserId(request);
@@ -41,8 +42,8 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return data({ success: true });
 
-    } catch (error: any) {
-        console.error("Subscription Cancellation Error:", error);
+    } catch (error) {
+        logger.error({ category: "PAYMENT", message: "Subscription Cancellation Error:", stackTrace: (error as Error).stack });
         return data({ error: "Failed to cancel subscription. Please try again later." }, { status: 500 });
     }
 }

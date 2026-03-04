@@ -4,6 +4,7 @@ import type { ActionFunctionArgs } from "react-router";
 import { z } from "zod";
 import * as schema from "~/db/schema";
 import { eq, and } from "drizzle-orm";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request, params }: ActionFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -69,7 +70,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             return Response.json({ liked: false });
         }
     } catch (error) {
-        console.error("Like error:", error);
+        logger.error({ category: "API", message: "Message like/unlike error", stackTrace: (error as Error).stack });
         return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 }

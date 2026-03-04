@@ -3,6 +3,7 @@ import { db } from "~/lib/db.server";
 import { auth } from "~/lib/auth.server";
 import * as schema from "~/db/schema";
 import { eq } from "drizzle-orm";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
     const session = await auth.api.getSession({ headers: request.headers });
@@ -22,7 +23,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
         return Response.json({ success: true });
     } catch (error) {
-        console.error("Save subscription error:", error);
+        logger.error({ category: "API", message: "Save push subscription error", stackTrace: (error as Error).stack });
         return Response.json({ error: "Internal server error" }, { status: 500 });
     }
 }

@@ -3,6 +3,7 @@ import { auth } from "~/lib/auth.server";
 import { z } from "zod";
 import { db } from "~/lib/db.server";
 import * as schema from "~/db/schema";
+import { logger } from "~/lib/logger.server";
 
 const COINBASE_API_KEY = process.env.COINBASE_COMMERCE_API_KEY || "";
 
@@ -68,7 +69,7 @@ export async function action({ request }: ActionFunctionArgs) {
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("Coinbase API Error Response:", data);
+            logger.error({ category: "PAYMENT", message: "Coinbase API Error Response:" });
             return Response.json(
                 { error: data.error?.message || "Failed to create charge from Coinbase" },
                 { status: response.status }
@@ -103,7 +104,7 @@ export async function action({ request }: ActionFunctionArgs) {
             expiresAt: charge.expires_at,
         });
     } catch (error) {
-        console.error("Coinbase charge creation error:", error);
+        logger.error({ category: "PAYMENT", message: "Coinbase charge creation error:", stackTrace: (error as Error).stack });
         return Response.json(
             { error: "Internal Server Error during charge creation" },
             { status: 500 }

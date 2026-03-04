@@ -7,6 +7,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { encodeURL } from "@solana/pay";
 import BigNumber from "bignumber.js";
 import axios from "axios";
+import { logger } from "~/lib/logger.server";
 
 // SOL 가격 캐싱을 위한 메모리 저장소
 let cachedSolPrice: number | null = null;
@@ -58,9 +59,9 @@ export async function action({ request }: ActionFunctionArgs) {
                 solPrice = priceRes.data.solana.usd;
                 cachedSolPrice = solPrice;
                 lastFetchTime = now;
-                console.log(`[SolanaPay] Updated SOL price: $${solPrice}`);
+                logger.info({ category: "PAYMENT", message: `[SolanaPay] Updated SOL price: $${solPrice}` });
             } catch (e) {
-                console.error("Failed to fetch SOL price, using cached/fallback:", e);
+                logger.error({ category: "PAYMENT", message: "Failed to fetch SOL price, using cached/fallback:", stackTrace: (e as Error).stack });
             }
         }
 
@@ -109,7 +110,7 @@ export async function action({ request }: ActionFunctionArgs) {
             solPrice: solPrice.toString(),
         });
     } catch (error) {
-        console.error("Solana Pay request creation error:", error);
+        logger.error({ category: "PAYMENT", message: "Solana Pay request creation error:", stackTrace: (error as Error).stack });
         return Response.json(
             { error: "Failed to create Solana Pay request" },
             { status: 500 }
