@@ -62,6 +62,8 @@ export default [
   route("api/cron/ctc-sweep", "routes/api/cron/ctc-sweep.ts"),
   route("api/cron/presend", "routes/api/cron/presend.ts"),
   route("api/cron/bondbase-sync", "routes/api/cron/bondbase-sync.ts"),
+  route("api/cron/mock-grant", "routes/api/cron/mock-grant.ts"),
+  route("api/cron/mock-activity", "routes/api/cron/mock-activity.ts"),
   route("api/wallet/status", "routes/api/wallet/status.ts"),
   route("api/account/delete", "routes/api/account/delete.ts"),
   route("api/push-subscription", "routes/api/push-subscription.ts"),

@@ -10,6 +10,9 @@
     "test:context": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/isolation.test.ts",
     "test:context-memory": "GOOGLE_API_KEY=test-key TURSO_DATABASE_URL= tsx app/lib/context/__tests__/memory.test.ts",
     "db:reset": "tsx scripts/db-reset.ts",
+    "mock:seed": "tsx scripts/seed-mock-users.ts",
+    "mock:grant": "tsx scripts/grant-mock-users-choco.ts",
+    "mock:activity": "tsx scripts/run-mock-activity.ts",
     "characters:set-service": "node scripts/set-character-service.mjs",
     "test:identity": "vitest run app/lib/context/__tests__/identity.test.ts"
   },
