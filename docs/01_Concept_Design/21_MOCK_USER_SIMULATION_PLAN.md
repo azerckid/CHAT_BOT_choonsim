@@ -41,6 +41,19 @@ Mock 유저 작업 전에 아래 항목을 확인·완료한다.
 3. bondbase-sync가 정상 동작하는지 수동 호출 확인
 4. 운영 체크리스트(09_OPERATIONS_READINESS_CHECKLIST.md) Phase 0-4, 1-1 권장 선행
 
+### 0.5 BondBase 진행 전 1번 확인 절차 (실행 가능)
+
+아래를 순서대로 실행하여 각 항목을 확인한다.
+
+| # | 확인 항목 | 실행/확인 방법 | 확인 |
+|---|-----------|----------------|------|
+| 1 | **Character.bondBaseId** | `cd apps/web && npx tsx scripts/set-bondbase-id.ts` 실행 후 출력에서 chunsim=101, rina=102 확인. 미설정이면 동 스크립트가 설정함. | [ ] |
+| 2 | **Mock 유저·소비** | `npx tsx scripts/seed-mock-users.ts` → `npx tsx scripts/grant-mock-users-choco.ts` → `npx tsx scripts/run-mock-activity.ts` (최소 1회). ChocoConsumptionLog에 레코드 생성을 DB 또는 Admin에서 확인. | [ ] |
+| 3 | **bondbase-sync 200** | `curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/bondbase-sync"` (CRON_SECRET, APP_URL을 실제 값으로 치환). 200이면 정상. | [ ] |
+| 4 | **환경변수** | 프로덕션(Vercel 등)에 `BONDBASE_API_URL`, `CHOONSIM_API_KEY` 설정 여부 확인. 미설정 시 bondbase-sync는 200을 반환하지만 전송은 건너뜀(로그: "환경변수 미설정. 전송 건너뜀"). | [ ] |
+
+- **코드/설정 검증 결과**: 스크립트·Cron 라우트·`lib/bondbase/client.server.ts` 참조 존재. `.env.example`에 BondBase 항목 추가됨.
+
 ---
 
 ## 1. 개요
