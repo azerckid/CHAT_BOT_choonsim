@@ -70,6 +70,7 @@ async function main() {
         args: [String(newBalance), now, u.id],
       });
 
+      // ROUNDS > 1일 때 다음 라운드에서 올바른 잔액 사용을 위해 인메모리 값 동기화
       u.chocoBalance = String(newBalance);
       totalDeducted += deduct;
       totalLogs++;
