@@ -35,7 +35,13 @@ export async function sendRevenue(
     });
 
     if (!response.ok) {
-        throw new Error(`BondBase REVENUE API error: ${response.status} ${response.statusText}`);
+        const body = await response.text();
+        logger.warn({
+            category: "SYSTEM",
+            message: `[BondBase] REVENUE API ${response.status}`,
+            metadata: { bondId, amountUsdc, description, responseBody: body.slice(0, 500) },
+        });
+        throw new Error(`BondBase REVENUE API error: ${response.status} ${response.statusText}${body ? ` — ${body.slice(0, 200)}` : ""}`);
     }
 }
 
@@ -71,6 +77,12 @@ export async function sendMetrics(
     });
 
     if (!response.ok) {
-        throw new Error(`BondBase METRICS API error: ${response.status} ${response.statusText}`);
+        const body = await response.text();
+        logger.warn({
+            category: "SYSTEM",
+            message: `[BondBase] METRICS API ${response.status}`,
+            metadata: { bondId, followers, subscribers, responseBody: body.slice(0, 500) },
+        });
+        throw new Error(`BondBase METRICS API error: ${response.status} ${response.statusText}${body ? ` — ${body.slice(0, 200)}` : ""}`);
     }
 }
