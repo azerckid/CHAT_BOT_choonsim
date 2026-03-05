@@ -54,6 +54,25 @@ Mock 유저 작업 전에 아래 항목을 확인·완료한다.
 
 - **코드/설정 검증 결과**: 스크립트·Cron 라우트·`lib/bondbase/client.server.ts` 참조 존재. `.env.example`에 BondBase 항목 추가됨.
 
+### 0.6 배포 환경: Mock 유저 50명이 초코를 소비하지 않는 이유
+
+**원인**: 배포 DB에 Mock 유저가 없음. `seed-mock-users.ts`는 로컬에서 `.env.development`(로컬 DB) 기준으로 실행되었고, **배포 DB를 대상으로 Mock 유저 시드를 한 적이 없음.**  
+→ 배포 앱의 mock-grant·mock-activity는 배포 DB를 조회하므로 "Mock 유저 0명" → 지급·소비 0건.
+
+**조치**: 배포 DB에 Mock 유저 50명을 **최소 1회** 시드. 배포 URL로 `GET /api/cron/mock-seed` (Authorization: Bearer {CRON_SECRET}) 1회 호출. 자세한 절차는 [10_MOCK_USER_IMPLEMENTATION_PLAN.md](../04_Logic_Progress/10_MOCK_USER_IMPLEMENTATION_PLAN.md#배포-환경-mock-유저가-초코를-소비하지-않는-이유) 참고.
+
+### 0.7 BondBase에 CHOCO_CONSUMPTION이 0건일 때 (진단)
+
+BondBase에 revenue가 한 건도 안 들어가면, **보낼 미전송 로그가 없는지** 먼저 확인한다.
+
+| 방법 | 확인 내용 |
+|------|-----------|
+| **방법 1 (배포 앱)** | `GET /api/cron/bondbase-sync` 호출(Authorization: Bearer {CRON_SECRET}) 후 응답 `revenue.synced` 확인. 0이면 전송한 건 0건(미전송 로그 없음). |
+| **방법 2 (DB)** | `npx tsx scripts/check-choco-consumption-log-sync.ts` 실행. isSynced=false 개수 확인. 0이면 보낼 데이터 없음. |
+| **조치** | 미전송 로그가 없으면 `mock-grant` → `mock-activity` 실행해 ChocoConsumptionLog를 쌓은 뒤 bondbase-sync가 다음 주기에 전송하거나 수동 호출. |
+
+**한 줄**: ChoonSim DB에 isSynced=false 로그가 있는지 확인하고, 없으면 mock-activity 등으로 로그를 쌓은 뒤 bondbase-sync가 보내는지 확인.
+
 ---
 
 ## 1. 개요

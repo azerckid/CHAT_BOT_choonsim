@@ -1,6 +1,6 @@
 # BondBase Revenue Bridge 구현 계획
 > Created: 2026-02-26
-> Last Updated: 2026-02-26
+> Last Updated: 2026-02-11
 
 **대상**: 춘심톡(AI-CHOONSIM-TALK) 백엔드 개발팀
 **목적**: 춘심톡에서 발생하는 캐릭터별 CHOCO 소비를 집계하여 BondBase `POST /api/revenue`에 주기적으로 전송하는 연동 모듈을 구현합니다.
@@ -260,6 +260,27 @@ export async function sendMetrics(bondId: number, followers: number, subscribers
 - [ ] 선물 1회 → `ChocoConsumptionLog` 행 생성 확인
 - [ ] Cron 수동 트리거 → BondBase REVENUE 전송 확인
 - [ ] BondBase API 오류 시 춘심톡 서비스 영향 없음 확인
+
+---
+
+## 6. 배포 환경 BondBase 연동 요약
+
+배포 환경에서는 **BondBase가 데이터를 받을 수 있도록 이미 구성돼 있습니다.**
+
+| 구성 요소 | 설명 |
+|-----------|------|
+| 배포 앱 | `GET /api/cron/bondbase-sync` — 배포 DB의 ChocoConsumptionLog를 읽어 characterId별 합산 후 BondBase로 POST |
+| 배포 DB | ChocoConsumptionLog (isSynced=false인 건이 전송 대상) |
+| GitHub Actions | `bondbase-sync.yml`이 주기적으로 배포 URL의 bondbase-sync API 호출 |
+
+**BondBase에 CHOCO_CONSUMPTION 건수가 0인 이유**는 다음 두 가지 가능성만 보면 됩니다.
+
+| 원인 | 설명 | 확인·조치 |
+|------|------|-----------|
+| **(1) 배포 DB에 isSynced=false 로그가 없음** | 보낼 데이터가 없어서 0건만 전송됨 | 배포 앱으로 `GET /api/cron/bondbase-sync` 호출 후 응답 `revenue.synced` 확인. 0이면 이번에 전송한 건 0건. → mock-activity Cron(배포 URL)을 수동 실행하거나, mock-grant·mock-activity 워크플로가 배포 DB에 로그를 쌓은 뒤 bondbase-sync가 다음 주기에 전송하는지 확인. |
+| **(2) BondBase API가 500 등으로 실패** | 전송 시도는 하였으나 BondBase가 오류를 반환해 수신 0건 | 동일 호출의 응답 `revenue.errors` 확인. 500 등 에러 메시지가 있으면 BondBase 측 수신 준비·API 스펙 확인 필요. |
+
+**할 일 정리**: (1)이면 배포 DB에 소비 로그를 쌓게 한 뒤 bondbase-sync 재실행. (2)이면 BondBase 팀과 API·수신 준비 상태 확인.
 
 ---
 
