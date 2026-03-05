@@ -1,6 +1,6 @@
 # 프로젝트 백로그 (Project Backlog)
 > Created: 2026-02-08 17:59
-> Last Updated: 2026-03-03 (크론 외부 스케줄러 마이그레이션 완료)
+> Last Updated: 2026-02-11 (Mock 유저 0-b 완료, NEAR 잔여 제거 완료 반영)
 
 본 문서는 프로젝트의 현재 진행 상황과 향후 계획을 칸반 형태로 관리하는 실행 로직 문서입니다.
 
@@ -23,10 +23,21 @@ _(현재 진행 중인 작업 없음)_
   - HTTP Status 200 수동 테스트 확인 완료
 - **관련 문서**: [07_GITHUB_ACTIONS_CRON_SETUP.md](./07_GITHUB_ACTIONS_CRON_SETUP.md)
 
-### 0. NEAR 잔여 제거 (UI·코드·DB)
+### ~~0-b. Mock 유저 50명 시뮬레이션~~ (30일 테스트) (2026-02-11)
+- **목표**: 50명 Mock 유저 생성, 매일 초코 지급, 채팅·선물 차등 소비 → BondBase 수익 현황 검증
+- **관련 문서**: [21_MOCK_USER_SIMULATION_PLAN.md](../01_Concept_Design/21_MOCK_USER_SIMULATION_PLAN.md), [10_MOCK_USER_IMPLEMENTATION_PLAN.md](./10_MOCK_USER_IMPLEMENTATION_PLAN.md)
+- **완료 내역**:
+    - [x] `scripts/seed-mock-users.ts` — Mock 유저 50명 생성
+    - [x] `scripts/grant-mock-users-choco.ts` — 매일 초코 지급
+    - [x] `scripts/run-mock-activity.ts` — 채팅·선물 차등 소비 시뮬레이션
+    - [x] `app/lib/mock-users.server.ts` — Cron용 서버 로직
+    - [x] `api/cron/mock-grant`, `api/cron/mock-activity` Cron API
+    - [x] `.github/workflows/mock-grant.yml`, `mock-activity.yml` — 매일/매시간 실행
+
+### ~~0. NEAR 잔여 제거~~ (UI·코드·DB)
 - **목표**: 사용자·관리자에게 NEAR 노출 없음, 코드·DB에서 near 관련 식별자 제거.
 - **관련 문서**: [04_NEAR_REMOVAL_PLAN.md](./04_NEAR_REMOVAL_PLAN.md)
-- **범위**: 가이드/Admin 문구, NearPayButton 삭제, wallet fallback 제거, User 테이블 near* 컬럼 DROP 등.
+- **완료**: 가이드/Admin 문구, NearPayButton 삭제, wallet fallback 제거, User 스키마 near* 제거 (계획 체크리스트 완료)
 
 ### 1. 나만의 춘심 (유료 아이템)
 - **목표**: 유저가 구매한 아이템을 통해 Identity, Soul, Heartbeat를 직접 설정하고, 캐릭터 이름 변경 가능.
@@ -122,6 +133,13 @@ _(현재 진행 중인 작업 없음)_
     - `home.tsx` loader: Luxon `DateTime.now().setZone("Asia/Seoul").ordinal` 사용
     - 홀수일 → Choonsim, 짝수일 → Rina (ordinal % 2 기반)
     - `systemSettings.TODAYS_PICK_ID` 미사용 (날짜 기반으로 대체)
+
+### 8. Mock 유저 50명 시뮬레이션 (2026-02-11)
+- 스크립트 3종, Cron API (mock-grant, mock-activity), GitHub Actions 워크플로우
+- [10_MOCK_USER_IMPLEMENTATION_PLAN.md](./10_MOCK_USER_IMPLEMENTATION_PLAN.md)
+
+### 9. NEAR 잔여 제거 (2026-02-11)
+- [04_NEAR_REMOVAL_PLAN.md](./04_NEAR_REMOVAL_PLAN.md) 체크리스트 완료. UI/코드/스키마에서 NEAR 노출 제거.
 
 ---
 
