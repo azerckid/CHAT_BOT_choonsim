@@ -7,10 +7,18 @@ import * as schema from "~/db/schema";
 import { eq, like } from "drizzle-orm";
 
 const MOCK_EMAIL_PATTERN = "mock-%@test.local";
+const MOCK_TARGET_COUNT = 50;
+const INITIAL_CHOCO_MIN = 5000;
+const INITIAL_CHOCO_MAX = 10000;
 const CHARACTERS = ["chunsim", "rina"] as const;
 const TOKENS_MIN = 500;
 const TOKENS_MAX = 2000;
 const DEFAULT_CHOCO_PER_USER = 3000;
+
+function randomChoco(): string {
+  const n = INITIAL_CHOCO_MIN + Math.floor(Math.random() * (INITIAL_CHOCO_MAX - INITIAL_CHOCO_MIN + 1));
+  return String(n);
+}
 
 function randomInt(a: number, b: number): number {
   return a + Math.floor(Math.random() * (b - a + 1));
@@ -18,6 +26,41 @@ function randomInt(a: number, b: number): number {
 
 function chocoFromTokens(tokens: number): string {
   return String(Math.floor(tokens / 100));
+}
+
+/**
+ * 배포 DB에 Mock 유저 50명이 없을 때 1회 호출. 이미 50명 이상이면 추가하지 않음.
+ */
+export async function seedMockUsers(): Promise<{ created: number; total: number }> {
+  const existing = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(like(schema.user.email, MOCK_EMAIL_PATTERN));
+
+  if (existing.length >= MOCK_TARGET_COUNT) {
+    return { created: 0, total: existing.length };
+  }
+
+  const toCreate = MOCK_TARGET_COUNT - existing.length;
+  const now = new Date();
+
+  for (let i = 0; i < toCreate; i++) {
+    const id = crypto.randomUUID();
+    const email = `mock-${id.slice(0, 8)}@test.local`;
+    const chocoBalance = randomChoco();
+
+    await db.insert(schema.user).values({
+      id,
+      email,
+      provider: "local",
+      chocoBalance,
+      createdAt: now,
+      updatedAt: now,
+      emailVerified: false,
+    });
+  }
+
+  return { created: toCreate, total: existing.length + toCreate };
 }
 
 export async function grantMockUsersChoco(chocoPerUser = DEFAULT_CHOCO_PER_USER): Promise<{ updated: number }> {
