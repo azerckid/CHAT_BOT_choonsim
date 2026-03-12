@@ -1,6 +1,6 @@
 # BondBase Revenue Bridge 구현 계획
 > Created: 2026-02-26
-> Last Updated: 2026-03-13 (전 Phase 구현 완료 확인)
+> Last Updated: 2026-03-13 (전 Phase 구현 완료, 실 전송 E2E 검증 완료)
 
 **대상**: 춘심톡(AI-CHOONSIM-TALK) 백엔드 개발팀
 **목적**: 춘심톡에서 발생하는 캐릭터별 CHOCO 소비를 집계하여 BondBase `POST /api/revenue`에 주기적으로 전송하는 연동 모듈을 구현합니다.
@@ -258,8 +258,8 @@ export async function sendMetrics(bondId: number, followers: number, subscribers
 ### 검증
 - [x] `ChocoConsumptionLog` 154건 확인 (2026-03-13 기준, 실 데이터 쌓이는 중)
 - [x] chunsim/rina bondBaseId 설정 확인
-- [ ] Cron 수동 트리거 → BondBase REVENUE 전송 확인 (BONDBASE_API_URL 확보 후)
-- [ ] BondBase API 오류 시 춘심톡 서비스 영향 없음 브라우저 확인
+- [x] Cron 수동 트리거 → BondBase REVENUE/METRICS 전송 확인 (2026-03-13, `revenue.synced:2`, `metrics.sent:2`)
+- [x] BondBase API 오류 시 춘심톡 서비스 영향 없음 (fire-and-forget 패턴, 코드 검증)
 
 ---
 

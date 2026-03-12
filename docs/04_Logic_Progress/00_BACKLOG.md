@@ -1,6 +1,6 @@
 # 프로젝트 백로그 (Project Backlog)
 > Created: 2026-02-08 17:59
-> Last Updated: 2026-03-13 (Phase 0-4, 1-1, 1-2 완료; BondBase 연동 코드 전 Phase 완료 확인)
+> Last Updated: 2026-03-13 (Phase 0-4, 1-1, 1-2 완료; BondBase 연동 E2E 검증 완료 — revenue.synced:2, metrics.sent:2)
 
 본 문서는 프로젝트의 현재 진행 상황과 향후 계획을 칸반 형태로 관리하는 실행 로직 문서입니다.
 
@@ -8,11 +8,7 @@
 
 ## 🏃 In Progress (진행 중)
 
-### BondBase 수익 연동 완성
-- **목표**: 채팅·선물 소비 로그 → BondBase REVENUE/METRICS 전송 자동화
-- **현황**: Phase A~E 코드 전부 구현 완료. `ChocoConsumptionLog` 154건 누적 중. `BONDBASE_API_URL` / `CHOONSIM_API_KEY` 환경변수 확보 후 실 전송 검증만 남음.
-- **남은 작업**: Vercel 환경변수 등록 → Cron 수동 트리거 → BondBase 수신 확인
-- **관련 문서**: [06_BONDBASE_BRIDGE_PLAN.md](./06_BONDBASE_BRIDGE_PLAN.md)
+> 현재 완료된 큰 작업 없음. 아래 Upcoming 항목 중 우선순위 선택 필요.
 
 ---
 
@@ -26,6 +22,14 @@
   - GitHub Secrets: `CRON_SECRET`, `APP_URL` 등록 완료
   - HTTP Status 200 수동 테스트 확인 완료
 - **관련 문서**: [07_GITHUB_ACTIONS_CRON_SETUP.md](./07_GITHUB_ACTIONS_CRON_SETUP.md)
+
+### ~~0-d. BondBase 수익 연동~~ ✅ 완료 (2026-03-13)
+- **완료 내역**:
+  - [x] Phase A~E 전체 구현 (schema, 소비 로그, client, cron, metrics)
+  - [x] `BONDBASE_API_URL` / `CHOONSIM_API_KEY` `.env.development` 등록
+  - [x] 배포 Cron 수동 트리거 E2E 확인: `revenue.synced:2`, `metrics.sent:2`
+  - [x] GitHub Actions `bondbase-sync.yml` 매시간 자동 실행 중
+- **관련 문서**: [06_BONDBASE_BRIDGE_PLAN.md](./06_BONDBASE_BRIDGE_PLAN.md)
 
 ### ~~0-c. Phase 0-4 CTC 스윕 엔진 + 운영 검증~~ ✅ 완료 (2026-03-13)
 - **완료 내역**:
