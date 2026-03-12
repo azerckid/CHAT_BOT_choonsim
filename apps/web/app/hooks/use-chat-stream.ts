@@ -2,6 +2,9 @@
  * AI 채팅 스트리밍 훅
  * - startAiStreaming: SSE 스트림 연결 및 파싱
  * - saveInterruptedMessage: 중단된 메시지 저장
+ *
+ * 타자 효과(typewriter): 서버로부터 최종 가공된 텍스트를 받은 뒤,
+ * setInterval(16ms) 기준으로 2글자씩 화면에 출력합니다.
  */
 import { useRef, useCallback } from "react";
 import { useRevalidator } from "react-router";
@@ -27,6 +30,15 @@ interface UseChatStreamOptions {
     abortControllerRef: React.MutableRefObject<AbortController | null>;
 }
 
+type TypewriterItem = {
+    text: string;
+    onComplete: () => void;
+};
+
+type DonePayload = {
+    usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
+};
+
 export function useChatStream(opts: UseChatStreamOptions) {
     const {
         conversationId,
@@ -49,6 +61,11 @@ export function useChatStream(opts: UseChatStreamOptions) {
 
     const revalidator = useRevalidator();
 
+    // 타자 애니메이션 상태 (ref로 관리 — 리렌더와 무관하게 유지)
+    const typewriterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const typewriterQueueRef = useRef<TypewriterItem[]>([]);
+    const pendingDoneRef = useRef<DonePayload | null>(null);
+
     const saveInterruptedMessage = useCallback(async (content: string, mediaUrl: string | null) => {
         try {
             await fetch("/api/chat/interrupt", {
@@ -66,9 +83,98 @@ export function useChatStream(opts: UseChatStreamOptions) {
         mediaUrl?: string,
         giftContext?: { amount: number; itemId: string }
     ) => {
+        // 이전 타자 애니메이션 정리
+        if (typewriterTimerRef.current !== null) {
+            clearInterval(typewriterTimerRef.current);
+            typewriterTimerRef.current = null;
+        }
+        typewriterQueueRef.current = [];
+        pendingDoneRef.current = null;
+
         setIsAiStreaming(true);
         setStreamingContent("");
         setStreamingMediaUrl(null);
+
+        // ─── 로컬 헬퍼 함수 ───────────────────────────────────────────
+        // 모든 타자 큐가 비었고 done 이벤트가 도착했을 때 스트리밍 완전 종료
+        function doFinishStreaming() {
+            const doneData = pendingDoneRef.current;
+            pendingDoneRef.current = null;
+            setIsAiStreaming(false);
+
+            if (optimisticIntervalRef.current) {
+                clearInterval(optimisticIntervalRef.current);
+                optimisticIntervalRef.current = null;
+            }
+
+            if (doneData?.usage?.totalTokens) {
+                const actualCost = Math.ceil(doneData.usage.totalTokens / 100);
+                const adjustment = lastOptimisticDeductionRef.current - actualCost;
+                setCurrentUserChocoBalance((prev: number) => Math.max(0, prev + adjustment));
+                setChocoChange(-actualCost);
+                setTimeout(() => setChocoChange(undefined), 2000);
+                setLastOptimisticDeduction(0);
+                revalidator.revalidate();
+            } else {
+                setTimeout(() => {
+                    setChocoChange(undefined);
+                    setLastOptimisticDeduction(0);
+                    revalidator.revalidate();
+                }, 2000);
+            }
+        }
+
+        // 큐에서 다음 항목 타자 출력
+        function processQueue() {
+            if (typewriterTimerRef.current !== null) return; // 이미 실행 중
+
+            const next = typewriterQueueRef.current.shift();
+            if (!next) {
+                // 큐 비었음 — done 이벤트가 대기 중이면 완전 종료
+                if (pendingDoneRef.current !== null) {
+                    doFinishStreaming();
+                }
+                return;
+            }
+
+            let idx = 0;
+            const itemText = next.text;
+            const itemOnComplete = next.onComplete;
+            setStreamingContent(""); // 새 버블 시작 전 초기화
+
+            // 사람이 타이핑하는 것처럼 불규칙한 딜레이
+            function scheduleNextChar() {
+                const char = itemText[idx] ?? "";
+
+                // 문장 부호 뒤에는 잠깐 멈춤 (생각하는 느낌)
+                let delay: number;
+                if (/[.!?。！？]/.test(char)) {
+                    delay = 180 + Math.random() * 270; // 180~450ms
+                } else if (/[,，、]/.test(char)) {
+                    delay = 90 + Math.random() * 120;  // 90~210ms
+                } else {
+                    // 평균 67ms, ±30ms 랜덤 변동 (37~97ms)
+                    delay = 37 + Math.random() * 60;
+                }
+
+                typewriterTimerRef.current = setTimeout(() => {
+                    typewriterTimerRef.current = null;
+                    const nextIdx = Math.min(idx + 1, itemText.length);
+                    setStreamingContent(itemText.slice(0, nextIdx));
+                    idx = nextIdx;
+
+                    if (nextIdx < itemText.length) {
+                        scheduleNextChar();
+                    } else {
+                        itemOnComplete(); // 메시지 버블 확정
+                        setTimeout(processQueue, 60);
+                    }
+                }, delay) as unknown as ReturnType<typeof setInterval>;
+            }
+
+            scheduleNextChar();
+        }
+        // ──────────────────────────────────────────────────────────────
 
         try {
             if (abortControllerRef.current) abortControllerRef.current.abort();
@@ -107,94 +213,104 @@ export function useChatStream(opts: UseChatStreamOptions) {
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split("\n");
+                    const rawChunk = decoder.decode(value, { stream: true });
+                    const lines = rawChunk.split("\n");
 
                     for (const line of lines) {
-                        if (line.startsWith("data: ")) {
-                            try {
-                                const data = JSON.parse(line.slice(6));
+                        if (!line.startsWith("data: ")) continue;
 
-                                if (data.error && data.code === 402) {
-                                    toast.error("CHOCO 잔액이 부족합니다.", {
-                                        action: { label: "CHOCO 충전하기", onClick: () => window.location.href = "/profile/subscription" },
-                                    });
-                                    setIsAiStreaming(false);
-                                    setIsOptimisticTyping(false);
-                                    if (optimisticIntervalRef.current) {
-                                        clearInterval(optimisticIntervalRef.current);
-                                        optimisticIntervalRef.current = null;
-                                    }
-                                    if (lastOptimisticDeductionRef.current > 0) {
-                                        setCurrentUserChocoBalance((p) => p + lastOptimisticDeductionRef.current);
-                                        setLastOptimisticDeduction(0);
-                                    }
-                                    return;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+
+                            // ── 에러 처리 ──
+                            if (data.error && data.code === 402) {
+                                toast.error("CHOCO 잔액이 부족합니다.", {
+                                    action: { label: "CHOCO 충전하기", onClick: () => window.location.href = "/profile/subscription" },
+                                });
+                                setIsAiStreaming(false);
+                                setIsOptimisticTyping(false);
+                                if (optimisticIntervalRef.current) {
+                                    clearInterval(optimisticIntervalRef.current);
+                                    optimisticIntervalRef.current = null;
                                 }
-
-                                if (data.emotion) setCurrentEmotion(data.emotion);
-                                if (data.expiresAt) setEmotionExpiresAt(data.expiresAt);
-
-                                if (data.text) {
-                                    currentMessageContent += data.text;
-                                    setStreamingContent(prev => prev + data.text);
+                                if (lastOptimisticDeductionRef.current > 0) {
+                                    setCurrentUserChocoBalance((p) => p + lastOptimisticDeductionRef.current);
+                                    setLastOptimisticDeduction(0);
                                 }
-
-                                if (data.messageComplete) {
-                                    const completedMessage: Message = {
-                                        id: data.messageId || crypto.randomUUID(),
-                                        role: "assistant",
-                                        content: currentMessageContent,
-                                        mediaUrl: data.mediaUrl || null,
-                                        createdAt: new Date().toISOString(),
-                                        isLiked: false,
-                                    };
-                                    setMessages(prev => [...prev, completedMessage]);
-                                    setStreamingContent("");
-                                    setStreamingMediaUrl(null);
-                                    currentMessageContent = "";
-                                }
-
-                                if (data.mediaUrl && !data.messageComplete) {
-                                    setStreamingMediaUrl(data.mediaUrl);
-                                }
-
-                                if (data.paywallTrigger) {
-                                    setPaywallTrigger(data.paywallTrigger);
-                                }
-
-                                if (data.done) {
-                                    setIsAiStreaming(false);
-
-                                    if (optimisticIntervalRef.current) {
-                                        clearInterval(optimisticIntervalRef.current);
-                                        optimisticIntervalRef.current = null;
-                                    }
-
-                                    if (data.usage && data.usage.totalTokens) {
-                                        const actualCost = Math.ceil(data.usage.totalTokens / 100);
-                                        const adjustment = lastOptimisticDeductionRef.current - actualCost;
-                                        setCurrentUserChocoBalance((prev: number) => Math.max(0, prev + adjustment));
-                                        setChocoChange(-actualCost);
-                                        setTimeout(() => setChocoChange(undefined), 2000);
-                                        setLastOptimisticDeduction(0);
-                                        revalidator.revalidate();
-                                    } else {
-                                        setTimeout(() => {
-                                            setChocoChange(undefined);
-                                            setLastOptimisticDeduction(0);
-                                            revalidator.revalidate();
-                                        }, 2000);
-                                    }
-                                }
-                            } catch {
-                                // SSE parse error — ignore
+                                return;
                             }
+
+                            // ── 감정 이벤트 ──
+                            if (data.emotion) setCurrentEmotion(data.emotion);
+                            if (data.expiresAt) setEmotionExpiresAt(data.expiresAt);
+
+                            // ── 실시간 청크 & clearStream: 무시 (TypingIndicator 유지) ──
+                            // data.chunk, data.clearStream — 서버에서 오지만 표시에 사용하지 않음
+
+                            // ── 미디어 URL (message 완료 전 미리 수신) ──
+                            if (data.mediaUrl && !data.messageComplete) {
+                                setStreamingMediaUrl(data.mediaUrl);
+                            }
+
+                            // ── 최종 가공된 텍스트 수신 ──
+                            if (data.text) {
+                                currentMessageContent = data.text;
+                            }
+
+                            // ── 메시지 완료 → 타자 큐에 추가 ──
+                            if (data.messageComplete) {
+                                const content = currentMessageContent;
+                                const msgId = data.messageId || crypto.randomUUID();
+                                const msgMediaUrl = data.mediaUrl || null;
+
+                                typewriterQueueRef.current.push({
+                                    text: content,
+                                    onComplete: () => {
+                                        setMessages(prev => [...prev, {
+                                            id: msgId,
+                                            role: "assistant" as const,
+                                            content,
+                                            mediaUrl: msgMediaUrl,
+                                            createdAt: new Date().toISOString(),
+                                            isLiked: false,
+                                        }]);
+                                        setStreamingContent("");
+                                        setStreamingMediaUrl(null);
+                                    },
+                                });
+
+                                processQueue();
+                                currentMessageContent = "";
+                            }
+
+                            // ── 페이월 트리거 ──
+                            if (data.paywallTrigger) {
+                                setPaywallTrigger(data.paywallTrigger);
+                            }
+
+                            // ── 스트림 완료 ──
+                            if (data.done) {
+                                // 타자 큐가 비어있으면 즉시 종료, 아니면 큐 완료 후 종료
+                                pendingDoneRef.current = { usage: data.usage || null };
+                                if (typewriterTimerRef.current === null && typewriterQueueRef.current.length === 0) {
+                                    doFinishStreaming();
+                                }
+                            }
+                        } catch {
+                            // SSE parse error — ignore
                         }
                     }
                 }
             }
         } catch (err: unknown) {
+            // 타자 애니메이션 정리
+            if (typewriterTimerRef.current !== null) {
+                clearInterval(typewriterTimerRef.current);
+                typewriterTimerRef.current = null;
+            }
+            typewriterQueueRef.current = [];
+            pendingDoneRef.current = null;
+
             if (err instanceof Error && err.name === 'AbortError') {
                 return;
             }
