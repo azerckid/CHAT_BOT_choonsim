@@ -37,3 +37,8 @@ build_debug.log
 
 # Turbo
 .turbo
+
+# 예비창업패키지 관련 문서 (외부 제출용, 미추적)
+docs/01_Concept_Design/22_YECHANGPAE_BUSINESS_PLAN_DRAFT.md
+docs/*.docx
+docs/**/*.docx
