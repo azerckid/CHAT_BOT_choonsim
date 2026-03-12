@@ -15,6 +15,7 @@ import { compressIdentityForPrompt } from "./identity";
 import { compressSoulForPrompt } from "./soul";
 import { compressToolsForPrompt } from "./tools";
 import { truncateToTokenLimit } from "./token-budget";
+import type { UserContextData } from "./types";
 
 /** 한글/영문 대략 1토큰 ≈ 2글자로 간이 계산 (token-budget.CHARS_PER_TOKEN과 동일) */
 const CHARS_PER_TOKEN = 2;
@@ -57,9 +58,10 @@ export async function compressMemoryForPrompt(
 export async function compressHeartbeatForPrompt(
     userId: string,
     characterId: string,
-    maxTokens?: number
+    maxTokens?: number,
+    preloadedContext?: UserContextData | null
 ): Promise<string> {
-    const context = await getFullContextData(userId, characterId);
+    const context = preloadedContext !== undefined ? preloadedContext : await getFullContextData(userId, characterId);
     const raw = formatHeartbeatForPrompt(context?.heartbeat || null);
     if (maxTokens != null && maxTokens > 0 && raw) {
         return truncateToTokenLimit(raw, maxTokens);

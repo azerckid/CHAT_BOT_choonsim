@@ -5,7 +5,7 @@
  */
 
 import { getFullContextData, updateIdentity } from "./db";
-import { type IdentityDoc, DEFAULT_IDENTITY, type Honorific, type RelationshipType } from "./types";
+import { type IdentityDoc, DEFAULT_IDENTITY, type Honorific, type RelationshipType, type UserContextData } from "./types";
 import { truncateToTokenLimit } from "./token-budget";
 
 /**
@@ -35,9 +35,10 @@ export async function updateUserIdentity(
 export async function compressIdentityForPrompt(
     userId: string,
     characterId: string,
-    maxTokens?: number
+    maxTokens?: number,
+    preloadedContext?: UserContextData | null
 ): Promise<string> {
-    const context = await getFullContextData(userId, characterId);
+    const context = preloadedContext !== undefined ? preloadedContext : await getFullContextData(userId, characterId);
     const identity = context?.identity || DEFAULT_IDENTITY;
 
     const namePart = identity.nickname

@@ -6,7 +6,7 @@
  */
 
 import { getFullContextData, updateSoul } from "./db";
-import { type SoulDoc, DEFAULT_SOUL } from "./types";
+import { type SoulDoc, DEFAULT_SOUL, type UserContextData } from "./types";
 import { getUserTier, type SubscriptionTier } from "./tier";
 import { truncateToTokenLimit } from "./token-budget";
 
@@ -41,7 +41,8 @@ export async function compressSoulForPrompt(
     userId: string,
     characterId: string,
     tier?: SubscriptionTier,
-    maxTokens?: number
+    maxTokens?: number,
+    preloadedContext?: UserContextData | null
 ): Promise<string> {
     const userTier = tier || await getUserTier(userId);
 
@@ -50,7 +51,7 @@ export async function compressSoulForPrompt(
         return "";
     }
 
-    const context = await getFullContextData(userId, characterId);
+    const context = preloadedContext !== undefined ? preloadedContext : await getFullContextData(userId, characterId);
     const soul = context?.soul;
 
     if (!soul) return "";

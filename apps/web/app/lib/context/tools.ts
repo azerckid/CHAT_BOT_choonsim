@@ -5,7 +5,7 @@
  */
 
 import { getFullContextData, updateTools } from "./db";
-import { type ToolsDoc, DEFAULT_TOOLS } from "./types";
+import { type ToolsDoc, DEFAULT_TOOLS, type UserContextData } from "./types";
 import { truncateToTokenLimit } from "./token-budget";
 
 /**
@@ -35,9 +35,10 @@ export async function updateUserTools(
 export async function compressToolsForPrompt(
     userId: string,
     characterId: string,
-    maxTokens?: number
+    maxTokens?: number,
+    preloadedContext?: UserContextData | null
 ): Promise<string> {
-    const context = await getFullContextData(userId, characterId);
+    const context = preloadedContext !== undefined ? preloadedContext : await getFullContextData(userId, characterId);
     const tools = context?.tools;
 
     if (!tools) return "";
