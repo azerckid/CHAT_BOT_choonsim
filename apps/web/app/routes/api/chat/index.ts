@@ -129,10 +129,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
         const [contextMemory, contextHeartbeat, contextIdentity, contextSoul, contextTools] = await Promise.all([
             compressMemoryForPrompt(session.user.id, characterId, budget.memory),
-            compressHeartbeatForPrompt(session.user.id, characterId, budget.heartbeat),
-            compressIdentityForPrompt(session.user.id, characterId, budget.identity),
-            compressSoulForPrompt(session.user.id, characterId, (currentUser?.subscriptionTier as any) || "FREE", budget.soul),
-            compressToolsForPrompt(session.user.id, characterId, budget.tools),
+            compressHeartbeatForPrompt(session.user.id, characterId, budget.heartbeat, fullContext),
+            compressIdentityForPrompt(session.user.id, characterId, budget.identity, fullContext),
+            compressSoulForPrompt(session.user.id, characterId, (currentUser?.subscriptionTier as any) || "FREE", budget.soul, fullContext),
+            compressToolsForPrompt(session.user.id, characterId, budget.tools, fullContext),
         ]);
 
         const parts = [];
@@ -291,6 +291,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
                     if (item.type === 'content') {
                         fullContent += item.content;
+                        // 청크를 즉시 클라이언트로 전달 (타자 치는 효과)
+                        if (!isClosed) {
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: item.content })}\n\n`));
+                        }
                     } else if (item.type === 'usage' && item.usage) {
                         tokenUsage = item.usage;
                     }
@@ -352,7 +356,10 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
                 }
 
-                // 3단계: 각 말풍선 스트리밍 (DB 저장은 스트림 종료 후 일괄 처리)
+                // 3단계: 가공된 메시지 파트 전송 전, 클라이언트 스트리밍 버퍼 초기화
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ clearStream: true })}\n\n`));
+
+                // 각 말풍선 전송 (DB 저장은 스트림 종료 후 일괄 처리)
                 const pendingMessageSaves: Array<{
                     id: string;
                     content: string;
@@ -466,23 +473,22 @@ export async function action({ request }: ActionFunctionArgs) {
                     new AIMessage(fullContent)
                 ];
 
-                try {
-                    await Promise.all([
-                        extractAndSaveMemoriesFromConversation(
-                            session.user.id,
-                            characterId,
-                            allMessagesForSummary,
-                            { conversationId }
-                        ),
-                        updateHeartbeatContext(session.user.id, characterId, true)
-                    ]);
-                } catch (memErr) {
+                // 메모리 추출 & 하트비트 갱신 — 클라이언트 응답과 무관하게 백그라운드 처리
+                Promise.all([
+                    extractAndSaveMemoriesFromConversation(
+                        session.user.id,
+                        characterId,
+                        allMessagesForSummary,
+                        { conversationId }
+                    ),
+                    updateHeartbeatContext(session.user.id, characterId, true)
+                ]).catch(memErr => {
                     logger.error({
                         category: "API",
-                        message: "extractAndSaveMemoriesFromConversation failed",
+                        message: "Background memory/heartbeat update failed",
                         metadata: { conversationId, characterId },
                     });
-                }
+                });
             } catch (error) {
                 logger.error({
                     category: "API",
