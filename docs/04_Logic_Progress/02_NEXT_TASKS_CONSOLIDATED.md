@@ -60,13 +60,13 @@
 | **예정 내용** | Voice-to-Text, AI 응답 스트리밍, 실시간 음성 입출력 파이프라인 구현 |
 | **참조** | [04_VOICE_INTERACTION_STRATEGY.md](../01_Concept_Design/04_VOICE_INTERACTION_STRATEGY.md), [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #2 |
 
-### 2.3 NEAR Protocol 기반 결제 생태계
+### 2.3 CTC EVM x402 기반 결제 생태계
 
 | 항목 | 내용 |
 |------|------|
-| **현황** | PayPal 기반 달러/CHOCO 환전 구조만 존재 |
-| **필요** | Action-to-Transaction(지갑 연동 등) 기반 Web3/온체인 결제 설계 |
-| **예정 내용** | NEAR 마이크로 결제 프로토콜 설계, 5대 유료 아이템 카테고리별 스키마, 기억 각인/나만의 춘심 에디터 연동 |
+| **현황** | NEAR → CTC EVM 마이그레이션 완료. PayPal/토스 기반 CHOCO 충전 + DB-only 잔액 차감 구조 가동 중 |
+| **필요** | CTC EVM 스윕 엔진(0-4) 완료 및 5대 유료 아이템 카테고리별 스키마 정의 |
+| **예정 내용** | CTC EVM x402 기반 마이크로 결제 프로토콜 설계, 기억 각인/나만의 춘심 에디터 연동 |
 | **참조** | [19_MONETIZATION_STRATEGY.md](../01_Concept_Design/19_MONETIZATION_STRATEGY.md), [00_BACKLOG.md](./00_BACKLOG.md) Upcoming #4 |
 
 ### 2.4 캐릭터 서비스 상태 및 UI 정리 ✅ 완료 (2026-02-22)
@@ -94,7 +94,7 @@
 | ~~1~~ | ~~채팅 검색 `/search`~~ | ✅ 버튼 제거 완료 |
 | ~~1~~ | ~~계정 탈퇴 로직~~ | ✅ API 및 UI 연동 완료 |
 | ~~2~~ | ~~DB 리셋 및 클린 슬레이트~~ | ✅ db:reset 스크립트 완료 |
-| 3 | 나만의 춘심 / Voice Chat / NEAR 결제 | 중장기 코어 기능 |
+| 3 | 나만의 춘심 / Voice Chat / CTC EVM x402 결제 | 중장기 코어 기능 |
 | ~~5~~ | ~~UI 찌꺼기 (ComingSoon/Placeholder)~~ | ✅ Phase 1~3에서 전체 완료 |
 
 ---

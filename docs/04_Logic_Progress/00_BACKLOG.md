@@ -1,6 +1,6 @@
 # 프로젝트 백로그 (Project Backlog)
 > Created: 2026-02-08 17:59
-> Last Updated: 2026-02-11 (Mock 유저 0-b 완료, NEAR 잔여 제거 완료 반영)
+> Last Updated: 2026-03-13 (CTC EVM 마이그레이션 완료 반영, 스트리밍 성능 개선)
 
 본 문서는 프로젝트의 현재 진행 상황과 향후 계획을 칸반 형태로 관리하는 실행 로직 문서입니다.
 
@@ -34,11 +34,6 @@ _(현재 진행 중인 작업 없음)_
     - [x] `api/cron/mock-grant`, `api/cron/mock-activity` Cron API
     - [x] `.github/workflows/mock-grant.yml`, `mock-activity.yml` — 매일/매시간 실행
 
-### ~~0. NEAR 잔여 제거~~ (UI·코드·DB)
-- **목표**: 사용자·관리자에게 NEAR 노출 없음, 코드·DB에서 near 관련 식별자 제거.
-- **관련 문서**: [04_NEAR_REMOVAL_PLAN.md](./04_NEAR_REMOVAL_PLAN.md)
-- **완료**: 가이드/Admin 문구, NearPayButton 삭제, wallet fallback 제거, User 스키마 near* 제거 (계획 체크리스트 완료)
-
 ### 1. 나만의 춘심 (유료 아이템)
 - **목표**: 유저가 구매한 아이템을 통해 Identity, Soul, Heartbeat를 직접 설정하고, 캐릭터 이름 변경 가능.
 - **예정 내용**:
@@ -60,11 +55,11 @@ _(현재 진행 중인 작업 없음)_
     - 계정 탈퇴 로직 구현 완료 (2026-02-22)
 
 ### 4. 유료 아이템 및 경제 시스템 설계
-- **목표**: 서비스 지속성을 위한 5대 유료 아이템 카테고리 구체화 및 NEAR 기반 결제 UX 설계.
+- **목표**: 서비스 지속성을 위한 5대 유료 아이템 카테고리 구체화 및 CTC EVM 기반 결제 UX 설계.
 - **관련 문서**: `../01_Concept_Design/19_MONETIZATION_STRATEGY.md`
 - **예정 내용**:
     - [ ] 5대 카테고리(소통, 콘텐츠, 커뮤니티, 관계, 구독)별 데이터 스키마 정의
-    - [ ] NEAR Protocol 기반의 마이크로 결제(Action-to-Transaction) 프로토콜 설계
+    - [ ] CTC EVM x402 기반 마이크로 결제 프로토콜 설계
     - [ ] '기억 각인' 및 '나만의 춘심' 에디터 구현 계획 수립
 
 ### 5. 데이터베이스 리셋 및 스키마 클린업
@@ -97,9 +92,8 @@ _(현재 진행 중인 작업 없음)_
 - [x] 디렉토리 구조 재편 (Concept_Design, UI_Screens, Technical_Specs, Logic_Progress, QA_Validation)
 - [x] 레거시 폴더 정리 및 `09_DOCUMENT_MANAGEMENT_PLAN.md` 업데이트.
 
-### 3. NEAR 지갑 비동기 생성 구현 (2026-02-08)
-- **목표**: 회원가입 시 지갑 생성을 백그라운드 작업으로 전환하여 대기 시간 제거.
-- **관련 문서**: `../01_Concept_Design/03_NEAR_WALLET_ASYNC_CREATION_PLAN.md`
+### 3. EVM 지갑 비동기 생성 구현 (2026-02-08)
+- **목표**: 회원가입 시 CTC EVM 지갑 생성을 백그라운드 작업으로 전환하여 대기 시간 제거.
 
 ### 4. 사용자 컨텍스트 레이어 시스템 구축
 - [x] Phase 1~10 시스템 아키텍처 및 API 구현 완료.
@@ -138,8 +132,8 @@ _(현재 진행 중인 작업 없음)_
 - 스크립트 3종, Cron API (mock-grant, mock-activity), GitHub Actions 워크플로우
 - [10_MOCK_USER_IMPLEMENTATION_PLAN.md](./10_MOCK_USER_IMPLEMENTATION_PLAN.md)
 
-### 9. NEAR 잔여 제거 (2026-02-11)
-- [04_NEAR_REMOVAL_PLAN.md](./04_NEAR_REMOVAL_PLAN.md) 체크리스트 완료. UI/코드/스키마에서 NEAR 노출 제거.
+### 9. CTC EVM 마이그레이션 완료 (2026-02-11)
+- NEAR → CTC EVM 전환 완료. UI/코드/스키마에서 NEAR 잔여 제거, lib/ctc/ 이전 완료.
 
 ---
 

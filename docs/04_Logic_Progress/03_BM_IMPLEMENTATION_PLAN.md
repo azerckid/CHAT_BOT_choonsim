@@ -1,6 +1,6 @@
 # BM 구현 계획 (Business Model Implementation Plan)
 > Created: 2026-02-22
-> Last Updated: 2026-02-11 (0-3 완료: lib/near 제거, lib/ctc 이전, near-api-js 제거, PaymentSheet/useX402 오프체인 전환)
+> Last Updated: 2026-03-13 (NEAR → CTC EVM 마이그레이션 완료, 문서 NEAR 참조 제거)
 
 본 문서는 `19_MONETIZATION_STRATEGY.md`의 심화 수익화 전략을 실제 코드베이스에 구현하기 위한 단계별 실행 계획입니다.
 현재 구현 상태를 기준으로 Phase 0(마이그레이션)부터 Phase 5(장기)까지 작업 순서를 정의합니다.
@@ -45,7 +45,7 @@
 ## 구현 판단 기준
 
 ```
-Phase 0 → 복잡성을 줄이고 안정적인 결제-가스비 구조를 만든다 (NEAR -> CTC 전환)
+Phase 0 → 복잡성을 줄이고 안정적인 결제-가스비 구조를 만든다 (CTC EVM 마이그레이션 완료)
 Phase 1 → 코드 없이 지금 당장 팔 수 있게 만든다 (운영 준비)
 Phase 2 → 감정이 식기 전에 결제를 이끈다
 Phase 3 → 다시 앱을 열게 만든다
