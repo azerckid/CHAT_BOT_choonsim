@@ -1,6 +1,6 @@
 # BondBase Revenue Bridge 구현 계획
 > Created: 2026-02-26
-> Last Updated: 2026-02-11
+> Last Updated: 2026-03-13 (전 Phase 구현 완료 확인)
 
 **대상**: 춘심톡(AI-CHOONSIM-TALK) 백엔드 개발팀
 **목적**: 춘심톡에서 발생하는 캐릭터별 CHOCO 소비를 집계하여 BondBase `POST /api/revenue`에 주기적으로 전송하는 연동 모듈을 구현합니다.
@@ -234,32 +234,32 @@ export async function sendMetrics(bondId: number, followers: number, subscribers
 ## 5. 전체 체크리스트
 
 ### Phase A: DB 스키마
-- [ ] `schema.ts`: `Character.bondBaseId` 컬럼 추가
-- [ ] `schema.ts`: `ChocoConsumptionLog` 테이블 추가
-- [ ] `drizzle-kit push` 실행 및 확인
-- [ ] DB에서 `chunsim` 캐릭터 `bondBaseId=101` 설정
+- [x] `schema.ts`: `Character.bondBaseId` 컬럼 추가
+- [x] `schema.ts`: `ChocoConsumptionLog` 테이블 추가
+- [x] `drizzle-kit push` 실행 및 확인
+- [x] DB에서 `chunsim` bondBaseId=101, `rina` bondBaseId=102 설정 완료
 
 ### Phase B: 소비 로그 삽입
-- [ ] `api/chat/index.ts`: 채팅 소비 로그 삽입 (fire-and-forget)
-- [ ] `api/items/gift.ts`: 선물 소비 로그 삽입 (tx 내)
+- [x] `lib/chat/choco.server.ts`: 채팅 소비 로그 삽입 (fire-and-forget, `deductChocoForTokens` 내)
+- [x] `api/items/gift.ts`: 선물 소비 로그 삽입 (트랜잭션 내)
 
 ### Phase C: BondBase 클라이언트
-- [ ] `lib/bondbase/client.server.ts` 신규 생성
-- [ ] 환경변수 미설정 시 graceful skip 처리 확인
+- [x] `lib/bondbase/client.server.ts` 생성 완료 (sendRevenue, sendMetrics)
+- [x] 환경변수 미설정 시 graceful skip 처리 확인
 
 ### Phase D: Cron Job
-- [ ] `lib/ctc/exchange-rate.server.ts`: `calculateUSDFromChoco` 추가
-- [ ] `routes/api/cron/bondbase-sync.ts` 신규 생성
-- [ ] `vercel.json` Cron 스케줄 추가
+- [x] `lib/ctc/exchange-rate.server.ts`: `calculateUSDFromChoco` 구현 완료
+- [x] `routes/api/cron/bondbase-sync.ts` 생성 완료
+- [x] `.github/workflows/bondbase-sync.yml` — 매시간 GitHub Actions 실행 (vercel.json 대신 GA 사용)
 
 ### Phase E: METRICS (선택)
-- [ ] `bondbase-sync.ts` 내 METRICS 전송 로직 추가
+- [x] `bondbase-sync.ts` 내 METRICS 전송 로직 포함 (전체 유저/ACTIVE 구독자 각 bondId에 전송)
 
 ### 검증
-- [ ] 채팅 1회 → `ChocoConsumptionLog` 행 생성 확인
-- [ ] 선물 1회 → `ChocoConsumptionLog` 행 생성 확인
-- [ ] Cron 수동 트리거 → BondBase REVENUE 전송 확인
-- [ ] BondBase API 오류 시 춘심톡 서비스 영향 없음 확인
+- [x] `ChocoConsumptionLog` 154건 확인 (2026-03-13 기준, 실 데이터 쌓이는 중)
+- [x] chunsim/rina bondBaseId 설정 확인
+- [ ] Cron 수동 트리거 → BondBase REVENUE 전송 확인 (BONDBASE_API_URL 확보 후)
+- [ ] BondBase API 오류 시 춘심톡 서비스 영향 없음 브라우저 확인
 
 ---
 

@@ -1,6 +1,6 @@
 # 프로젝트 백로그 (Project Backlog)
 > Created: 2026-02-08 17:59
-> Last Updated: 2026-03-13 (Phase 0-4 CTC 스윕 엔진 완료, Phase 1-1/1-2 검증 완료)
+> Last Updated: 2026-03-13 (Phase 0-4, 1-1, 1-2 완료; BondBase 연동 코드 전 Phase 완료 확인)
 
 본 문서는 프로젝트의 현재 진행 상황과 향후 계획을 칸반 형태로 관리하는 실행 로직 문서입니다.
 
@@ -10,6 +10,8 @@
 
 ### BondBase 수익 연동 완성
 - **목표**: 채팅·선물 소비 로그 → BondBase REVENUE/METRICS 전송 자동화
+- **현황**: Phase A~E 코드 전부 구현 완료. `ChocoConsumptionLog` 154건 누적 중. `BONDBASE_API_URL` / `CHOONSIM_API_KEY` 환경변수 확보 후 실 전송 검증만 남음.
+- **남은 작업**: Vercel 환경변수 등록 → Cron 수동 트리거 → BondBase 수신 확인
 - **관련 문서**: [06_BONDBASE_BRIDGE_PLAN.md](./06_BONDBASE_BRIDGE_PLAN.md)
 
 ---
