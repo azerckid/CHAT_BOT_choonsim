@@ -1,7 +1,7 @@
 # Phase 0-4 CTC 입금 엔진: 환경변수 정리 및 로컬 테스트 절차
 
-> Created: 2026-02-11  
-> Last Updated: 2026-02-11
+> Created: 2026-02-11
+> Last Updated: 2026-03-13 (로컬 E2E 테스트 완료, Vercel 등록 완료)
 
 **목적**: CTC 스윕 엔진(Deposit Engine) 배포 전 환경변수 설정과 로컬 E2E 테스트 절차를 체크리스트로 정리한다.
 
@@ -43,11 +43,11 @@ CTC_PRICE_API_URL=https://...
 
 ### 1.4 환경변수 체크리스트
 
-- [ ] `CTC_RPC_URL` 확보 및 로컬 `.env`에 추가
-- [ ] `CTC_TREASURY_ADDRESS` 확보 및 로컬 `.env`에 추가
-- [ ] `CRON_SECRET` 생성 후 로컬 `.env`에 추가
-- [ ] (선택) `CTC_PRICE_API_URL` 설정
-- [ ] Vercel 대시보드에 위 변수 동일하게 추가
+- [x] `CTC_RPC_URL` 확보 및 로컬 `.env.development`에 추가 (`https://rpc.cc3-testnet.creditcoin.network`)
+- [x] `CTC_TREASURY_ADDRESS` 확보 및 로컬 `.env.development`에 추가
+- [x] `CRON_SECRET` 생성 후 로컬 `.env.development`에 추가
+- [x] `CTC_PRICE_API_URL` 설정 (CoinGecko: `https://api.coingecko.com/api/v3/simple/price?ids=creditcoin-2&vs_currencies=usd`)
+- [x] Vercel 대시보드에 위 변수 동일하게 추가 (Production/Preview/Development 3환경, 구 NEAR 변수 6종 제거 완료)
 
 ---
 
@@ -75,64 +75,48 @@ cd apps/web
 # .env.development 또는 .env 존재 여부 및 CTC_*, CRON_SECRET 확인
 ```
 
-- [ ] `CTC_RPC_URL`, `CTC_TREASURY_ADDRESS`, `CRON_SECRET`이 로드되는지 확인
+- [x] `CTC_RPC_URL`, `CTC_TREASURY_ADDRESS`, `CRON_SECRET`이 로드되는지 확인
 
 #### Step 2: 테스트 유저 준비
 
-- DB에서 `evmAddress`와 `evmPrivateKey`가 있는 유저 하나 선택 (또는 가입 후 홈 접속으로 EVM 지갑 생성)
-- 해당 주소의 CTC 잔액을 확인할 수 있는 상태로 준비 (블록 익스플로러 또는 RPC `getBalance`)
+- `npx tsx scripts/check-evm-users.ts` 로 evmAddress 보유 유저 확인
 
-- [ ] 테스트 유저 ID와 `evmAddress` 기록: _________________
+- [x] 테스트 유저: `azerckid@gmail.com` (`0x270C8983faa1025D0DBB0476C84116A4D394EC4A`)
 
 #### Step 3: 입금 전 ctcLastBalance 맞추기 (선택)
 
-- 현재 유저 지갑 CTC 잔액이 이미 있다면, 엔진은 “현재 잔액 - ctcLastBalance”를 입금액으로 본다.
-- “새 입금만 테스트”하려면 DB에서 해당 유저의 `ctcLastBalance`를 **현재 CTC 잔액(wei 문자열)**과 동일하게 업데이트한 뒤, 소액 CTC를 입금한다.
-
-- [ ] (선택) 테스트 유저의 `ctcLastBalance`를 현재 잔액과 동기화
+- [x] ctcLastBalance=0 (기본값) 확인 완료
 
 #### Step 4: CTC 소액 입금
 
-- 테스트넷/메인넷 파우셋 또는 다른 지갑에서, 테스트 유저의 `evmAddress`로 CTC 소액 전송
-- 트랜잭션 확인(컨펌)될 때까지 대기
+- Creditcoin Discord `#token-faucet` 채널에서 `/faucet address:0x270C8983faa1025D0DBB0476C84116A4D394EC4A` 실행
+- CC3 테스트넷 Faucet: `https://discord.gg/creditcoin` → `#token-faucet`
 
-- [ ] CTC 입금 트랜잭션 완료 확인 (txHash 기록: _________________)
+- [x] 10,000 CTC 입금 완료 (CC3 testnet faucet, 2026-03-13)
 
 #### Step 5: Cron 엔드포인트 수동 호출
 
-- 로컬에서 앱 서버 실행 후, 동일 호스트에서 Cron 호출
-
 ```bash
-# 로컬 서버가 http://localhost:5173 이라고 가정
-curl -X GET "http://localhost:5173/api/cron/ctc-sweep" \
-  -H "Authorization: Bearer YOUR_CRON_SECRET"
-# 또는
-curl -X GET "http://localhost:5173/api/cron/ctc-sweep" \
-  -H "X-Cron-Secret: YOUR_CRON_SECRET"
+curl -X GET “http://localhost:5173/api/cron/ctc-sweep” \
+  -H “Authorization: Bearer <CRON_SECRET>”
 ```
 
-- [ ] 200 OK 응답 및 `{ "ok": true, "processed": N, "errors": 0 }` 형태 확인  
-  (편의 스크립트: `npx tsx scripts/test-ctc-sweep.ts` — 로컬 서버 실행 후 실행)
+- [x] `{“ok”:true,”processed”:1,”errors”:0}` 응답 확인
 
 #### Step 6: DB 및 결과 검증
 
-- **User**: 해당 유저의 `chocoBalance`가 입금액×환율에 따라 증가했는지 확인 (환율 미설정 시 0일 수 있음)
-- **User**: `ctcLastBalance`가 스윕 후 잔액(0 또는 가스비 제외 잔액)으로 갱신되었는지 확인
-- **TokenTransfer**: `type` 등으로 CTC 입금·스윕 관련 레코드가 생겼는지 확인
-- **Treasury 지갑**: `CTC_TREASURY_ADDRESS` 잔액이 스윕 금액만큼 증가했는지 확인 (블록 익스플로러 또는 RPC)
-
-- [ ] User.chocoBalance 증가 확인
-- [ ] User.ctcLastBalance 갱신 확인
-- [ ] TokenTransfer 입금/스윕 기록 확인
-- [ ] Treasury 주소 잔액 증가 확인
+- [x] User.chocoBalance 증가 확인 (5,000 → 1,559,740 CHOCO, CoinGecko $0.155/CTC 기준)
+- [x] User.ctcLastBalance 갱신 확인 (→ “0”)
+- [x] TokenTransfer COMPLETED 기록 확인 (txHash: `0x135feab3...`)
+- [x] Treasury 주소 잔액 증가 확인 (블록 익스플로러)
 
 ### 2.4 로컬 테스트 체크리스트 (요약)
 
-- [ ] 환경변수 4종 로컬 설정
-- [ ] 테스트 유저(evmAddress 보유) 준비
-- [ ] CTC 소액 입금 실행 및 컨펌 확인
-- [ ] `/api/cron/ctc-sweep` 수동 호출 → 200 OK
-- [ ] CHOCO 적립, ctcLastBalance 갱신, TokenTransfer 기록, Treasury 입금 검증
+- [x] 환경변수 4종 로컬 설정
+- [x] 테스트 유저(evmAddress 보유) 준비
+- [x] CTC 소액 입금 실행 및 컨펌 확인
+- [x] `/api/cron/ctc-sweep` 수동 호출 → 200 OK
+- [x] CHOCO 적립, ctcLastBalance 갱신, TokenTransfer 기록, Treasury 입금 검증
 
 ---
 

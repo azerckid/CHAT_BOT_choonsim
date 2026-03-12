@@ -1,6 +1,6 @@
 # 프로젝트 백로그 (Project Backlog)
 > Created: 2026-02-08 17:59
-> Last Updated: 2026-03-13 (CTC EVM 마이그레이션 완료 반영, 스트리밍 성능 개선)
+> Last Updated: 2026-03-13 (Phase 0-4 CTC 스윕 엔진 완료, Phase 1-1/1-2 검증 완료)
 
 본 문서는 프로젝트의 현재 진행 상황과 향후 계획을 칸반 형태로 관리하는 실행 로직 문서입니다.
 
@@ -8,7 +8,9 @@
 
 ## 🏃 In Progress (진행 중)
 
-_(현재 진행 중인 작업 없음)_
+### BondBase 수익 연동 완성
+- **목표**: 채팅·선물 소비 로그 → BondBase REVENUE/METRICS 전송 자동화
+- **관련 문서**: [06_BONDBASE_BRIDGE_PLAN.md](./06_BONDBASE_BRIDGE_PLAN.md)
 
 ---
 
@@ -22,6 +24,16 @@ _(현재 진행 중인 작업 없음)_
   - GitHub Secrets: `CRON_SECRET`, `APP_URL` 등록 완료
   - HTTP Status 200 수동 테스트 확인 완료
 - **관련 문서**: [07_GITHUB_ACTIONS_CRON_SETUP.md](./07_GITHUB_ACTIONS_CRON_SETUP.md)
+
+### ~~0-c. Phase 0-4 CTC 스윕 엔진 + 운영 검증~~ ✅ 완료 (2026-03-13)
+- **완료 내역**:
+  - [x] CoinGecko CTC 시세 파서 적용 (`deposit-engine.server.ts`)
+  - [x] 환경변수 4종 로컬 설정 (`CTC_RPC_URL`, `CTC_TREASURY_ADDRESS`, `CRON_SECRET`, `CTC_PRICE_API_URL`)
+  - [x] Vercel 3환경 등록 완료 (구 NEAR 변수 6종 제거)
+  - [x] CC3 테스트넷 로컬 E2E: 10,000 CTC → 1,554,740 CHOCO 적립 → Treasury 스윕 확인
+  - [x] Phase 1-1: Shop 8종 아이템 + 페이월 트리거 ID 4종 검증 완료
+  - [x] Phase 1-2: chocoBalance=0 → HTTP 402 + X-x402-Invoice 헤더 정상 반환 확인
+- **관련 문서**: [05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md](./05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md)
 
 ### ~~0-b. Mock 유저 50명 시뮬레이션~~ (30일 테스트) (2026-02-11)
 - **목표**: 50명 Mock 유저 생성, 매일 초코 지급, 채팅·선물 차등 소비 → BondBase 수익 현황 검증

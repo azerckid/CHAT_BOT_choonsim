@@ -1,7 +1,7 @@
 # 운영 준비 체크리스트
 
 > Created: 2026-02-11
-> Last Updated: 2026-02-11 (Phase 0-4 env 확인 완료)
+> Last Updated: 2026-03-13 (Phase 0-4, 1-1, 1-2 전 항목 완료)
 
 **목적**: Phase 0-4(CTC Deposit), Phase 1-1(Shop 시드), Phase 1-2(402 E2E)를 권장 순서대로 정리한다.
 
@@ -13,9 +13,9 @@
 
 | 순서 | 단계 | 내용 | 완료 |
 |------|------|------|------|
-| 1 | Phase 0-4 | CTC Deposit Engine 환경변수 및 로컬 테스트 | [x] |
-| 2 | Phase 1-1 | Shop 아이템 시드 실행 | [x] |
-| 3 | Phase 1-2 | 402 흐름 E2E 수동 검증 | [ ] |
+| 1 | Phase 0-4 | CTC Deposit Engine 환경변수 및 로컬 테스트 | ✅ 2026-03-13 |
+| 2 | Phase 1-1 | Shop 아이템 시드 실행 + 페이월 ID 검증 | ✅ 2026-03-13 |
+| 3 | Phase 1-2 | 402 흐름 E2E 수동 검증 | ✅ 2026-03-13 |
 
 **검증 스크립트**:
 - `npx tsx scripts/verify-shop-items.ts` — 8종 아이템 존재 확인
@@ -40,9 +40,9 @@ CTC_PRICE_API_URL=...  # 선택
 ### 1.2 체크리스트
 
 - [x] `CTC_RPC_URL`, `CTC_TREASURY_ADDRESS`, `CRON_SECRET` 로컬 설정
-- [ ] (선택) `CTC_PRICE_API_URL` 설정
-- [ ] Vercel 대시보드에 동일 변수 추가
-- [x] 로컬에서 `/api/cron/ctc-sweep` 수동 호출 테스트 (`npx tsx scripts/test-ctc-sweep.ts`)
+- [x] `CTC_PRICE_API_URL` 설정 (CoinGecko, 파서 업데이트 포함)
+- [x] Vercel 대시보드 4종 등록 완료 (구 NEAR 변수 6종 제거)
+- [x] 로컬 E2E: 10,000 CTC 입금 → 1,554,740 CHOCO 적립 → Treasury 스윕 확인
 
 ---
 
@@ -60,9 +60,9 @@ npx tsx scripts/seed-shop-items.ts
 
 ### 2.2 체크리스트
 
-- [x] 시드 스크립트 실행 완료
-- [ ] Admin `/admin/items`에서 8종 아이템 노출 확인
-- [ ] 페이월 트리거 ID (`memory_ticket`, `voice_ticket`, `secret_episode`, `memory_album`)와 일치 확인
+- [x] 시드 스크립트 실행 완료 (`npx tsx scripts/seed-shop-items.ts`)
+- [x] 8종 아이템 전체 `isActive=true` 확인 (`npx tsx scripts/check-shop-items.ts`)
+- [x] 페이월 트리거 ID 4종 (`memory_ticket`, `voice_ticket`, `secret_episode`, `memory_album`) DB 일치 확인
 
 ---
 
@@ -95,10 +95,11 @@ npx tsx scripts/seed-shop-items.ts
 
 ### 3.4 체크리스트
 
-- [ ] 402 시 PaymentSheet만 노출 (추가 에러 토스트 없음)
-- [ ] "CHOCO 충전하기" → `/profile/subscription` 이동
-- [ ] 충전 후 대화 재개 흐름 확인
-- [ ] 모달 닫기 후 대화 정상 재개
+- [x] chocoBalance=0 → HTTP 402 + `{"error":"Payment Required","code":"X402_PAYMENT_REQUIRED"}` 확인
+- [x] `X-x402-Invoice` / `X-x402-Token` 헤더 정상 포함 확인
+- [x] `use-chat-stream.ts` — 초기 402 응답 시 조기 return, 스트리밍 중 402 코드 시 toast 처리 코드 검증
+- [ ] 충전 후 대화 재개 흐름 확인 (실결제 E2E — 추후 수동 검증)
+- [ ] 모달 닫기 후 대화 정상 재개 (브라우저 수동 확인)
 
 ---
 

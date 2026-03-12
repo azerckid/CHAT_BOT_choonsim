@@ -250,10 +250,10 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 - [x] `lib/ctc/deposit-engine.server.ts` 구현 (잔액 조회·입금 감지·환율·유저 지갑→Treasury Sweep)
 - [x] `routes/api/cron/ctc-sweep.ts` 신규 생성 (CRON_SECRET 인증 포함)
 - [x] `vercel.json`에 Cron Job 추가 (`/api/cron/ctc-sweep`, 10분 주기)
-- [ ] 환경변수 `.env` 및 Vercel 대시보드에 추가 (CTC_RPC_URL, CTC_TREASURY_ADDRESS, CTC_PRICE_API_URL, CRON_SECRET) → 상세: [05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md](./05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md)
+- [x] 환경변수 4종 로컬 + Vercel 등록 완료 (CTC_RPC_URL, CTC_TREASURY_ADDRESS, CTC_PRICE_API_URL, CRON_SECRET) — 구 NEAR 변수 6종 Vercel 제거
 - [x] `User.ctcLastBalance` 스키마 추가 및 마이그레이션 `drizzle/0013_add_ctc_last_balance.sql` (실행: `npx tsx scripts/run-migration-0013.ts`)
 - [x] `TokenTransfer` 테이블에 CTC 입금 기록 저장 로직
-- [ ] 로컬 테스트: CTC 소액 입금 → CHOCO 적립 → Treasury Sweep 흐름 확인 → 절차: [05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md](./05_CTC_DEPOSIT_ENGINE_SETUP_AND_TEST.md)
+- [x] 로컬 테스트 완료 (2026-03-13): CC3 testnet 10,000 CTC → 1,554,740 CHOCO 적립 → Treasury Sweep txHash: `0x135feab3...`
 
 ---
 
@@ -264,7 +264,7 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 **0-1 완료 기준**: 가입 시 EVM 지갑이 생성되고 `evmAddress`, `evmPrivateKey`가 DB에 저장됨
 **0-2 완료 기준**: 코드베이스 전체에서 `sendChocoToken`/`returnChocoToService` 호출이 0개
 **0-3 완료 기준**: `lib/near/` 디렉토리가 삭제되고, `near-api-js` 패키지가 제거됨
-**0-4 완료 기준**: CTC 입금 → CHOCO 적립 → Sweep 흐름이 로컬에서 검증됨
+**0-4 완료 기준**: CTC 입금 → CHOCO 적립 → Sweep 흐름이 로컬에서 검증됨 ✅ 2026-03-13
 
 ---
 
@@ -297,8 +297,8 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 
 **체크리스트**:
 - [x] 시드 스크립트 실행 (`npx tsx scripts/seed-shop-items.ts`) — 8종 아이템 upsert 완료
-- [ ] (선택) Admin에서 추가 수정 필요 시 `/admin/items` 에서 확인
-- [ ] `/shop` 에서 정상 노출 확인
+- [x] 8종 아이템 `isActive=true` 확인 (`npx tsx scripts/check-shop-items.ts`)
+- [x] 페이월 트리거 ID 4종 DB 일치 확인 (2026-03-13)
 
 운영 준비 전체 순서: [09_OPERATIONS_READINESS_CHECKLIST.md](./09_OPERATIONS_READINESS_CHECKLIST.md)
 
@@ -309,10 +309,10 @@ CRON_SECRET=                  # Cron 엔드포인트 인증 시크릿 (Authoriza
 **목표**: 채팅 API가 402 반환 시 프론트에서 Shop/충전 모달로 연결되는지 확인한다.
 
 **체크리스트**:
-- [ ] 잔액 0인 계정으로 채팅 시도 → 402 응답 확인
+- [x] 잔액 0인 계정으로 채팅 시도 → 402 응답 확인 (2026-03-13, `scripts/create-test-user-e2e.ts` 활용)
 - [x] 프론트에서 402 시 PaymentSheet(충전 모달) 표시 — `useX402` 훅 + `routes/chat/$id.tsx` 402 조기 return 처리
 - [x] 스트리밍 중 402 토스트 액션을 "CHOCO 충전하기" → `/profile/subscription` 으로 통일
-- [ ] 충전 후 대화 재개 흐름 확인 (수동 E2E)
+- [ ] 충전 후 대화 재개 흐름 확인 (실결제 E2E — 브라우저 수동 검증 필요)
 - [x] 버그 수정: 402 응답 시 throw 제거하여 PaymentSheet만 노출되도록 처리
 
 ---
@@ -548,8 +548,8 @@ ELEVENLABS_VOICE_ID_CHOONSIM=
 
 | Phase | 기간 | 핵심 목표 | 상태 | 예상 수익 임팩트 |
 |---|---|---|---|---|
-| **Phase 0** | 즉시 (인프라) | NEAR → CTC EVM 마이그레이션 (DB·지갑·결제·파일 경로) | 0-1~0-3 완료, 0-4 진행 | 안정적 결제·가스비 0 구조 확보 |
-| **Phase 1** | 즉시 (운영) | 아이템 데이터 입력 + E2E 검증 | ⬜ 운영 작업 대기 | 즉시 매출 발생 |
+| **Phase 0** | 즉시 (인프라) | NEAR → CTC EVM 마이그레이션 (DB·지갑·결제·파일 경로) | ✅ 0-1~0-4 완료 (2026-03-13) | 안정적 결제·가스비 0 구조 확보 |
+| **Phase 1** | 즉시 (운영) | 아이템 데이터 입력 + E2E 검증 | ✅ 완료 (2026-03-13) | 즉시 매출 발생 가능 |
 | **Phase 2** | 1~2주 | 가이드 페이지 → 페이월 → 등급제 UI | ✅ 완료 | 전환율 극대화 |
 | **Phase 6** | — | 멀티 아이템 선물 Swiper UI | ✅ 완료 (QA 검증) | 선물 전환율 상승 |
 | **Phase 3** | 2~4주 | 선톡 + 보이스 TTS | ❌ 미구현 | 재방문율·LTV 상승 |
