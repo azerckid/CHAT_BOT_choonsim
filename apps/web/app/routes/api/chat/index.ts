@@ -216,10 +216,23 @@ export async function action({ request }: ActionFunctionArgs) {
             let fullContent = "";
             let paywallTriggerType: string | null = null;
             let isAborted = false;
+            let isClosed = false;
+
+            // 스트리밍 타임아웃: 120초 후 자동 종료
+            const streamTimeoutId = setTimeout(() => {
+                if (!isClosed) {
+                    isAborted = true;
+                    isClosed = true;
+                    controller.close();
+                }
+            }, 120_000);
 
             const abortHandler = () => {
                 isAborted = true;
-                controller.close();
+                if (!isClosed) {
+                    isClosed = true;
+                    controller.close();
+                }
             };
             request.signal.addEventListener("abort", abortHandler);
 
@@ -228,6 +241,7 @@ export async function action({ request }: ActionFunctionArgs) {
                 const userChocoBalance = currentUser?.chocoBalance ? parseFloat(currentUser.chocoBalance) : 0;
                 if (!currentUser || userChocoBalance < MIN_REQUIRED_CHOCO) {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Insufficient CHOCO balance", code: 402 })}\n\n`));
+                    isClosed = true;
                     controller.close();
                     return;
                 }
@@ -338,12 +352,20 @@ export async function action({ request }: ActionFunctionArgs) {
                     }
                 }
 
-                // 3단계: 각 말풍선을 하나씩 순차적으로 스트리밍
+                // 3단계: 각 말풍선 스트리밍 (DB 저장은 스트림 종료 후 일괄 처리)
+                const pendingMessageSaves: Array<{
+                    id: string;
+                    content: string;
+                    mediaUrl: string | null;
+                    isFirst: boolean;
+                }> = [];
+
                 for (let i = 0; i < messageParts.length; i++) {
                     const part = messageParts[i];
                     const emotionMarker = extractEmotionMarker(part);
                     const emotionCode = emotionMarker.emotion;
                     const finalContent = emotionMarker.content;
+                    const messageId = crypto.randomUUID();
 
                     if (emotionCode) {
                         let expiresAt: Date | null = null;
@@ -358,7 +380,7 @@ export async function action({ request }: ActionFunctionArgs) {
                             expiresAt: expiresAt?.toISOString()
                         })}\n\n`));
 
-                        // DB 업데이트 (비동기)
+                        // DB 업데이트 (비동기 fire-and-forget)
                         db.insert(schema.characterStat)
                             .values({
                                 id: crypto.randomUUID(),
@@ -381,53 +403,57 @@ export async function action({ request }: ActionFunctionArgs) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ mediaUrl: photoUrl })}\n\n`));
                     }
 
-                    // Phase 3: 수동 타이핑 지연 제거 - 전체 텍스트를 즉시 스트리밍
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: finalContent })}\n\n`));
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId, mediaUrl: (i === 0 && photoUrl) ? photoUrl : null })}\n\n`));
 
-                    // 메시지 저장
-                    const [savedMessage] = await db.insert(schema.message).values({
-                        id: crypto.randomUUID(),
-                        role: "assistant",
+                    pendingMessageSaves.push({
+                        id: messageId,
                         content: finalContent,
-                        conversationId,
-                        createdAt: new Date(),
-                        type: "TEXT",
                         mediaUrl: (i === 0 && photoUrl) ? photoUrl : null,
-                        mediaType: (i === 0 && photoUrl) ? "image" : null,
-                    }).returning();
-
-                    if (i === 0 && savedMessage) {
-                        try {
-                            const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-                            await db.insert(schema.agentExecution).values({
-                                id: crypto.randomUUID(),
-                                messageId: savedMessage.id,
-                                agentName: `gemini-2.5-flash-${characterId}`,
-                                intent: personality || "hybrid",
-                                promptTokens: usage.promptTokens,
-                                completionTokens: usage.completionTokens,
-                                totalTokens: usage.totalTokens,
-                                createdAt: new Date(),
-                            });
-                        } catch (executionError) {
-                            logger.error({ category: "API", message: "Failed to save AgentExecution:", stackTrace: (executionError as Error).stack });
-                        }
-                    }
-
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ messageComplete: true, messageId: savedMessage?.id, mediaUrl: (i === 0 && photoUrl) ? photoUrl : null })}\n\n`));
-
+                        isFirst: i === 0,
+                    });
                 }
 
-                // 스트리밍 완료 시 토큰 사용량 정보 전송
+                // 스트리밍 완료 이벤트 전송
                 const usage = tokenUsage || { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, usage })}\n\n`));
 
-                // 페이월 트리거 전송 (있는 경우)
                 if (paywallTriggerType) {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ paywallTrigger: paywallTriggerType })}\n\n`));
                 }
 
-                // 5계층 memory: 대화에서 기억 추출용 메시지 구성 (Phase 9: User.bio memory 쓰기 제거, 새 테이블만 사용)
+                // 스트림 즉시 종료 — 클라이언트는 모든 이벤트를 이미 수신
+                isClosed = true;
+                controller.close();
+
+                // 스트림 종료 후 DB 저장 일괄 처리 (클라이언트 응답과 무관하게 백그라운드 실행)
+                const firstMsgSave = pendingMessageSaves[0];
+                await Promise.allSettled([
+                    ...pendingMessageSaves.map(msg =>
+                        db.insert(schema.message).values({
+                            id: msg.id,
+                            role: "assistant",
+                            content: msg.content,
+                            conversationId,
+                            createdAt: new Date(),
+                            type: "TEXT",
+                            mediaUrl: msg.mediaUrl,
+                            mediaType: msg.mediaUrl ? "image" : null,
+                        })
+                    ),
+                    firstMsgSave ? db.insert(schema.agentExecution).values({
+                        id: crypto.randomUUID(),
+                        messageId: firstMsgSave.id,
+                        agentName: `gemini-2.5-flash-${characterId}`,
+                        intent: personality || "hybrid",
+                        promptTokens: usage.promptTokens,
+                        completionTokens: usage.completionTokens,
+                        totalTokens: usage.totalTokens,
+                        createdAt: new Date(),
+                    }).catch(err => logger.error({ category: "API", message: "Failed to save AgentExecution:", stackTrace: (err as Error).stack })) : Promise.resolve(),
+                ]);
+
+                // 5계층 memory: 대화에서 기억 추출용 메시지 구성
                 const allMessagesForSummary: BaseMessage[] = [
                     ...formattedHistory.map(h => {
                         let content = h.content || (h.mediaUrl ? "이 사진(그림)을 확인해줘." : " ");
@@ -440,7 +466,6 @@ export async function action({ request }: ActionFunctionArgs) {
                     new AIMessage(fullContent)
                 ];
 
-                // 5계층 memory: 대화에서 기억 추출 후 저장 (실패 시 로그만)
                 try {
                     await Promise.all([
                         extractAndSaveMemoriesFromConversation(
@@ -458,8 +483,6 @@ export async function action({ request }: ActionFunctionArgs) {
                         metadata: { conversationId, characterId },
                     });
                 }
-
-                controller.close();
             } catch (error) {
                 logger.error({
                     category: "API",
@@ -467,7 +490,13 @@ export async function action({ request }: ActionFunctionArgs) {
                     stackTrace: (error as Error).stack,
                     metadata: { conversationId, characterId }
                 });
-                controller.error(error);
+                if (!isClosed) {
+                    isClosed = true;
+                    controller.error(error);
+                }
+            } finally {
+                clearTimeout(streamTimeoutId);
+                request.signal.removeEventListener("abort", abortHandler);
             }
         },
     });
