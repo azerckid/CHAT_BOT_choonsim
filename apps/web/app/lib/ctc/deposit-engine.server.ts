@@ -35,9 +35,14 @@ async function getCtcPriceUSD(): Promise<number | null> {
   try {
     const res = await fetch(CTC_PRICE_API_URL);
     if (!res.ok) return null;
-    const data = (await res.json()) as { price?: number; usd?: number };
-    const price = data.price ?? data.usd ?? null;
-    return typeof price === "number" ? price : null;
+    const data = await res.json() as Record<string, unknown>;
+    // CoinGecko: {"creditcoin-2":{"usd":0.xxx}}
+    const nested = data["creditcoin-2"] as Record<string, unknown> | undefined;
+    if (nested && typeof nested.usd === "number") return nested.usd;
+    // Flat format fallback: {"price":0.xxx} or {"usd":0.xxx}
+    if (typeof data.price === "number") return data.price;
+    if (typeof data.usd === "number") return data.usd;
+    return null;
   } catch (e) {
     logger.error({
       category: "SYSTEM",
