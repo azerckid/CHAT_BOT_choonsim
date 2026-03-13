@@ -311,7 +311,8 @@ export default function ChatRoom() {
   useEffect(() => {
     setMessages(prev => {
       const incomingIds = new Set(initialMessages.map(m => m.id));
-      const optimisticMessages = prev.filter(m => m.role === "user" && !incomingIds.has(m.id));
+      // AI 스트리밍/타이프라이터 완료 직후에는 아직 DB에 없는 assistant 낙관적 메시지도 보존
+      const optimisticMessages = prev.filter(m => !incomingIds.has(m.id));
 
       const merged = [...initialMessages, ...optimisticMessages].sort(
         (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
